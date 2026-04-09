@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { initialSettings } from '../data/initialData';
 
 const TABS = [
   { id: 'company', label: 'Company', icon: '🏢' },
@@ -12,12 +13,15 @@ const TABS = [
   { id: 'data', label: 'Data', icon: '💾' },
 ];
 
-export default function Settings({ settings, setSettings, profile, onSignOut }) {
+export default function Settings({ settings: rawSettings, setSettings, profile, onSignOut }) {
+  // Merge with defaults so newly-added fields always exist
+  const settings = { ...initialSettings, ...rawSettings };
+
   const [activeTab, setActiveTab] = useState('company');
   const [saved, setSaved] = useState(false);
 
   function update(field, value) {
-    setSettings(prev => ({ ...prev, [field]: value }));
+    setSettings(prev => ({ ...initialSettings, ...prev, [field]: value }));
   }
 
   function showSaved() {
