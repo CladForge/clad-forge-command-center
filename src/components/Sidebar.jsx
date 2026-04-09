@@ -13,7 +13,7 @@ const navSections = [
     items: [
       { path: '/clients', label: 'Clients', icon: 'clients' },
       { path: '/pipeline', label: 'Pipeline', icon: 'pipeline' },
-      { path: '/sow', label: 'SOW / Proposals', icon: 'sow' },
+      { path: '/proposals', label: 'Proposals', icon: 'sow' },
       { path: '/invoices', label: 'Invoices', icon: 'invoices' },
       { path: '/time', label: 'Time Tracker', icon: 'time' },
     ],

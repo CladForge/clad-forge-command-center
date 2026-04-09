@@ -5,7 +5,7 @@ const pageTitles = {
   '/': 'Dashboard',
   '/clients': 'Client Tracker',
   '/pipeline': 'Project Pipeline',
-  '/sow': 'SOW / Proposals',
+  '/proposals': 'Proposals',
   '/invoices': 'Invoices',
   '/time': 'Time Tracker',
   '/branding': 'Brand Guide',

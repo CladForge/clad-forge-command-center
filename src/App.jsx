@@ -8,7 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Pipeline from './pages/Pipeline';
-import SOWGenerator from './pages/SOWGenerator';
+import Proposals from './pages/Proposals';
 import Invoices from './pages/Invoices';
 import TimeTracker from './pages/TimeTracker';
 import BrandingGuide from './pages/BrandingGuide';
@@ -99,7 +99,7 @@ export default function App() {
             <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} activities={activities} />} />
             <Route path="/clients" element={<Clients clients={clients} setClients={setClients} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} />} />
-            <Route path="/sow" element={<SOWGenerator clients={clients} sows={sows} setSOWs={setSOWs} settings={settings} />} />
+            <Route path="/proposals" element={<Proposals clients={clients} projects={projects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} />} />
             <Route path="/time" element={<TimeTracker projects={projects} clients={clients} />} />
             <Route path="/branding" element={<BrandingGuide />} />
