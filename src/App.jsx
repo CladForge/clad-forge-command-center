@@ -97,7 +97,7 @@ export default function App() {
         <main className="app__content">
           <Routes>
             <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} activities={activities} settings={settings} />} />
-            <Route path="/clients" element={<Clients clients={clients} setClients={setClients} />} />
+            <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} />} />
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} />} />
