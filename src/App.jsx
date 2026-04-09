@@ -100,7 +100,7 @@ export default function App() {
             <Route path="/clients" element={<Clients clients={clients} setClients={setClients} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} />} />
             <Route path="/sow" element={<SOWGenerator clients={clients} sows={sows} setSOWs={setSOWs} settings={settings} />} />
-            <Route path="/invoices" element={<Invoices clients={clients} />} />
+            <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} />} />
             <Route path="/time" element={<TimeTracker projects={projects} clients={clients} />} />
             <Route path="/branding" element={<BrandingGuide />} />
             <Route path="/settings" element={<Settings settings={settings} setSettings={setSettings} profile={profile} onSignOut={handleSignOut} />} />
