@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffb84d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff8c00;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Main amber hexagon -->
+  <path d="
+    M 540 140
+    L 887 340
+    L 887 740
+    L 540 940
+    L 193 740
+    L 193 340
+    Z
+
+    M 540 350
+    L 385 440
+    L 385 640
+    L 540 730
+    L 695 640
+    L 695 440
+    Z
+  " fill="url(#g1)" fill-rule="evenodd"/>
+
+</svg>
