@@ -160,15 +160,54 @@ export const initialActivities = [
 ];
 
 export const initialSettings = {
+  // ── Company Profile ──
   companyName: 'Clad Forge',
   companyEmail: 'cort@cladforge.com',
   companyPhone: '+1 (800) 555-1234',
   companyAddress: 'Tyler, Texas',
+  companyWebsite: 'https://cladforge.com',
+  taxId: '',
   ownerName: 'Courtland Adaire',
   ownerTitle: 'Founder & Engineer',
+
+  // ── Invoicing ──
   defaultPaymentTerms: 'Net 30',
   defaultCurrency: 'USD',
+  defaultTaxRate: 0,
+  invoicePrefix: 'INV',
+  invoiceNextNumber: 1,
+  defaultInvoiceNotes: 'Thank you for your business. Please remit payment by the due date.',
+  paymentInstructions: '',
+  autoDetectOverdue: true,
+
+  // ── SOW / Proposals ──
+  sowPrefix: 'SOW',
   sowFooter: 'This Statement of Work is subject to the terms and conditions of the Master Services Agreement between Clad Forge and the Client.',
+  defaultSowTerms: 'Payment schedule: 30% upon signing, 30% at midpoint delivery, 40% upon final delivery. All work remains property of Clad Forge until final payment is received. Includes 30 days of post-delivery support.',
+  defaultPaymentSchedule: '30 / 30 / 40',
+
+  // ── Time Tracking ──
+  defaultHourlyRate: 150,
+  timeRounding: 'none',
+  workHoursPerDay: 8,
+
+  // ── Pipeline ──
+  pipelineStages: 'Lead, Proposal, Active, Review, Completed',
+  defaultStage: 'lead',
+
+  // ── Appearance ──
+  accentColor: '#b45309',
+  dateFormat: 'MM/DD/YYYY',
+  sidebarCollapsed: false,
+
+  // ── Notifications ──
+  invoiceReminderDays: 3,
+  clientFollowUpDays: 14,
+  projectDeadlineWarningDays: 7,
+
+  // ── Client Defaults ──
+  defaultIndustry: 'Construction',
+  customIndustries: 'Construction, Energy & Utilities, Manufacturing, Logistics, Oil & Gas, Engineering Services, Telecommunications, Other',
 };
 
 export function generateId() {
