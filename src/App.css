@@ -96,10 +96,11 @@
 
 .login-card h1 {
   font-family: var(--font-display);
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 400;
   color: var(--ink);
   margin-bottom: 4px;
+  letter-spacing: -0.01em;
 }
 
 .login-card p {
@@ -281,10 +282,10 @@
 
 .sb-text h1 {
   font-family: var(--font-display);
-  font-size: 1.18rem;
+  font-size: 1.3rem;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.92);
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
 }
 
 .sb-text p {
@@ -480,10 +481,11 @@
 
 .topbar__title {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   font-weight: 400;
   color: var(--ink);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .topbar__spacer { flex: 1; }
@@ -670,7 +672,7 @@
 
 .panel__header h3 {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 400;
 }
 
@@ -897,7 +899,7 @@
 
 .dashboard__card-header h3 {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 400;
 }
 
@@ -1194,7 +1196,7 @@
 .branding__hero { display: flex; align-items: center; gap: 40px; padding: 36px; background: var(--white); border: 1px solid rgba(0, 0, 0, 0.04); border-radius: var(--radius-lg); margin-bottom: 36px; box-shadow: var(--shadow-sm); }
 .branding__hero-content { flex: 1; }
 .branding__hero-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--brand); font-weight: 600; display: block; margin-bottom: 10px; }
-.branding__hero-title { font-family: var(--font-display); font-size: 2.8rem; color: var(--ink); margin: 0; line-height: 1; }
+.branding__hero-title { font-family: var(--font-display); font-size: 3.2rem; color: var(--ink); margin: 0; line-height: 1; }
 .branding__hero-tagline { font-size: 1.1rem; color: var(--slate); margin-top: 6px; }
 .branding__hero-divider { width: 50px; height: 2px; background: var(--brand); margin: 16px 0; }
 .branding__hero-desc { font-size: 0.88rem; color: var(--slate-light); line-height: 1.6; max-width: 460px; }
@@ -1204,7 +1206,7 @@
 
 .branding__section { margin-bottom: 40px; }
 .branding__section-header { margin-bottom: 20px; }
-.branding__section-header h3 { font-family: var(--font-display); font-size: 1.3rem; font-weight: 400; margin-bottom: 4px; }
+.branding__section-header h3 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; margin-bottom: 4px; }
 .branding__section-header p { font-size: 0.85rem; color: var(--slate); }
 
 .branding__colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }

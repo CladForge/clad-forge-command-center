@@ -17,28 +17,28 @@ const brandColors = [
 
 const typographyItems = [
   {
-    name: 'Playfair Display',
-    family: "'Playfair Display', Georgia, serif",
+    name: 'Instrument Serif',
+    family: "'Instrument Serif', Georgia, serif",
     role: 'Display / Headings',
-    weights: ['400', '500', '600', '700'],
+    weights: ['400'],
     sample: 'Clad Forge',
-    description: 'Elegant serif used for page titles, section headings, and branding elements. Conveys authority and craftsmanship.',
+    description: 'Modern editorial serif for page titles and section headings. Thin, elegant strokes convey sophistication and authority. Supports italic for emphasis. Trending across top SaaS products.',
   },
   {
-    name: 'DM Sans',
-    family: "'DM Sans', sans-serif",
+    name: 'Inter',
+    family: "'Inter', sans-serif",
     role: 'Body / UI',
-    weights: ['300', '400', '500', '600'],
+    weights: ['300', '400', '500', '600', '700'],
     sample: 'Industrial Digital Engineering',
-    description: 'Clean sans-serif for body text, navigation, form labels, and all interface elements. Highly readable at all sizes.',
+    description: 'Designed specifically for computer screens by Rasmus Andersson. Features optical sizing, tabular numbers, and exceptional readability at all sizes. The gold standard for interface typography.',
   },
   {
-    name: 'IBM Plex Mono',
-    family: "'IBM Plex Mono', monospace",
+    name: 'JetBrains Mono',
+    family: "'JetBrains Mono', monospace",
     role: 'Data / Technical',
-    weights: ['300', '400', '500', '600'],
-    sample: 'const forge = build()',
-    description: 'Monospace font for data displays, code snippets, technical specifications, and tabular data.',
+    weights: ['400', '500', '600'],
+    sample: '$45,000.00 — INV-001',
+    description: 'Premium monospace typeface optimized for reading code and data. Distinct character forms prevent ambiguity. Perfect for financial figures, invoice numbers, and timestamps.',
   },
 ];
 
