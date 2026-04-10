@@ -196,7 +196,8 @@ export const initialSettings = {
   defaultStage: 'lead',
 
   // ── Appearance ──
-  accentColor: '#b45309',
+  theme: 'dark',
+  accentColor: '#ff8c00',
   dateFormat: 'MM/DD/YYYY',
   sidebarCollapsed: false,
 

@@ -1824,3 +1824,77 @@
   .timer-card { flex-direction: column; text-align: center; }
   .timer-card__controls { flex-direction: column; width: 100%; }
 }
+
+/* ===== LIGHT THEME OVERRIDES ===== */
+
+[data-theme="light"] .app { background: var(--stone); }
+[data-theme="light"] .app--loading { background: var(--stone); }
+
+[data-theme="light"] .sidebar {
+  background: #1e293b;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(224, 120, 0, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(107, 102, 218, 0.04) 0%, transparent 50%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme="light"] .login-gradient {
+  background: linear-gradient(135deg, #f4f5f7, #fff7ed, #f4f5f7, #fef3c7, #f4f5f7);
+  background-size: 400% 400%;
+}
+
+[data-theme="light"] .login-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border);
+}
+
+[data-theme="light"] .login-field input {
+  background: var(--white);
+  border-color: var(--border-light);
+  color: var(--ink);
+}
+
+[data-theme="light"] .login-glow {
+  background: radial-gradient(ellipse at 50% 40%, rgba(224, 120, 0, 0.08) 0%, transparent 65%);
+}
+
+[data-theme="light"] .modal-overlay { background: rgba(0, 0, 0, 0.3); }
+[data-theme="light"] .modal { background: var(--white); border: 1px solid var(--border); }
+
+[data-theme="light"] .btn--primary {
+  box-shadow: 0 2px 8px rgba(224, 120, 0, 0.2);
+}
+
+[data-theme="light"] .btn--primary:hover {
+  box-shadow: 0 4px 16px rgba(224, 120, 0, 0.3);
+}
+
+[data-theme="light"] .btn--secondary,
+[data-theme="light"] .btn--ghost {
+  background: var(--white);
+  border-color: var(--border-light);
+  color: var(--ink);
+}
+
+[data-theme="light"] .btn--secondary:hover,
+[data-theme="light"] .btn--ghost:hover {
+  background: var(--stone);
+}
+
+[data-theme="light"] .dash__welcome {
+  background: #1e293b;
+  background-image: radial-gradient(ellipse at 10% 40%, rgba(224,120,0,0.08) 0%, transparent 55%);
+  color: #fff;
+}
+
+[data-theme="light"] .pipeline__column { background: var(--white); border: 1px solid var(--border); }
+
+[data-theme="light"] .nav-item--active { background: rgba(224, 120, 0, 0.12); color: var(--brand-mid); }
+[data-theme="light"] .nav-item--active::before { background: var(--brand-mid); }
+
+[data-theme="light"] .settings__color-picker { background: var(--white); border-color: var(--border-light); }

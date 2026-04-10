@@ -51,6 +51,12 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Apply saved theme on load
+  useEffect(() => {
+    const savedTheme = settings?.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, [settings?.theme]);
+
   async function handleSignOut() {
     await supabase.auth.signOut();
   }

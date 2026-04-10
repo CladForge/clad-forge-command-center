@@ -324,6 +324,20 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                 description="Customize the look and feel of your Command Center"
               />
               <div className="settings__section">
+                <h4 className="settings__section-title">Theme</h4>
+                <ToggleField
+                  label="Light Mode"
+                  description="Switch between dark and light theme across the entire application"
+                  value={settings.theme === 'light'}
+                  onChange={v => {
+                    const newTheme = v ? 'light' : 'dark';
+                    update('theme', newTheme);
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                  }}
+                />
+              </div>
+
+              <div className="settings__section">
                 <h4 className="settings__section-title">Brand Accent Color</h4>
                 <div className="settings__color-row">
                   <input
@@ -332,9 +346,9 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                     onChange={e => update('accentColor', e.target.value)}
                     className="settings__color-picker"
                   />
-                  <Field label="" value={settings.accentColor} onChange={v => update('accentColor', v)} placeholder="#b45309" />
+                  <Field label="" value={settings.accentColor} onChange={v => update('accentColor', v)} placeholder="#ff8c00" />
                   <div className="settings__color-swatches">
-                    {['#b45309', '#0369a1', '#047857', '#7c3aed', '#be123c', '#1e40af', '#854d0e'].map(color => (
+                    {['#ff8c00', '#0369a1', '#047857', '#7c3aed', '#be123c', '#1e40af', '#854d0e'].map(color => (
                       <button
                         key={color}
                         className={`settings__color-swatch ${settings.accentColor === color ? 'settings__color-swatch--active' : ''}`}
