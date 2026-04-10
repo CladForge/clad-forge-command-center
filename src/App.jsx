@@ -12,6 +12,10 @@ import Proposals from './pages/Proposals';
 import Invoices from './pages/Invoices';
 import TimeTracker from './pages/TimeTracker';
 import BrandingGuide from './pages/BrandingGuide';
+import Reports from './pages/Reports';
+import Calendar from './pages/Calendar';
+import AIAssistant from './pages/AIAssistant';
+import Automations from './pages/Automations';
 import Settings from './pages/Settings';
 import './App.css';
 
@@ -108,6 +112,10 @@ export default function App() {
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} />} />
             <Route path="/time" element={<TimeTracker projects={projects} clients={clients} />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/ai" element={<AIAssistant />} />
+            <Route path="/automations" element={<Automations />} />
             <Route path="/branding" element={<BrandingGuide />} />
             <Route path="/settings" element={<Settings settings={settings} setSettings={setSettings} profile={profile} onSignOut={handleSignOut} />} />
           </Routes>
