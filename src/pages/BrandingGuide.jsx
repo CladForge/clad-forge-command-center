@@ -1,44 +1,48 @@
 import { useState } from 'react';
 
 const brandColors = [
-  { name: 'Brand', hex: '#b45309', usage: 'Primary brand color, buttons, CTAs' },
-  { name: 'Brand Deep', hex: '#92400e', usage: 'Pressed states, emphasis' },
-  { name: 'Brand Mid', hex: '#d97706', usage: 'Hover states, links' },
-  { name: 'Brand Soft', hex: '#f59e0b', usage: 'Highlights, accents' },
-  { name: 'Brand Pale', hex: '#fef3c7', usage: 'Backgrounds, badges' },
-  { name: 'Ink', hex: '#1f2937', usage: 'Primary text, headings' },
-  { name: 'Slate', hex: '#6b7280', usage: 'Secondary text, labels' },
-  { name: 'Stone', hex: '#f3f4f6', usage: 'Page background, subtle fills' },
-  { name: 'Success', hex: '#059669', usage: 'Success states, completed items' },
-  { name: 'Warning', hex: '#d97706', usage: 'Warning states, pending items' },
-  { name: 'Danger', hex: '#dc2626', usage: 'Error states, destructive actions' },
-  { name: 'Info', hex: '#2563eb', usage: 'Info states, links, review items' },
+  { name: 'Orange (Primary)', hex: '#ff8c00', usage: 'Primary brand color, buttons, CTAs, active states' },
+  { name: 'Orange Bright', hex: '#ffab40', usage: 'Hover states, gradient endpoints, highlights' },
+  { name: 'Orange Deep', hex: '#e07800', usage: 'Pressed states, scrollbar, emphasis' },
+  { name: 'Purple (Secondary)', hex: '#8f89fa', usage: 'Secondary accents, gradient endpoints, tags' },
+  { name: 'Purple Dim', hex: '#6b66da', usage: 'Subtle secondary accents' },
+  { name: 'Background Deep', hex: '#0e1017', usage: 'Page background, deepest surface' },
+  { name: 'Background Base', hex: '#13141d', usage: 'Base surface, card backgrounds' },
+  { name: 'Surface', hex: '#1a1b27', usage: 'Cards, panels, elevated surfaces' },
+  { name: 'Surface Elevated', hex: '#222336', usage: 'Hover states, dropdowns, modals' },
+  { name: 'Text Primary', hex: '#ffffff', usage: 'Headings, primary text, high emphasis' },
+  { name: 'Text Secondary', hex: '#8e8da0', usage: 'Body text, descriptions, labels' },
+  { name: 'Text Muted', hex: '#5a5b72', usage: 'Disabled text, placeholders, captions' },
+  { name: 'Success', hex: '#33b887', usage: 'Success states, completed items, online status' },
+  { name: 'Warning', hex: '#ffab40', usage: 'Warning states, pending items' },
+  { name: 'Danger', hex: '#ff3b26', usage: 'Error states, destructive actions' },
+  { name: 'Info', hex: '#3b82f6', usage: 'Info states, links, review items' },
 ];
 
 const typographyItems = [
   {
-    name: 'Instrument Serif',
-    family: "'Instrument Serif', Georgia, serif",
+    name: 'Plus Jakarta Sans',
+    family: "'Plus Jakarta Sans', sans-serif",
     role: 'Display / Headings',
-    weights: ['400'],
+    weights: ['400', '600', '700', '800'],
     sample: 'Clad Forge',
-    description: 'Modern editorial serif for page titles and section headings. Thin, elegant strokes convey sophistication and authority. Supports italic for emphasis. Trending across top SaaS products.',
+    description: 'Modern geometric sans-serif with tight letter-spacing (-1.5px to -2px on headings). Used for all display text, section titles, and hero headlines. Bold weights (700-800) create strong visual hierarchy on dark backgrounds.',
   },
   {
     name: 'Inter',
     family: "'Inter', sans-serif",
     role: 'Body / UI',
     weights: ['300', '400', '500', '600', '700'],
-    sample: 'Industrial Digital Engineering',
-    description: 'Designed specifically for computer screens by Rasmus Andersson. Features optical sizing, tabular numbers, and exceptional readability at all sizes. The gold standard for interface typography.',
+    sample: 'Systems That Work',
+    description: 'Designed for computer screens by Rasmus Andersson. Features optical sizing, tabular numbers, and exceptional readability at all sizes. Used for body copy, navigation, buttons, and all interface text.',
   },
   {
     name: 'JetBrains Mono',
     family: "'JetBrains Mono', monospace",
-    role: 'Data / Technical',
-    weights: ['400', '500', '600'],
-    sample: '$45,000.00 — INV-001',
-    description: 'Premium monospace typeface optimized for reading code and data. Distinct character forms prevent ambiguity. Perfect for financial figures, invoice numbers, and timestamps.',
+    role: 'Data / Labels',
+    weights: ['400', '500'],
+    sample: '$45,000.00 — Phase 01',
+    description: 'Premium monospace typeface for data display and technical labels. Used for financial figures, phase numbers, status indicators, and code-style tags. Uppercase with letter-spacing (1.5-2px) for labels.',
   },
 ];
 
@@ -57,21 +61,18 @@ export default function BrandingGuide() {
       <div className="branding__hero">
         <div className="branding__hero-content">
           <span className="branding__hero-label">Brand Identity</span>
-          <h2 className="branding__hero-title">CLAD FORGE</h2>
-          <p className="branding__hero-tagline">Industrial Digital Engineering</p>
+          <h2 className="branding__hero-title" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, letterSpacing: '-1.5px' }}>CLAD FORGE</h2>
+          <p className="branding__hero-tagline">Systems That Work</p>
           <div className="branding__hero-divider" />
           <p className="branding__hero-desc">
-            Engineering-driven. Custom-built. Zero templates. Our brand represents
-            the precision and strength of industrial engineering applied to digital solutions.
+            Engineering-driven. Custom-built. Zero templates. Our brand combines
+            the precision of engineering with a dark, premium aesthetic inspired by
+            modern SaaS design — orange primary, purple secondary, glassmorphism surfaces.
           </p>
         </div>
         <div className="branding__hero-graphic">
           <div className="branding__forge-mark">
-            <svg viewBox="0 0 120 120" fill="none">
-              <rect x="5" y="5" width="110" height="110" rx="8" stroke="var(--amber)" strokeWidth="2" opacity="0.3" />
-              <rect x="15" y="15" width="90" height="90" rx="6" stroke="var(--amber)" strokeWidth="1.5" opacity="0.5" />
-              <path d="M35 35h50v12H47v12h26v12H47v12h38v12H35V35z" fill="var(--amber)" opacity="0.8" />
-            </svg>
+            <img src="/src/assets/cladforge-logo.svg" alt="Clad Forge" style={{ width: 80, height: 80 }} />
           </div>
         </div>
       </div>
@@ -85,7 +86,7 @@ export default function BrandingGuide() {
         <div className="branding__colors">
           {brandColors.map((color, i) => (
             <div
-              key={color.hex}
+              key={color.hex + color.name}
               className="branding__color-card"
               style={{ animationDelay: `${i * 50}ms` }}
               onClick={() => copyColor(color.hex)}
@@ -112,7 +113,7 @@ export default function BrandingGuide() {
       <section className="branding__section">
         <div className="branding__section-header">
           <h3>Typography</h3>
-          <p>Three carefully selected typefaces for different contexts</p>
+          <p>Three typefaces for different contexts — matching cladforge.com</p>
         </div>
         <div className="branding__typography">
           {typographyItems.map((type, i) => (
@@ -157,47 +158,53 @@ export default function BrandingGuide() {
       <section className="branding__section">
         <div className="branding__section-header">
           <h3>Visual Elements</h3>
-          <p>Key design patterns and visual principles</p>
+          <p>Key design patterns from cladforge.com</p>
         </div>
         <div className="branding__elements">
           <div className="branding__element-card">
-            <h4>Glassmorphism</h4>
+            <h4>Glassmorphism Cards</h4>
             <div className="branding__demo branding__demo--glass">
               <div className="branding__glass-card">
-                <span>Frosted Glass Card</span>
-                <p>backdrop-filter: blur(10px)</p>
+                <span>Glass Surface</span>
+                <p>rgba(255,255,255,0.04) + border</p>
               </div>
             </div>
-            <p>Semi-transparent cards with backdrop blur for depth and hierarchy</p>
+            <p>Semi-transparent cards with subtle borders and inset highlight shadows on dark backgrounds</p>
           </div>
 
           <div className="branding__element-card">
-            <h4>Amber Glow Effects</h4>
+            <h4>Orange Glow Effects</h4>
             <div className="branding__demo branding__demo--glow">
               <div className="branding__glow-box">
                 <span>Hover to Glow</span>
               </div>
             </div>
-            <p>Amber glow on interactive elements — borders, shadows, text</p>
+            <p>Orange glow shadows on buttons and interactive elements (box-shadow with rgba(255,140,0))</p>
           </div>
 
           <div className="branding__element-card">
-            <h4>Grid Patterns</h4>
+            <h4>Gradient Text</h4>
             <div className="branding__demo branding__demo--grid">
-              <div className="branding__grid-overlay" />
-              <span>Industrial Grid</span>
+              <span style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 800,
+                fontSize: '1.4rem',
+                background: 'linear-gradient(135deg, #ff8c00, #8f89fa)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>Orange to Purple</span>
             </div>
-            <p>Subtle grid overlays for technical, industrial aesthetic</p>
+            <p>Gradient text from orange primary to purple secondary for highlighted headings</p>
           </div>
 
           <div className="branding__element-card">
-            <h4>Corner Brackets</h4>
+            <h4>Pill Buttons</h4>
             <div className="branding__demo branding__demo--brackets">
-              <div className="branding__bracket-box">
-                <span>Precision Framing</span>
-              </div>
+              <button className="btn btn--primary" style={{ pointerEvents: 'none' }}>Primary Action</button>
+              <button className="btn btn--secondary" style={{ pointerEvents: 'none', marginLeft: 8 }}>Secondary</button>
             </div>
-            <p>Geometric accent lines at corners for an engineered feel</p>
+            <p>Fully rounded (border-radius: 100px) buttons with glow shadows matching Superlist style</p>
           </div>
         </div>
       </section>
@@ -217,12 +224,13 @@ export default function BrandingGuide() {
               Do
             </h4>
             <ul>
-              <li>Use Bebas Neue in all-caps for display text</li>
-              <li>Maintain dark backgrounds with amber accents</li>
-              <li>Apply glassmorphism for card hierarchy</li>
-              <li>Use IBM Plex Mono for data and technical content</li>
-              <li>Include subtle animations for interactivity</li>
-              <li>Maintain high contrast for readability</li>
+              <li>Use Plus Jakarta Sans (700-800) for headings with tight letter-spacing</li>
+              <li>Maintain dark backgrounds with orange primary accents</li>
+              <li>Apply glassmorphism for card and surface hierarchy</li>
+              <li>Use JetBrains Mono for data, labels, and technical content</li>
+              <li>Use pill-shaped buttons (border-radius: 100px)</li>
+              <li>Apply orange-to-purple gradients for highlighted text</li>
+              <li>Include subtle hover animations (translateY, glow shadows)</li>
             </ul>
           </div>
           <div className="branding__guideline branding__guideline--dont">
@@ -233,12 +241,13 @@ export default function BrandingGuide() {
               Don't
             </h4>
             <ul>
-              <li>Use light backgrounds as primary surfaces</li>
-              <li>Mix brand amber with other warm accent colors</li>
-              <li>Use rounded, playful design patterns</li>
-              <li>Apply excessive decorative animations</li>
-              <li>Use serif fonts or handwriting styles</li>
-              <li>Reduce contrast below WCAG AA standards</li>
+              <li>Use light/white backgrounds as primary surfaces</li>
+              <li>Mix brand orange with other warm accent colors (red, yellow)</li>
+              <li>Use squared-off buttons (always pill-shaped)</li>
+              <li>Apply heavy decorative animations that distract</li>
+              <li>Use serif fonts for UI elements</li>
+              <li>Reduce contrast below WCAG AA standards on dark surfaces</li>
+              <li>Use borders heavier than 1-2px (keep them subtle)</li>
             </ul>
           </div>
         </div>
