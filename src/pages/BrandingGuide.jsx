@@ -72,7 +72,7 @@ export default function BrandingGuide() {
         </div>
         <div className="branding__hero-graphic">
           <div className="branding__forge-mark">
-            <img src="/src/assets/cladforge-logo.svg" alt="Clad Forge" style={{ width: 80, height: 80 }} />
+            <img src="/favicon.svg" alt="Clad Forge" style={{ width: 80, height: 80 }} />
           </div>
         </div>
       </div>
