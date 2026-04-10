@@ -1,40 +1,51 @@
 /* ===== CLAD FORGE — Command Center Global Styles ===== */
-/* Professional light theme inspired by modern SaaS dashboards */
+/* Dark professional theme matching cladforge.com */
 
 :root {
-  /* Brand Colors */
-  --brand: #b45309;
-  --brand-deep: #92400e;
-  --brand-mid: #d97706;
-  --brand-soft: #f59e0b;
-  --brand-pale: #fef3c7;
-  --brand-wash: #fffbeb;
+  /* Brand Colors — Orange primary, Purple secondary */
+  --brand: #ff8c00;
+  --brand-deep: #e07800;
+  --brand-mid: #ffab40;
+  --brand-soft: #ffab40;
+  --brand-pale: rgba(255, 140, 0, 0.15);
+  --brand-wash: rgba(255, 140, 0, 0.06);
+  --secondary: #8f89fa;
+  --secondary-dim: #6b66da;
 
-  /* Neutrals */
-  --stone: #f3f4f6;
-  --stone-dark: #e5e7eb;
-  --ink: #1f2937;
-  --slate: #6b7280;
-  --slate-light: #9ca3af;
-  --white: #ffffff;
+  /* Neutrals — Dark theme */
+  --stone: #0e1017;
+  --stone-dark: #1a1b27;
+  --ink: #ffffff;
+  --slate: #8e8da0;
+  --slate-light: #5a5b72;
+  --white: #13141d;
+
+  /* Surface colors */
+  --surface: #1a1b27;
+  --surface-elevated: #222336;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
 
   /* Semantic */
-  --success: #059669;
-  --success-bg: #ecfdf5;
-  --warning: #d97706;
-  --warning-bg: #fffbeb;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --info: #2563eb;
-  --info-bg: #eff6ff;
-  --purple: #7c3aed;
-  --purple-bg: #f5f3ff;
+  --success: #33b887;
+  --success-bg: rgba(51, 184, 135, 0.1);
+  --warning: #ffab40;
+  --warning-bg: rgba(255, 171, 64, 0.1);
+  --danger: #ff3b26;
+  --danger-bg: rgba(255, 59, 38, 0.1);
+  --info: #3b82f6;
+  --info-bg: rgba(59, 130, 246, 0.1);
+  --purple: #8f89fa;
+  --purple-bg: rgba(143, 137, 250, 0.1);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.16), 0 8px 20px rgba(0, 0, 0, 0.08);
+  /* Shadows — Dark theme */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.25);
+  --glass-shadow: 0px 1px 1px rgba(0,0,0,0.2), 0px 4px 12px rgba(0,0,0,0.15), inset 0px 0.5px 0px rgba(255,255,255,0.08);
 
   /* Layout */
   --sidebar-width: 260px;
@@ -48,14 +59,14 @@
   --bounce: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Typography */
-  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
   --font-body: 'Inter', -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.6;
-  font-feature-settings: 'cv11' 1, 'ss01' 1; /* Inter alternates */
+  font-feature-settings: 'cv11' 1, 'ss01' 1;
   font-optical-sizing: auto;
   color: var(--ink);
   background: var(--stone);
@@ -72,8 +83,8 @@
 }
 
 ::selection {
-  background: var(--brand-pale);
-  color: var(--brand-deep);
+  background: rgba(255, 140, 0, 0.3);
+  color: var(--ink);
 }
 
 body {
@@ -90,9 +101,9 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--stone-dark); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--slate-light); }
+::-webkit-scrollbar-track { background: var(--stone); }
+::-webkit-scrollbar-thumb { background: rgba(255, 140, 0, 0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--brand); }
 
 /* ===== KEYFRAME ANIMATIONS ===== */
 
@@ -161,8 +172,8 @@ input, textarea, select {
   font-family: var(--font-body);
   font-size: 0.85rem;
   color: var(--ink);
-  background: var(--white);
-  border: 1.5px solid var(--stone-dark);
+  background: var(--surface);
+  border: 1.5px solid var(--border-light);
   border-radius: var(--radius);
   padding: 10px 14px;
   outline: none;
@@ -171,8 +182,8 @@ input, textarea, select {
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: var(--brand-soft);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.12);
 }
 
 textarea {
