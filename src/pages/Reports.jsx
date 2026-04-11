@@ -244,8 +244,8 @@ export default function Reports({ clients, projects, sows, invoices, timeEntries
                   const client = clientMap[p.clientId];
                   return (
                     <tr key={p.id}>
-                      <td className="data-table__bold">{p.name}</td>
-                      <td>{client ? (client.company || client.name) : 'Unknown'}</td>
+                      <td className="data-table__bold">{p.title}</td>
+                      <td>{client ? client.company : 'Unknown'}</td>
                       <td className="data-table__mono">{fmt(p.budget || 0)}</td>
                       <td>{p.deadline || '--'}</td>
                     </tr>

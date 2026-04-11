@@ -608,12 +608,11 @@ export default function CRM({ deals, setDeals, crmActivities, setCrmActivities, 
         {activeClients.map(client => (
           <div key={client.id} className="client-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-              <strong style={{ fontSize: 15 }}>{client.name}</strong>
+              <strong style={{ fontSize: 15 }}>{client.company}</strong>
               <span className="status-badge status-badge--active">Active</span>
             </div>
-            {client.company && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>{client.company}</div>}
-            {client.industry && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{client.industry}</div>}
-            {client.value > 0 && <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent)' }}>{fmt(client.value)}</div>}
+            {client.industry && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>{client.industry}</div>}
+            {client.email && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{client.email}</div>}
           </div>
         ))}
         {activeClients.length === 0 && (

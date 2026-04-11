@@ -5,7 +5,7 @@ const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
 
 function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
 
-export default function Clients({ clients, setClients, projects, sows, settings: rawSettings }) {
+export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [] }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
   const [search, setSearch] = useState('');
@@ -58,6 +58,8 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         setClients={setClients}
         projects={projects}
         sows={sows}
+        invoices={invoices}
+        timeEntries={timeEntries}
         settings={settings}
         industries={industries}
         onBack={() => setViewClientId(null)}
@@ -168,7 +170,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    CLIENT PROFILE PAGE
    ═══════════════════════════════════════════ */
 
-function ClientProfile({ client, setClients, projects, sows, onBack, onEdit, onDelete }) {
+function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], onBack, onEdit, onDelete }) {
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
   const [editContact, setEditContact] = useState(null);
@@ -180,17 +182,13 @@ function ClientProfile({ client, setClients, projects, sows, onBack, onEdit, onD
   const clientProposals = sows.filter(s => s.clientId === client.id);
 
   const invoices = useMemo(() => {
-    try { return (JSON.parse(localStorage.getItem('cf-invoices')) || []).filter(i => i.clientId === client.id); } catch { return []; }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client.id]);
+    return allInvoices.filter(i => i.clientId === client.id);
+  }, [allInvoices, client.id]);
 
   const timeEntries = useMemo(() => {
-    try {
-      const entries = JSON.parse(localStorage.getItem('cf-time-entries')) || [];
-      const projectIds = clientProjects.map(p => p.id);
-      return entries.filter(e => projectIds.includes(e.projectId));
-    } catch { return []; }
-  }, [client.id, clientProjects]);
+    const projectIds = clientProjects.map(p => p.id);
+    return allTimeEntries.filter(e => projectIds.includes(e.projectId));
+  }, [allTimeEntries, clientProjects]);
 
   const totalHours = timeEntries.reduce((s, e) => s + (e.hours || 0) + (e.minutes || 0) / 60, 0);
   const invoiceTotal = invoices.reduce((s, inv) => {

@@ -349,7 +349,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
       ...f,
       projectId,
       clientId: client?.id || '',
-      clientName: client?.name || '',
+      clientName: client?.company || '',
       clientCompany: client?.company || '',
       clientEmail: client?.email || '',
       projectTitle: project.title,
@@ -706,7 +706,7 @@ function handleSendEmail(invoice, clients, settings) {
     .map((item, i) => `  ${i + 1}. ${item.description} — ${item.quantity} × ${formatCurrency(item.rate)} = ${formatCurrency(item.quantity * item.rate)}`)
     .join('\n');
 
-  const body = `Hi ${invoice.clientName || client?.name || ''},
+  const body = `Hi ${invoice.clientName || client?.company || ''},
 
 Please find the details for Invoice ${invoice.invoiceNumber} below.
 
@@ -795,7 +795,7 @@ function handlePrint(invoice, clients, settings) {
       </div>
     </div>
     <div class="two-col">
-      <div class="col"><h3>Bill To</h3><p class="name">${invoice.clientName || client?.name || ''}</p><p>${invoice.clientCompany || client?.company || ''}</p><p>${invoice.clientEmail || client?.email || ''}</p></div>
+      <div class="col"><h3>Bill To</h3><p class="name">${invoice.clientName || client?.company || ''}</p><p>${client?.email || ''}</p></div>
       <div class="col"><h3>Project</h3><p class="name">${invoice.projectTitle || ''}</p><p>Status: ${invoice.status}</p>${invoice.paidDate ? `<p>Paid: ${invoice.paidDate}</p>` : ''}</div>
     </div>
     <table><thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th class="right">Amount</th></tr></thead><tbody>

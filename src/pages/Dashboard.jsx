@@ -80,8 +80,9 @@ export default function Dashboard({ clients, projects, sows, activities, setting
   const maxMonthlyRev = Math.max(...monthlyRevenue.map(m => m.revenue), 1);
 
   // Top clients by value
+  const clientBudget = (c) => projects.filter(p => p.clientId === c.id).reduce((s, p) => s + (p.budget || 0), 0);
   const topClients = [...clients]
-    .sort((a, b) => (b.value || 0) - (a.value || 0))
+    .sort((a, b) => clientBudget(b) - clientBudget(a))
     .slice(0, 5);
 
   // Upcoming deadlines
@@ -219,10 +220,10 @@ export default function Dashboard({ clients, projects, sows, activities, setting
               <div key={client.id} className="dash__mini-row">
                 <span className="dash__mini-rank">{i + 1}</span>
                 <div className="dash__mini-info">
-                  <span className="dash__mini-name">{client.name}</span>
-                  <span className="dash__mini-sub">{client.company}</span>
+                  <span className="dash__mini-name">{client.company}</span>
+                  <span className="dash__mini-sub">{client.industry}</span>
                 </div>
-                <span className="dash__mini-value">{formatCurrency(client.value || 0)}</span>
+                <span className="dash__mini-value">{formatCurrency(clientBudget(client))}</span>
               </div>
             ))}
             {topClients.length === 0 && <div className="dash__chart-empty">No clients yet</div>}

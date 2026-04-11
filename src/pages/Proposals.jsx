@@ -141,7 +141,7 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
                       <span className={`status-pill status-pill--${proposal.status}`}>{STATUS_LABELS[proposal.status]}</span>
                     </div>
                     <h3 className="proposal-card__title">{proposal.projectTitle}</h3>
-                    <p className="proposal-card__client">{client?.name || '—'} · {client?.company || ''}</p>
+                    <p className="proposal-card__client">{client?.company || '—'}</p>
                     {proposal.description && (
                       <p className="proposal-card__desc">{proposal.description}</p>
                     )}
@@ -359,7 +359,7 @@ function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, o
                 <label>Client</label>
                 <select value={form.clientId} onChange={e => handleClientChange(e.target.value)}>
                   <option value="">Select client...</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.name} — {c.company}</option>)}
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.company}</option>)}
                 </select>
               </div>
               <div className="form-group form-group--full">
@@ -519,8 +519,8 @@ function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, o
             {client && (
               <div className="prop-summary__client">
                 <span className="prop-summary__client-label">Prepared for</span>
-                <span className="prop-summary__client-name">{client.name}</span>
-                <span className="prop-summary__client-company">{client.company}</span>
+                <span className="prop-summary__client-name">{client.company}</span>
+                {(client.contacts || [])[0] && <span className="prop-summary__client-company">{client.contacts[0].name}</span>}
               </div>
             )}
 
@@ -592,8 +592,8 @@ function ProposalPreview({ proposal, clients, settings, onBack, onEdit, onDelete
         <div className="prop-document__info">
           <div className="prop-document__info-col">
             <h4>Prepared For</h4>
-            <p className="prop-document__client-name">{client?.name || '—'}</p>
-            <p>{client?.company || ''}</p>
+            <p className="prop-document__client-name">{client?.company || '—'}</p>
+            {(client?.contacts || [])[0] && <p>{client.contacts[0].name}</p>}
             <p>{client?.email || ''}</p>
           </div>
           <div className="prop-document__info-col">
@@ -680,7 +680,7 @@ function ProposalPreview({ proposal, clients, settings, onBack, onEdit, onDelete
           <div className="prop-document__sig">
             <span className="prop-document__sig-label">Client</span>
             <div className="prop-document__sig-line" />
-            <span>{client?.name || '___________'}, {client?.company || '___________'}</span>
+            <span>{(client?.contacts || [])[0]?.name || '___________'}, {client?.company || '___________'}</span>
           </div>
         </div>
       </div>
@@ -733,7 +733,7 @@ function sendProposalEmail(proposal, clients, settings) {
     `  ${i + 1}. ${pkg.name}${pkg.optional ? ' (optional)' : ''} — ${formatCurrency(pkg.price)}`
   ).join('\n');
 
-  const body = `Hi ${client?.name || ''},
+  const body = `Hi ${(client?.contacts || [])[0]?.name || client?.company || ''},
 
 Thank you for the opportunity to work together. Please find our proposal for ${proposal.projectTitle} below.
 
@@ -809,7 +809,7 @@ function printProposal(proposal, clients, settings) {
     </style></head><body>
     <div class="header"><div><div class="company">${company}</div><h1>Proposal</h1><div class="number">${proposal.proposalNumber}</div></div>
     <div class="meta">Prepared ${proposal.createdAt?.split('T')[0]}<br>${proposal.validUntil ? `Valid until ${proposal.validUntil}` : ''}</div></div>
-    <div class="two-col"><div class="col"><h4>Prepared For</h4><p class="name">${client?.name || ''}</p><p>${client?.company || ''}</p><p>${client?.email || ''}</p></div>
+    <div class="two-col"><div class="col"><h4>Prepared For</h4><p class="name">${client?.company || ''}</p>${(client?.contacts || [])[0] ? `<p>${client.contacts[0].name}</p>` : ''}<p>${client?.email || ''}</p></div>
     <div class="col"><h4>Project</h4><p class="name">${proposal.projectTitle}</p>${proposal.timeline?.startDate ? `<p>${proposal.timeline.startDate} — ${proposal.timeline.endDate || 'TBD'}</p>` : ''}</div></div>
     ${proposal.description ? `<p class="desc">${proposal.description}</p>` : ''}
     <h3>Scope & Pricing</h3>
@@ -826,7 +826,7 @@ function printProposal(proposal, clients, settings) {
     </div>
     ${proposal.terms ? `<h3>Terms & Conditions</h3><p class="terms">${proposal.terms}</p>` : ''}
     <div class="sigs"><div class="sig"><span class="sig-label">Provider</span><div class="sig-line">${settings?.ownerName || ''}, ${company}</div></div>
-    <div class="sig"><span class="sig-label">Client</span><div class="sig-line">${client?.name || '___________'}, ${client?.company || '___________'}</div></div></div>
+    <div class="sig"><span class="sig-label">Client</span><div class="sig-line">${(client?.contacts || [])[0]?.name || '___________'}, ${client?.company || '___________'}</div></div></div>
     </body></html>`);
   w.document.close();
   setTimeout(() => w.print(), 500);
