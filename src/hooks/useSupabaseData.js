@@ -128,9 +128,12 @@ export function useSupabaseData() {
         if (notificationsRes.data) setNotificationsState(notificationsRes.data.map(snakeToCamel));
         if (automationsRes.data) setAutomationsState(automationsRes.data.map(snakeToCamel));
 
+        connectedRef.current = true;
         setConnected(true);
+        console.log('[CladForge] Supabase connected — all data loaded');
       } catch (err) {
-        console.warn('Supabase unavailable, using local data:', err.message);
+        console.warn('[CladForge] Supabase unavailable, using local data:', err.message);
+        connectedRef.current = false;
         setConnected(false);
       } finally {
         setLoading(false);
@@ -162,8 +165,9 @@ export function useSupabaseData() {
 
       if (next.length > prev.length) {
         const newClient = next.find(n => !prev.some(p => p.id === n.id));
-        if (newClient && connectedRef.current) {
-          supabase.from('clients').insert(camelToSnake(newClient)).then(({ error }) => { if (error) console.error('Client insert error:', error); });
+        if (newClient) {
+          console.log('[CladForge] Adding client, connected:', connectedRef.current, newClient.company);
+          if (connectedRef.current) supabase.from('clients').insert(camelToSnake(newClient)).then(({ error }) => { if (error) console.error('Client insert error:', error); else console.log('[CladForge] Client saved to Supabase ✅'); });
           addActivity('client', `New client added: ${newClient.company}`, 'user-plus');
         }
       } else if (next.length < prev.length) {
