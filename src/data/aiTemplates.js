@@ -1,0 +1,68 @@
+// AI Templates — pre-built prompts for common business tasks
+
+export const aiTemplates = [
+  {
+    id: 'proposal-draft',
+    name: 'Draft Proposal',
+    description: 'Generate a project proposal for a client',
+    icon: '📋',
+    requiredContext: ['selectedClient', 'selectedProject'],
+    prompt: 'Draft a professional project proposal for the focused client and project. Include: executive summary, scope of work, deliverables, timeline, investment/pricing, and next steps. Use the client\'s brand tone if available.',
+  },
+  {
+    id: 'follow-up-email',
+    name: 'Follow-up Email',
+    description: 'Draft a follow-up email for a client',
+    icon: '✉️',
+    requiredContext: ['selectedClient'],
+    prompt: 'Draft a professional follow-up email for the focused client. Be warm but professional. Reference any relevant project status or outstanding items.',
+  },
+  {
+    id: 'invoice-reminder',
+    name: 'Invoice Reminder',
+    description: 'Draft an overdue invoice reminder',
+    icon: '💰',
+    requiredContext: ['selectedClient'],
+    prompt: 'Draft a polite but firm overdue invoice reminder email. Include placeholders for invoice number, amount, and due date. Offer to discuss payment arrangements.',
+  },
+  {
+    id: 'sow-section',
+    name: 'SOW Section',
+    description: 'Generate a scope of work section',
+    icon: '📄',
+    requiredContext: ['selectedProject'],
+    prompt: 'Generate a detailed scope of work section for the focused project. Include: deliverables with descriptions, acceptance criteria, assumptions, and exclusions.',
+  },
+  {
+    id: 'meeting-summary',
+    name: 'Meeting Summary',
+    description: 'Summarize meeting notes into action items',
+    icon: '📝',
+    requiredContext: [],
+    prompt: 'I\'ll provide meeting notes. Please organize them into: key discussion points, decisions made, action items (with owners if mentioned), and follow-up dates.',
+  },
+  {
+    id: 'project-status',
+    name: 'Project Status Update',
+    description: 'Generate a status update for stakeholders',
+    icon: '📊',
+    requiredContext: ['selectedProject'],
+    prompt: 'Generate a professional project status update for the focused project. Include: progress summary, completed milestones, upcoming tasks, risks/blockers, and timeline status.',
+  },
+  {
+    id: 'cold-outreach',
+    name: 'Cold Outreach',
+    description: 'Draft a cold outreach email for a prospect',
+    icon: '🎯',
+    requiredContext: ['selectedClient'],
+    prompt: 'Draft a compelling cold outreach email for the focused prospect. Reference their industry and potential needs. Be concise, value-focused, and include a clear call to action.',
+  },
+  {
+    id: 'case-study',
+    name: 'Case Study',
+    description: 'Draft a case study from a completed project',
+    icon: '🏆',
+    requiredContext: ['selectedProject', 'selectedClient'],
+    prompt: 'Draft a case study for the completed project. Structure: challenge, solution, approach, results, and client testimonial placeholder. Make it compelling for potential clients in the same industry.',
+  },
+];

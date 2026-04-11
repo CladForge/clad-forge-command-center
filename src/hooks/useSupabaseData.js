@@ -6,6 +6,16 @@ import {
   initialSOWs,
   initialActivities,
   initialSettings,
+  initialInvoices,
+  initialTimeEntries,
+  initialEvents,
+  initialContractors,
+  initialDeals,
+  initialCrmActivities,
+  initialChannelPartners,
+  initialDocuments,
+  initialNotifications,
+  initialAutomations,
   generateId,
 } from '../data/initialData';
 
@@ -49,6 +59,16 @@ export function useSupabaseData() {
   const [sows, setSOWsState] = useState(initialSOWs);
   const [activities, setActivitiesState] = useState(initialActivities);
   const [settings, setSettingsState] = useState(initialSettings);
+  const [invoices, setInvoicesState] = useState(initialInvoices);
+  const [timeEntries, setTimeEntriesState] = useState(initialTimeEntries);
+  const [events, setEventsState] = useState(initialEvents);
+  const [contractors, setContractorsState] = useState(initialContractors);
+  const [deals, setDealsState] = useState(initialDeals);
+  const [crmActivities, setCrmActivitiesState] = useState(initialCrmActivities);
+  const [channelPartners, setChannelPartnersState] = useState(initialChannelPartners);
+  const [documents, setDocumentsState] = useState(initialDocuments);
+  const [notifications, setNotificationsState] = useState(initialNotifications);
+  const [automations, setAutomationsState] = useState(initialAutomations);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
 
@@ -56,12 +76,26 @@ export function useSupabaseData() {
   useEffect(() => {
     async function loadAll() {
       try {
-        const [clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes] = await Promise.all([
+        const [
+          clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
+          invoicesRes, timeEntriesRes, eventsRes, contractorsRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes,
+        ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
           supabase.from('sows').select('*').order('created_at', { ascending: false }),
           supabase.from('activities').select('*').order('created_at', { ascending: false }),
           supabase.from('settings').select('*').eq('id', 'default').single(),
+          supabase.from('invoices').select('*').order('created_at', { ascending: false }),
+          supabase.from('time_entries').select('*').order('created_at', { ascending: false }),
+          supabase.from('events').select('*').order('created_at', { ascending: false }),
+          supabase.from('contractors').select('*').order('created_at', { ascending: false }),
+          supabase.from('deals').select('*').order('created_at', { ascending: false }),
+          supabase.from('crm_activities').select('*').order('created_at', { ascending: false }),
+          supabase.from('channel_partners').select('*').order('created_at', { ascending: false }),
+          supabase.from('documents').select('*').order('created_at', { ascending: false }),
+          supabase.from('notifications').select('*').order('created_at', { ascending: false }),
+          supabase.from('automations').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (clientsRes.error) throw clientsRes.error;
@@ -78,10 +112,20 @@ export function useSupabaseData() {
 
         if (settingsRes.data) {
           const s = snakeToCamel(settingsRes.data);
-          // Remove the id field from settings
           const { id: _id, updatedAt: _u, ...rest } = s;
           setSettingsState(rest);
         }
+
+        if (invoicesRes.data) setInvoicesState(invoicesRes.data.map(snakeToCamel));
+        if (timeEntriesRes.data) setTimeEntriesState(timeEntriesRes.data.map(snakeToCamel));
+        if (eventsRes.data) setEventsState(eventsRes.data.map(snakeToCamel));
+        if (contractorsRes.data) setContractorsState(contractorsRes.data.map(snakeToCamel));
+        if (dealsRes.data) setDealsState(dealsRes.data.map(snakeToCamel));
+        if (crmActivitiesRes.data) setCrmActivitiesState(crmActivitiesRes.data.map(snakeToCamel));
+        if (channelPartnersRes.data) setChannelPartnersState(channelPartnersRes.data.map(snakeToCamel));
+        if (documentsRes.data) setDocumentsState(documentsRes.data.map(snakeToCamel));
+        if (notificationsRes.data) setNotificationsState(notificationsRes.data.map(snakeToCamel));
+        if (automationsRes.data) setAutomationsState(automationsRes.data.map(snakeToCamel));
 
         setConnected(true);
       } catch (err) {
@@ -233,16 +277,132 @@ export function useSupabaseData() {
     });
   }, [connected]);
 
+  // Generic CRUD wrapper factory
+  function makeSetter(setState, tableName, opts = {}) {
+    const { labelField = 'title', entityLabel = tableName, activityType = tableName } = opts;
+    return (updater) => {
+      setState(prev => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+
+        if (next.length > prev.length) {
+          const added = next.find(n => !prev.some(p => p.id === n.id));
+          if (added && connected) {
+            supabase.from(tableName).insert(camelToSnake(added));
+            if (opts.logActivity !== false) {
+              addActivity(activityType, `New ${entityLabel} added: ${added[labelField] || added.name || ''}`, opts.icon || 'plus');
+            }
+          }
+        } else if (next.length < prev.length) {
+          const removed = prev.find(p => !next.some(n => n.id === p.id));
+          if (removed && connected) {
+            supabase.from(tableName).delete().eq('id', removed.id);
+            if (opts.logActivity !== false) {
+              addActivity(activityType, `${entityLabel} removed: ${removed[labelField] || removed.name || ''}`, 'pause');
+            }
+          }
+        } else {
+          for (const item of next) {
+            const old = prev.find(p => p.id === item.id);
+            if (old && JSON.stringify(old) !== JSON.stringify(item)) {
+              if (connected) {
+                const { createdAt: _ca, ...rest } = item;
+                supabase.from(tableName).update(camelToSnake(rest)).eq('id', item.id);
+              }
+            }
+          }
+        }
+
+        return next;
+      });
+    };
+  }
+
+  // INVOICE CRUD
+  const setInvoices = useCallback(
+    makeSetter(setInvoicesState, 'invoices', { labelField: 'invoiceNumber', entityLabel: 'invoice', icon: 'file-text' }),
+    [connected, addActivity]
+  );
+
+  // TIME ENTRY CRUD
+  const setTimeEntries = useCallback(
+    makeSetter(setTimeEntriesState, 'time_entries', { labelField: 'description', entityLabel: 'time entry', logActivity: false }),
+    [connected, addActivity]
+  );
+
+  // EVENT CRUD
+  const setEvents = useCallback(
+    makeSetter(setEventsState, 'events', { labelField: 'title', entityLabel: 'event', icon: 'calendar' }),
+    [connected, addActivity]
+  );
+
+  // CONTRACTOR CRUD
+  const setContractors = useCallback(
+    makeSetter(setContractorsState, 'contractors', { labelField: 'firstName', entityLabel: 'contractor', icon: 'user-plus' }),
+    [connected, addActivity]
+  );
+
+  // DEAL CRUD
+  const setDeals = useCallback(
+    makeSetter(setDealsState, 'deals', { labelField: 'title', entityLabel: 'deal', icon: 'trending-up' }),
+    [connected, addActivity]
+  );
+
+  // CRM ACTIVITY CRUD
+  const setCrmActivities = useCallback(
+    makeSetter(setCrmActivitiesState, 'crm_activities', { labelField: 'title', entityLabel: 'CRM activity', logActivity: false }),
+    [connected, addActivity]
+  );
+
+  // CHANNEL PARTNER CRUD
+  const setChannelPartners = useCallback(
+    makeSetter(setChannelPartnersState, 'channel_partners', { labelField: 'name', entityLabel: 'channel partner', icon: 'users' }),
+    [connected, addActivity]
+  );
+
+  // DOCUMENT CRUD
+  const setDocuments = useCallback(
+    makeSetter(setDocumentsState, 'documents', { labelField: 'name', entityLabel: 'document', icon: 'file' }),
+    [connected, addActivity]
+  );
+
+  // NOTIFICATION CRUD
+  const setNotifications = useCallback(
+    makeSetter(setNotificationsState, 'notifications', { labelField: 'text', entityLabel: 'notification', logActivity: false }),
+    [connected, addActivity]
+  );
+
+  // Helper to add a notification
+  const addNotification = useCallback(async (text, type = 'info', entityType = '', entityId = '') => {
+    const notification = { id: generateId(), text, type, entityType, entityId, read: false, createdAt: new Date().toISOString() };
+    setNotificationsState(prev => [notification, ...prev]);
+    if (connected) {
+      await supabase.from('notifications').insert(camelToSnake(notification));
+    }
+  }, [connected]);
+
+  // AUTOMATION CRUD
+  const setAutomations = useCallback(
+    makeSetter(setAutomationsState, 'automations', { labelField: 'name', entityLabel: 'automation', icon: 'zap' }),
+    [connected, addActivity]
+  );
+
   return {
-    clients,
-    projects,
-    sows,
+    clients, setClients,
+    projects, setProjects,
+    sows, setSOWs,
     activities,
-    settings,
-    setClients,
-    setProjects,
-    setSOWs,
-    setSettings,
+    settings, setSettings,
+    invoices, setInvoices,
+    timeEntries, setTimeEntries,
+    events, setEvents,
+    contractors, setContractors,
+    deals, setDeals,
+    crmActivities, setCrmActivities,
+    channelPartners, setChannelPartners,
+    documents, setDocuments,
+    notifications, setNotifications,
+    addNotification,
+    automations, setAutomations,
     loading,
     connected,
   };

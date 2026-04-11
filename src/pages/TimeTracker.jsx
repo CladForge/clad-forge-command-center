@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { generateId } from '../data/initialData';
 
-export default function TimeTracker({ projects, clients }) {
-  const [entries, setEntries] = useLocalStorage('cf-time-entries', []);
+export default function TimeTracker({ projects, clients, entries, setEntries }) {
   const [activeTimer, setActiveTimer] = useLocalStorage('cf-active-timer', null);
   const [elapsed, setElapsed] = useState(() => {
     if (activeTimer) return Math.floor((Date.now() - activeTimer.startTime) / 1000);

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { generateId } from '../data/initialData';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const STATUS_OPTIONS = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
 const STATUS_LABELS = { draft: 'Draft', sent: 'Sent', paid: 'Paid', overdue: 'Overdue', cancelled: 'Cancelled' };
@@ -32,8 +31,7 @@ function formatCurrency(amount) {
   return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function Invoices({ clients, projects, settings }) {
-  const [invoices, setInvoices] = useLocalStorage('cf-invoices', []);
+export default function Invoices({ clients, projects, settings, invoices, setInvoices }) {
   const [showModal, setShowModal] = useState(false);
   const [viewInvoice, setViewInvoice] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');

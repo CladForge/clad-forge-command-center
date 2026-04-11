@@ -18,13 +18,13 @@ export default function Clients({ clients, setClients, projects, sows, settings:
   const emptyClient = {
     name: '', company: '', email: '', phone: '',
     industry: settings.defaultIndustry || 'Construction',
-    status: 'prospect', notes: '', value: 0, contacts: [],
+    status: 'prospect', notes: '', value: 0, website: '', contacts: [],
   };
 
   const [form, setForm] = useState(emptyClient);
 
   const filtered = clients.filter(c => {
-    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.company.toLowerCase().includes(search.toLowerCase()) || c.email?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || c.company.toLowerCase().includes(search.toLowerCase()) || c.industry?.toLowerCase().includes(search.toLowerCase()) || c.email?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || c.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -33,7 +33,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
   function openEdit(client) { setEditingClient(client); setForm({ ...client }); setShowModal(true); }
 
   function handleSave() {
-    if (!form.name.trim() || !form.company.trim()) return;
+    if (!form.company.trim()) return;
     if (editingClient) {
       setClients(prev => prev.map(c => c.id === editingClient.id ? { ...form, id: c.id, contacts: c.contacts || [] } : c));
     } else {
@@ -98,7 +98,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
                 </div>
                 <div className="client-card__info">
                   <h3 className="client-card__name">{client.company}</h3>
-                  <p className="client-card__company">{client.name}</p>
+                  <p className="client-card__company">{client.industry}</p>
                 </div>
                 <span className={`status-badge status-badge--${client.status}`}>
                   {client.status.replace('-', ' ')}
@@ -114,13 +114,13 @@ export default function Clients({ clients, setClients, projects, sows, settings:
                   <span className="client-card__stat-lbl">Projects</span>
                 </div>
                 <div className="client-card__stat">
-                  <span className="client-card__stat-val">{activeCount}</span>
-                  <span className="client-card__stat-lbl">Active</span>
+                  <span className="client-card__stat-val">{(client.contacts || []).length}</span>
+                  <span className="client-card__stat-lbl">People</span>
                 </div>
               </div>
               <div className="client-card__footer">
-                <span>{client.industry}</span>
-                <span>{client.email}</span>
+                <span>{activeCount} active project{activeCount !== 1 ? 's' : ''}</span>
+                {client.email && <span>{client.email}</span>}
               </div>
             </div>
           );
@@ -143,12 +143,12 @@ export default function Clients({ clients, setClients, projects, sows, settings:
             </div>
             <div className="modal__body">
               <div className="form-grid">
-                <div className="form-group"><label>Contact Name *</label><input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="John Doe" /></div>
-                <div className="form-group"><label>Company *</label><input type="text" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Acme Corp" /></div>
-                <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-                <div className="form-group"><label>Phone</label><input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                <div className="form-group form-group--full"><label>Company Name *</label><input type="text" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Acme Corp" /></div>
                 <div className="form-group"><label>Industry</label><select value={form.industry} onChange={e => setForm(f => ({ ...f, industry: e.target.value }))}>{industries.map(ind => <option key={ind} value={ind}>{ind}</option>)}</select></div>
                 <div className="form-group"><label>Status</label><select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>{STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1).replace('-', ' ')}</option>)}</select></div>
+                <div className="form-group"><label>Company Email</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="info@company.com" /></div>
+                <div className="form-group"><label>Company Phone</label><input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                <div className="form-group"><label>Website</label><input type="text" value={form.website || ''} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." /></div>
                 <div className="form-group"><label>Client Value ($)</label><input type="number" value={form.value} onChange={e => setForm(f => ({ ...f, value: parseInt(e.target.value) || 0 }))} /></div>
                 <div className="form-group form-group--full"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Additional notes..." /></div>
               </div>
@@ -241,7 +241,7 @@ function ClientProfile({ client, setClients, projects, sows, onBack, onEdit, onD
             <div className="cp__hero-meta">
               <span className={`status-badge status-badge--${client.status}`}>{client.status.replace('-', ' ')}</span>
               <span>{client.industry}</span>
-              {client.phone && <span>{client.phone}</span>}
+              {client.website && <a href={client.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)' }}>{client.website.replace(/^https?:\/\//, '')}</a>}
             </div>
             <div className="cp__hero-actions">
               {client.email && <a href={`mailto:${client.email}`} className="btn btn--sm cp__hero-btn">✉ Email</a>}
@@ -413,8 +413,9 @@ function ClientProfile({ client, setClients, projects, sows, onBack, onEdit, onD
             <div className="panel__header"><h3>Company Details</h3></div>
             <div style={{ padding: '16px 22px' }}>
               <div className="cp__detail-row"><span className="cp__detail-icon">🏢</span><div><span className="cp__detail-label">Company</span><span className="cp__detail-value">{client.company}</span></div></div>
-              {client.email && <div className="cp__detail-row"><span className="cp__detail-icon">✉</span><div><span className="cp__detail-label">Email</span><span className="cp__detail-value"><a href={`mailto:${client.email}`}>{client.email}</a></span></div></div>}
-              {client.phone && <div className="cp__detail-row"><span className="cp__detail-icon">📞</span><div><span className="cp__detail-label">Phone</span><span className="cp__detail-value">{client.phone}</span></div></div>}
+              {client.email && <div className="cp__detail-row"><span className="cp__detail-icon">✉</span><div><span className="cp__detail-label">Company Email</span><span className="cp__detail-value"><a href={`mailto:${client.email}`}>{client.email}</a></span></div></div>}
+              {client.phone && <div className="cp__detail-row"><span className="cp__detail-icon">📞</span><div><span className="cp__detail-label">Company Phone</span><span className="cp__detail-value">{client.phone}</span></div></div>}
+              {client.website && <div className="cp__detail-row"><span className="cp__detail-icon">🌐</span><div><span className="cp__detail-label">Website</span><span className="cp__detail-value"><a href={client.website} target="_blank" rel="noopener noreferrer">{client.website.replace(/^https?:\/\//, '')}</a></span></div></div>}
               <div className="cp__detail-row"><span className="cp__detail-icon">🏭</span><div><span className="cp__detail-label">Industry</span><span className="cp__detail-value">{client.industry}</span></div></div>
               <div className="cp__detail-row"><span className="cp__detail-icon">📅</span><div><span className="cp__detail-label">Client Since</span><span className="cp__detail-value">{client.createdAt || '—'}</span></div></div>
             </div>

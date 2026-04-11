@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import NotificationBell from './NotificationBell';
 
 const pageTitles = {
   '/': 'Dashboard',
@@ -10,9 +11,17 @@ const pageTitles = {
   '/time': 'Time Tracker',
   '/branding': 'Brand Guide',
   '/settings': 'Settings',
+  '/reports': 'Reports & Analytics',
+  '/calendar': 'Calendar',
+  '/ai': 'AI Assistant',
+  '/automations': 'Automations',
+  '/contractors': 'Contractors',
+  '/crm': 'CRM',
+  '/documents': 'Documents',
+  '/onboard': 'Client Onboarding',
 };
 
-export default function TopBar({ connected }) {
+export default function TopBar({ connected, notifications, setNotifications }) {
   const location = useLocation();
   const title = pageTitles[location.pathname] || 'Dashboard';
 
@@ -22,6 +31,9 @@ export default function TopBar({ connected }) {
       <div className="topbar__spacer" />
 
       <div className="topbar__right">
+        {notifications && setNotifications && (
+          <NotificationBell notifications={notifications} setNotifications={setNotifications} />
+        )}
         <div className="topbar__status">
           <span className={`topbar__status-dot ${connected ? '' : 'topbar__status-dot--offline'}`} />
           <span className="topbar__status-text">

@@ -1,81 +1,234 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { sendMessage, buildContext } from '../lib/aiClient';
+import { aiTemplates } from '../data/aiTemplates';
 
-const suggestions = [
-  'Draft a follow-up email for an overdue invoice',
-  'Summarize my active projects',
-  'Write a project proposal outline',
-  'What metrics should I track for client retention?',
-  'Help me plan a sprint for next week',
-];
+function renderMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:var(--surface);padding:1px 4px;border-radius:3px;font-size:0.85em">$1</code>')
+    .replace(/^### (.*$)/gm, '<h4 style="margin:8px 0 4px;color:var(--ink)">$1</h4>')
+    .replace(/^## (.*$)/gm, '<h3 style="margin:10px 0 6px;color:var(--ink)">$1</h3>')
+    .replace(/^# (.*$)/gm, '<h2 style="margin:12px 0 8px;color:var(--ink)">$1</h2>')
+    .replace(/^- (.*$)/gm, '<div style="padding-left:12px">• $1</div>')
+    .replace(/^\d+\. (.*$)/gm, (match, p1, offset, str) => {
+      const num = match.match(/^(\d+)/)[1];
+      return `<div style="padding-left:12px">${num}. ${p1}</div>`;
+    });
+}
 
-const responses = {
-  'draft a follow-up email for an overdue invoice': `Here's a professional follow-up email:\n\n**Subject:** Friendly Reminder — Invoice #[NUMBER] Past Due\n\nHi [Client Name],\n\nI hope this message finds you well. I wanted to follow up regarding Invoice #[NUMBER] for $[AMOUNT], which was due on [DATE].\n\nI understand things can get busy, so I wanted to send a gentle reminder. You can find the invoice attached or view it in your client portal.\n\nPlease let me know if you have any questions or if there's anything I can help with.\n\nBest regards,\nCourtland Adaire\nClad Forge`,
-  'summarize my active projects': `Here's a summary of your active projects:\n\n1. **Fleet Dashboard** — Meridian Co. ($45,000)\n   Status: In development, 65% complete\n\n2. **Client Portal v2** — Vanguard Digital ($28,000)\n   Status: Design phase, 30% complete\n\n3. **AI Chatbot Integration** — Horizon Inc. ($15,000)\n   Status: Testing phase, 85% complete\n\nTotal active value: **$88,000**\nEstimated completion: 3-6 weeks`,
-  'write a project proposal outline': `**Project Proposal Outline:**\n\n1. **Executive Summary** — Brief overview of the project and its goals\n2. **Problem Statement** — What challenge the client faces\n3. **Proposed Solution** — Your approach and methodology\n4. **Scope of Work** — Detailed deliverables and milestones\n5. **Timeline** — Phase-by-phase schedule\n6. **Investment** — Pricing breakdown with payment terms\n7. **Team** — Who will work on the project\n8. **Terms & Conditions** — Legal and contractual terms\n9. **Next Steps** — How to proceed\n\nWant me to flesh out any of these sections?`,
-  'default': `That's a great question. Let me help you with that.\n\nBased on my understanding of your business at Clad Forge, I can assist with:\n\n- **Client communications** — emails, proposals, follow-ups\n- **Project planning** — timelines, sprints, resource allocation\n- **Business strategy** — pricing, growth, client retention\n- **Content creation** — case studies, documentation, reports\n- **Data analysis** — revenue trends, project metrics\n\nCould you give me a bit more detail so I can provide a more specific response?`,
-};
-
-export default function AIAssistant() {
+export default function AIAssistant({ clients = [], projects = [], sows = [], invoices = [], settings = {} }) {
   const [messages, setMessages] = useState([
-    { role: 'ai', text: "Hi! I'm your AI business assistant. I can help draft emails, plan projects, analyze data, and brainstorm strategy. What would you like to work on?" }
+    { role: 'ai', text: "Hi! I'm your AI business assistant powered by Claude. I can help draft proposals, emails, project plans, and provide business insights — all with context from your Clad Forge data.\n\nTry a template below or ask me anything." }
   ]);
   const [input, setInput] = useState('');
-  const [typing, setTyping] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedClient, setSelectedClient] = useState('');
+  const [selectedProject, setSelectedProject] = useState('');
+  const [showTemplates, setShowTemplates] = useState(true);
   const chatRef = useRef(null);
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [messages, typing]);
+  }, [messages, loading]);
 
-  function send(text) {
-    if (!text?.trim()) return;
+  const contextData = useMemo(() => ({
+    clients,
+    projects,
+    sows,
+    invoices,
+    settings,
+    selectedClient: selectedClient ? clients.find(c => c.id === selectedClient) : null,
+    selectedProject: selectedProject ? projects.find(p => p.id === selectedProject) : null,
+  }), [clients, projects, sows, invoices, settings, selectedClient, selectedProject]);
+
+  async function send(text) {
+    if (!text?.trim() || loading) return;
     const userMsg = text.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
-    setTyping(true);
-    setTimeout(() => {
-      const key = userMsg.toLowerCase();
-      const resp = responses[key] || responses['default'];
-      setMessages(prev => [...prev, { role: 'ai', text: resp }]);
-      setTyping(false);
-    }, 1200 + Math.random() * 800);
+    setError(null);
+    setShowTemplates(false);
+
+    const newMessages = [...messages, { role: 'user', text: userMsg }];
+    setMessages(newMessages);
+    setLoading(true);
+
+    try {
+      const context = buildContext(contextData);
+      const aiText = await sendMessage(
+        newMessages.filter(m => m.role !== 'system'),
+        context,
+      );
+      setMessages(prev => [...prev, { role: 'ai', text: aiText }]);
+    } catch (err) {
+      setError(err.message);
+      setMessages(prev => [...prev, { role: 'ai', text: `I encountered an error: ${err.message}\n\nTo use AI features, configure your API key:\n- Set \`VITE_ANTHROPIC_API_KEY\` in your \`.env\` file for direct API access\n- Or set \`VITE_AI_ENDPOINT\` to point to a Supabase Edge Function proxy` }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function useTemplate(template) {
+    const parts = [];
+    if (selectedClient) {
+      const c = clients.find(c => c.id === selectedClient);
+      if (c) parts.push(`Client: ${c.company}`);
+    }
+    if (selectedProject) {
+      const p = projects.find(p => p.id === selectedProject);
+      if (p) parts.push(`Project: ${p.title}`);
+    }
+    const msg = parts.length > 0
+      ? `${template.prompt}\n\nContext: ${parts.join(', ')}`
+      : template.prompt;
+    send(msg);
+  }
+
+  function clearChat() {
+    setMessages([
+      { role: 'ai', text: "Chat cleared. How can I help you?" }
+    ]);
+    setShowTemplates(true);
+    setError(null);
   }
 
   return (
-    <div className="ai-assistant">
+    <div className="ai-assistant page--fill">
+      {/* Context selectors */}
+      <div style={{
+        padding: '10px 16px',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex',
+        gap: 10,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        fontSize: '0.82rem',
+      }}>
+        <span style={{ color: 'var(--slate)', fontWeight: 500 }}>Context:</span>
+        <select
+          value={selectedClient}
+          onChange={e => setSelectedClient(e.target.value)}
+          style={{
+            padding: '4px 10px',
+            borderRadius: 6,
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            color: 'var(--ink)',
+            fontSize: '0.8rem',
+          }}
+        >
+          <option value="">All clients</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.company}</option>)}
+        </select>
+        <select
+          value={selectedProject}
+          onChange={e => setSelectedProject(e.target.value)}
+          style={{
+            padding: '4px 10px',
+            borderRadius: 6,
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            color: 'var(--ink)',
+            fontSize: '0.8rem',
+          }}
+        >
+          <option value="">All projects</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+        </select>
+        <div style={{ flex: 1 }} />
+        <button className="btn btn--ghost btn--sm" onClick={clearChat}>Clear Chat</button>
+      </div>
+
+      {/* Chat area */}
       <div className="ai-chat" ref={chatRef}>
         {messages.map((msg, i) => (
           <div key={i} className={`ai-msg ai-msg--${msg.role}`}>
             <div className="ai-msg-avatar">{msg.role === 'ai' ? 'AI' : 'You'}</div>
             <div className="ai-msg-bubble">
               {msg.text.split('\n').map((line, j) => (
-                <p key={j} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                line.trim() === '' ? <br key={j} /> :
+                <p key={j} dangerouslySetInnerHTML={{ __html: renderMarkdown(line) }} />
               ))}
             </div>
           </div>
         ))}
-        {typing && (
+        {loading && (
           <div className="ai-msg ai-msg--ai">
             <div className="ai-msg-avatar">AI</div>
             <div className="ai-msg-bubble"><div className="ai-typing"><span /><span /><span /></div></div>
           </div>
         )}
+        {error && !loading && (
+          <div style={{ padding: '8px 16px', fontSize: '0.78rem', color: 'var(--danger)' }}>
+            {error}
+          </div>
+        )}
       </div>
+
+      {/* Templates & input */}
       <div className="ai-input-area">
+        {showTemplates && (
+          <div style={{
+            padding: '12px 16px 8px',
+            borderBottom: '1px solid var(--border)',
+          }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--slate)', marginBottom: 8, fontWeight: 500 }}>
+              TEMPLATES
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+              gap: 6,
+            }}>
+              {aiTemplates.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => useTemplate(t)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--ink)',
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { e.target.style.borderColor = 'var(--brand)'; e.target.style.background = 'var(--brand-wash)'; }}
+                  onMouseLeave={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.background = 'var(--surface)'; }}
+                >
+                  <span style={{ marginRight: 6 }}>{t.icon}</span>
+                  {t.name}
+                  <div style={{ fontSize: '0.7rem', color: 'var(--slate)', marginTop: 2 }}>{t.description}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="ai-suggestions">
-          {suggestions.map((s, i) => (
-            <button key={i} className="ai-suggestion" onClick={() => send(s)}>{s}</button>
-          ))}
+          {!showTemplates && (
+            <button className="ai-suggestion" onClick={() => setShowTemplates(true)}>Show templates</button>
+          )}
+          <button className="ai-suggestion" onClick={() => send('Summarize my active projects and their status')}>Active projects</button>
+          <button className="ai-suggestion" onClick={() => send('What are my most important tasks this week?')}>Weekly priorities</button>
+          <button className="ai-suggestion" onClick={() => send('Analyze my revenue and suggest growth strategies')}>Revenue analysis</button>
         </div>
+
         <div className="ai-input-row">
           <input
             className="ai-input"
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && send(input)}
-            placeholder="Ask me anything about your business..."
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send(input)}
+            placeholder={loading ? 'Thinking...' : 'Ask me anything about your business...'}
+            disabled={loading}
           />
-          <button className="ai-send" onClick={() => send(input)}>Send</button>
+          <button className="ai-send" onClick={() => send(input)} disabled={loading || !input.trim()}>
+            {loading ? '...' : 'Send'}
+          </button>
         </div>
       </div>
     </div>

@@ -72,7 +72,7 @@ export default function Pipeline({ projects, setProjects, clients }) {
   }
 
   return (
-    <div className="pipeline">
+    <div className="pipeline page--fill">
       {/* Header */}
       <div className="pipeline__header">
         <div className="pipeline__summary">

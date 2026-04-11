@@ -211,6 +211,17 @@ export const initialSettings = {
   customIndustries: 'Construction, Energy & Utilities, Manufacturing, Logistics, Oil & Gas, Engineering Services, Telecommunications, Other',
 };
 
+export const initialInvoices = [];
+export const initialTimeEntries = [];
+export const initialEvents = [];
+export const initialContractors = [];
+export const initialDeals = [];
+export const initialCrmActivities = [];
+export const initialChannelPartners = [];
+export const initialDocuments = [];
+export const initialNotifications = [];
+export const initialAutomations = [];
+
 export function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }

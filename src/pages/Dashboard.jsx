@@ -1,19 +1,11 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { initialSettings } from '../data/initialData';
+import OnboardingReview from '../components/OnboardingReview';
 
-export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings }) {
+export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], timeEntries = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
   const navigate = useNavigate();
-
-  // Pull invoices and time entries from localStorage
-  const invoices = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('cf-invoices')) || []; } catch { return []; }
-  }, []);
-
-  const timeEntries = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('cf-time-entries')) || []; } catch { return []; }
-  }, []);
 
   // ═══ COMPUTED METRICS ═══
 
@@ -118,6 +110,9 @@ export default function Dashboard({ clients, projects, sows, activities, setting
           <button className="btn btn--secondary" onClick={() => navigate('/invoices')}>+ New Invoice</button>
         </div>
       </div>
+
+      {/* ═══ PENDING ONBOARDING ═══ */}
+      {setClients && <OnboardingReview setClients={setClients} addNotification={addNotification} />}
 
       {/* ═══ KPI CARDS ═══ */}
       <div className="dash__kpis">
