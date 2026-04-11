@@ -42,6 +42,36 @@ function camelToSnake(obj) {
   return result;
 }
 
+// Known DB columns per table — prevents inserting fields that don't exist in Supabase
+const TABLE_COLUMNS = {
+  clients: ['id','name','company','email','phone','industry','status','notes','value','created_at','created_by','brand_colors','brand_fonts','brand_tone','brand_logo_url','website','company_size','contacts'],
+  projects: ['id','title','client_id','stage','budget','deadline','description','created_at','created_by'],
+  sows: ['id','client_id','project_title','description','scope_items','deliverables','timeline','budget','terms','status','created_at','created_by'],
+  activities: ['id','type','message','icon','created_at','created_by'],
+  settings: ['id','company_name','company_email','company_phone','company_address','company_website','tax_id','owner_name','owner_title','default_payment_terms','default_currency','default_tax_rate','invoice_prefix','invoice_next_number','default_invoice_notes','payment_instructions','auto_detect_overdue','sow_prefix','sow_footer','default_sow_terms','default_payment_schedule','default_hourly_rate','time_rounding','work_hours_per_day','pipeline_stages','default_stage','theme','accent_color','date_format','sidebar_collapsed','invoice_reminder_days','client_follow_up_days','project_deadline_warning_days','default_industry','custom_industries','updated_at'],
+  invoices: ['id','invoice_number','client_id','client_name','project_id','project_title','items','tax_rate','discount','status','due_date','sent_date','paid_date','paid_amount','notes','created_at','created_by'],
+  time_entries: ['id','project_id','description','hours','minutes','date','created_at','created_by'],
+  events: ['id','title','description','date','time','end_time','type','color','entity_type','entity_id','created_at','created_by'],
+  contractors: ['id','first_name','last_name','company','email','phone','specialty','rate','status','website','notes','date_added','assigned_projects','created_at','created_by'],
+  deals: ['id','title','company','contact_name','contact_title','contact_email','contact_phone','stage','source','value','probability','expected_close_date','client_id','priority','next_step','tags','won_at','lost_at','created_at','updated_at','created_by'],
+  crm_activities: ['id','deal_id','title','type','description','activity_date','completed','created_at','created_by'],
+  channel_partners: ['id','name','title','company','industry','email','phone','location','notes','created_at','created_by'],
+  documents: ['id','name','type','client_id','project_id','file_url','file_size','notes','status','created_at','created_by'],
+  notifications: ['id','text','type','entity_type','entity_id','read','user_id','created_at'],
+  automations: ['id','name','description','trigger_type','trigger_config','actions','status','run_count','last_run_at','created_at','created_by'],
+};
+
+// Strip fields not in the DB table before sending to Supabase
+function stripForDB(tableName, snakeObj) {
+  const cols = TABLE_COLUMNS[tableName];
+  if (!cols) return snakeObj;
+  const result = {};
+  for (const [key, value] of Object.entries(snakeObj)) {
+    if (cols.includes(key)) result[key] = value;
+  }
+  return result;
+}
+
 function formatTime(date) {
   const now = new Date();
   const diff = now - new Date(date);
@@ -165,9 +195,8 @@ export function useSupabaseData() {
 
       if (next.length > prev.length) {
         const newClient = next.find(n => !prev.some(p => p.id === n.id));
-        if (newClient) {
-          console.log('[CladForge] Adding client, connected:', connectedRef.current, newClient.company);
-          if (connectedRef.current) supabase.from('clients').insert(camelToSnake(newClient)).then(({ error }) => { if (error) console.error('Client insert error:', error); else console.log('[CladForge] Client saved to Supabase ✅'); });
+        if (newClient && connectedRef.current) {
+          supabase.from('clients').insert(stripForDB('clients', camelToSnake(newClient))).then(({ error }) => { if (error) console.error('Client insert error:', error); });
           addActivity('client', `New client added: ${newClient.company}`, 'user-plus');
         }
       } else if (next.length < prev.length) {
@@ -182,7 +211,7 @@ export function useSupabaseData() {
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
             if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('clients').update(camelToSnake(rest)).eq('id', item.id).then(({ error }) => { if (error) console.error('Client update error:', error); });
+              supabase.from('clients').update(stripForDB('clients', camelToSnake(rest))).eq('id', item.id).then(({ error }) => { if (error) console.error('Client update error:', error); });
             }
             if (old.status !== item.status) {
               addActivity('client', `${item.company} status changed to ${item.status.replace('-', ' ')}`, 'arrow-right');
@@ -203,7 +232,7 @@ export function useSupabaseData() {
       if (next.length > prev.length) {
         const newProject = next.find(n => !prev.some(p => p.id === n.id));
         if (newProject && connectedRef.current) {
-          supabase.from('projects').insert(camelToSnake(newProject)).then(({ error }) => { if (error) console.error('Project insert error:', error); });
+          supabase.from('projects').insert(stripForDB('projects', camelToSnake(newProject))).then(({ error }) => { if (error) console.error('Project insert error:', error); });
           addActivity('project', `New project created: ${newProject.title}`, 'play');
         }
       } else if (next.length < prev.length) {
@@ -218,7 +247,7 @@ export function useSupabaseData() {
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
             if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('projects').update(camelToSnake(rest)).eq('id', item.id).then(({ error }) => { if (error) console.error('Project update error:', error); });
+              supabase.from('projects').update(stripForDB('projects', camelToSnake(rest))).eq('id', item.id).then(({ error }) => { if (error) console.error('Project update error:', error); });
             }
             if (old.stage !== item.stage) {
               const stageLabels = { lead: 'Lead', proposal: 'Proposal', active: 'Active', review: 'Review', completed: 'Completed' };
@@ -240,7 +269,7 @@ export function useSupabaseData() {
       if (next.length > prev.length) {
         const newSOW = next.find(n => !prev.some(p => p.id === n.id));
         if (newSOW && connectedRef.current) {
-          supabase.from('sows').insert(camelToSnake(newSOW)).then(({ error }) => { if (error) console.error('SOW insert error:', error); });
+          supabase.from('sows').insert(stripForDB('sows', camelToSnake(newSOW))).then(({ error }) => { if (error) console.error('SOW insert error:', error); });
           addActivity('sow', `SOW created: ${newSOW.projectTitle}`, 'file-text');
         }
       } else if (next.length < prev.length) {
@@ -254,7 +283,7 @@ export function useSupabaseData() {
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
             if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('sows').update(camelToSnake(rest)).eq('id', item.id).then(({ error }) => { if (error) console.error('SOW update error:', error); });
+              supabase.from('sows').update(stripForDB('sows', camelToSnake(rest))).eq('id', item.id).then(({ error }) => { if (error) console.error('SOW update error:', error); });
             }
           }
         }
@@ -271,7 +300,7 @@ export function useSupabaseData() {
 
       if (connectedRef.current) {
         const snaked = camelToSnake(next);
-        supabase.from('settings').upsert({ id: 'default', ...snaked, updated_at: new Date().toISOString() }).then(({ error }) => { if (error) console.error('Settings save error:', error); });
+        supabase.from('settings').upsert(stripForDB('settings', { id: 'default', ...snaked, updated_at: new Date().toISOString() })).then(({ error }) => { if (error) console.error('Settings save error:', error); });
       }
 
       return next;
@@ -288,7 +317,7 @@ export function useSupabaseData() {
         if (next.length > prev.length) {
           const added = next.find(n => !prev.some(p => p.id === n.id));
           if (added && connectedRef.current) {
-            supabase.from(tableName).insert(camelToSnake(added)).then(({ error }) => { if (error) console.error(`${entityLabel} insert error:`, error); });
+            supabase.from(tableName).insert(stripForDB(tableName, camelToSnake(added))).then(({ error }) => { if (error) console.error(`${entityLabel} insert error:`, error); });
             if (opts.logActivity !== false) {
               addActivity(activityType, `New ${entityLabel} added: ${added[labelField] || added.name || ''}`, opts.icon || 'plus');
             }
@@ -307,7 +336,7 @@ export function useSupabaseData() {
             if (old && JSON.stringify(old) !== JSON.stringify(item)) {
               if (connectedRef.current) {
                 const { createdAt: _ca, ...rest } = item;
-                supabase.from(tableName).update(camelToSnake(rest)).eq('id', item.id).then(({ error }) => { if (error) console.error(`${entityLabel} update error:`, error); });
+                supabase.from(tableName).update(stripForDB(tableName, camelToSnake(rest))).eq('id', item.id).then(({ error }) => { if (error) console.error(`${entityLabel} update error:`, error); });
               }
             }
           }
