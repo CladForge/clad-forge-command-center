@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   initialClients,
@@ -71,6 +71,7 @@ export function useSupabaseData() {
   const [automations, setAutomationsState] = useState(initialAutomations);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const connectedRef = useRef(false);
 
   // Load all data from Supabase on mount
   useEffect(() => {
@@ -144,7 +145,7 @@ export function useSupabaseData() {
     const activity = { id: generateId(), type, message, icon, time: 'Just now' };
     setActivitiesState(prev => [activity, ...prev]);
 
-    if (connected) {
+    if (connectedRef.current) {
       await supabase.from('activities').insert({
         id: activity.id,
         type,
@@ -152,39 +153,35 @@ export function useSupabaseData() {
         icon,
       });
     }
-  }, [connected]);
+  }, []);
 
   // CLIENT CRUD
   const setClients = useCallback((updater) => {
     setClientsState(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
 
-      // Determine what changed
       if (next.length > prev.length) {
-        // Added
         const newClient = next.find(n => !prev.some(p => p.id === n.id));
-        if (newClient && connected) {
-          supabase.from('clients').insert(camelToSnake(newClient));
-          addActivity('client', `New client added: ${newClient.name} (${newClient.company})`, 'user-plus');
+        if (newClient && connectedRef.current) {
+          supabase.from('clients').insert(camelToSnake(newClient)).then(({ error }) => { if (error) console.error('Client insert error:', error); });
+          addActivity('client', `New client added: ${newClient.company}`, 'user-plus');
         }
       } else if (next.length < prev.length) {
-        // Deleted
         const removed = prev.find(p => !next.some(n => n.id === p.id));
-        if (removed && connected) {
-          supabase.from('clients').delete().eq('id', removed.id);
-          addActivity('client', `Client removed: ${removed.name}`, 'pause');
+        if (removed && connectedRef.current) {
+          supabase.from('clients').delete().eq('id', removed.id).then(({ error }) => { if (error) console.error('Client delete error:', error); });
+          addActivity('client', `Client removed: ${removed.company}`, 'pause');
         }
       } else {
-        // Updated
         for (const item of next) {
           const old = prev.find(p => p.id === item.id);
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
-            if (connected) {
+            if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('clients').update(camelToSnake(rest)).eq('id', item.id);
+              supabase.from('clients').update(camelToSnake(rest)).eq('id', item.id).then(({ error }) => { if (error) console.error('Client update error:', error); });
             }
             if (old.status !== item.status) {
-              addActivity('client', `${item.name} status changed to ${item.status.replace('-', ' ')}`, 'arrow-right');
+              addActivity('client', `${item.company} status changed to ${item.status.replace('-', ' ')}`, 'arrow-right');
             }
           }
         }
@@ -192,7 +189,7 @@ export function useSupabaseData() {
 
       return next;
     });
-  }, [connected, addActivity]);
+  }, [addActivity]);
 
   // PROJECT CRUD
   const setProjects = useCallback((updater) => {
@@ -201,23 +198,23 @@ export function useSupabaseData() {
 
       if (next.length > prev.length) {
         const newProject = next.find(n => !prev.some(p => p.id === n.id));
-        if (newProject && connected) {
-          supabase.from('projects').insert(camelToSnake(newProject));
+        if (newProject && connectedRef.current) {
+          supabase.from('projects').insert(camelToSnake(newProject)).then(({ error }) => { if (error) console.error('Project insert error:', error); });
           addActivity('project', `New project created: ${newProject.title}`, 'play');
         }
       } else if (next.length < prev.length) {
         const removed = prev.find(p => !next.some(n => n.id === p.id));
-        if (removed && connected) {
-          supabase.from('projects').delete().eq('id', removed.id);
+        if (removed && connectedRef.current) {
+          supabase.from('projects').delete().eq('id', removed.id).then(({ error }) => { if (error) console.error('Project delete error:', error); });
           addActivity('project', `Project removed: ${removed.title}`, 'pause');
         }
       } else {
         for (const item of next) {
           const old = prev.find(p => p.id === item.id);
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
-            if (connected) {
+            if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('projects').update(camelToSnake(rest)).eq('id', item.id);
+              supabase.from('projects').update(camelToSnake(rest)).eq('id', item.id).then(({ error }) => { if (error) console.error('Project update error:', error); });
             }
             if (old.stage !== item.stage) {
               const stageLabels = { lead: 'Lead', proposal: 'Proposal', active: 'Active', review: 'Review', completed: 'Completed' };
@@ -229,7 +226,7 @@ export function useSupabaseData() {
 
       return next;
     });
-  }, [connected, addActivity]);
+  }, [addActivity]);
 
   // SOW CRUD
   const setSOWs = useCallback((updater) => {
@@ -238,22 +235,22 @@ export function useSupabaseData() {
 
       if (next.length > prev.length) {
         const newSOW = next.find(n => !prev.some(p => p.id === n.id));
-        if (newSOW && connected) {
-          supabase.from('sows').insert(camelToSnake(newSOW));
+        if (newSOW && connectedRef.current) {
+          supabase.from('sows').insert(camelToSnake(newSOW)).then(({ error }) => { if (error) console.error('SOW insert error:', error); });
           addActivity('sow', `SOW created: ${newSOW.projectTitle}`, 'file-text');
         }
       } else if (next.length < prev.length) {
         const removed = prev.find(p => !next.some(n => n.id === p.id));
-        if (removed && connected) {
-          supabase.from('sows').delete().eq('id', removed.id);
+        if (removed && connectedRef.current) {
+          supabase.from('sows').delete().eq('id', removed.id).then(({ error }) => { if (error) console.error('SOW delete error:', error); });
         }
       } else {
         for (const item of next) {
           const old = prev.find(p => p.id === item.id);
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
-            if (connected) {
+            if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('sows').update(camelToSnake(rest)).eq('id', item.id);
+              supabase.from('sows').update(camelToSnake(rest)).eq('id', item.id).then(({ error }) => { if (error) console.error('SOW update error:', error); });
             }
           }
         }
@@ -261,23 +258,23 @@ export function useSupabaseData() {
 
       return next;
     });
-  }, [connected, addActivity]);
+  }, [addActivity]);
 
   // SETTINGS
   const setSettings = useCallback((updater) => {
     setSettingsState(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
 
-      if (connected) {
+      if (connectedRef.current) {
         const snaked = camelToSnake(next);
-        supabase.from('settings').upsert({ id: 'default', ...snaked, updated_at: new Date().toISOString() });
+        supabase.from('settings').upsert({ id: 'default', ...snaked, updated_at: new Date().toISOString() }).then(({ error }) => { if (error) console.error('Settings save error:', error); });
       }
 
       return next;
     });
-  }, [connected]);
+  }, []);
 
-  // Generic CRUD wrapper factory
+  // Generic CRUD wrapper factory — uses connectedRef to avoid stale closure
   function makeSetter(setState, tableName, opts = {}) {
     const { labelField = 'title', entityLabel = tableName, activityType = tableName } = opts;
     return (updater) => {
@@ -286,16 +283,16 @@ export function useSupabaseData() {
 
         if (next.length > prev.length) {
           const added = next.find(n => !prev.some(p => p.id === n.id));
-          if (added && connected) {
-            supabase.from(tableName).insert(camelToSnake(added));
+          if (added && connectedRef.current) {
+            supabase.from(tableName).insert(camelToSnake(added)).then(({ error }) => { if (error) console.error(`${entityLabel} insert error:`, error); });
             if (opts.logActivity !== false) {
               addActivity(activityType, `New ${entityLabel} added: ${added[labelField] || added.name || ''}`, opts.icon || 'plus');
             }
           }
         } else if (next.length < prev.length) {
           const removed = prev.find(p => !next.some(n => n.id === p.id));
-          if (removed && connected) {
-            supabase.from(tableName).delete().eq('id', removed.id);
+          if (removed && connectedRef.current) {
+            supabase.from(tableName).delete().eq('id', removed.id).then(({ error }) => { if (error) console.error(`${entityLabel} delete error:`, error); });
             if (opts.logActivity !== false) {
               addActivity(activityType, `${entityLabel} removed: ${removed[labelField] || removed.name || ''}`, 'pause');
             }
@@ -304,9 +301,9 @@ export function useSupabaseData() {
           for (const item of next) {
             const old = prev.find(p => p.id === item.id);
             if (old && JSON.stringify(old) !== JSON.stringify(item)) {
-              if (connected) {
+              if (connectedRef.current) {
                 const { createdAt: _ca, ...rest } = item;
-                supabase.from(tableName).update(camelToSnake(rest)).eq('id', item.id);
+                supabase.from(tableName).update(camelToSnake(rest)).eq('id', item.id).then(({ error }) => { if (error) console.error(`${entityLabel} update error:`, error); });
               }
             }
           }
@@ -320,70 +317,70 @@ export function useSupabaseData() {
   // INVOICE CRUD
   const setInvoices = useCallback(
     makeSetter(setInvoicesState, 'invoices', { labelField: 'invoiceNumber', entityLabel: 'invoice', icon: 'file-text' }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // TIME ENTRY CRUD
   const setTimeEntries = useCallback(
     makeSetter(setTimeEntriesState, 'time_entries', { labelField: 'description', entityLabel: 'time entry', logActivity: false }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // EVENT CRUD
   const setEvents = useCallback(
     makeSetter(setEventsState, 'events', { labelField: 'title', entityLabel: 'event', icon: 'calendar' }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // CONTRACTOR CRUD
   const setContractors = useCallback(
     makeSetter(setContractorsState, 'contractors', { labelField: 'firstName', entityLabel: 'contractor', icon: 'user-plus' }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // DEAL CRUD
   const setDeals = useCallback(
     makeSetter(setDealsState, 'deals', { labelField: 'title', entityLabel: 'deal', icon: 'trending-up' }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // CRM ACTIVITY CRUD
   const setCrmActivities = useCallback(
     makeSetter(setCrmActivitiesState, 'crm_activities', { labelField: 'title', entityLabel: 'CRM activity', logActivity: false }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // CHANNEL PARTNER CRUD
   const setChannelPartners = useCallback(
     makeSetter(setChannelPartnersState, 'channel_partners', { labelField: 'name', entityLabel: 'channel partner', icon: 'users' }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // DOCUMENT CRUD
   const setDocuments = useCallback(
     makeSetter(setDocumentsState, 'documents', { labelField: 'name', entityLabel: 'document', icon: 'file' }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // NOTIFICATION CRUD
   const setNotifications = useCallback(
     makeSetter(setNotificationsState, 'notifications', { labelField: 'text', entityLabel: 'notification', logActivity: false }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   // Helper to add a notification
   const addNotification = useCallback(async (text, type = 'info', entityType = '', entityId = '') => {
     const notification = { id: generateId(), text, type, entityType, entityId, read: false, createdAt: new Date().toISOString() };
     setNotificationsState(prev => [notification, ...prev]);
-    if (connected) {
+    if (connectedRef.current) {
       await supabase.from('notifications').insert(camelToSnake(notification));
     }
-  }, [connected]);
+  }, []);
 
   // AUTOMATION CRUD
   const setAutomations = useCallback(
     makeSetter(setAutomationsState, 'automations', { labelField: 'name', entityLabel: 'automation', icon: 'zap' }),
-    [connected, addActivity]
+    [addActivity]
   );
 
   return {
