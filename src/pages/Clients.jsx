@@ -90,6 +90,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         {filtered.map((client, i) => {
           const clientProjects = projects.filter(p => p.clientId === client.id);
           const activeCount = clientProjects.filter(p => p.stage === 'active').length;
+          const totalBudget = clientProjects.reduce((s, p) => s + (p.budget || 0), 0);
           return (
             <div key={client.id} className="client-card" style={{ animationDelay: `${i * 40}ms` }} onClick={() => setViewClientId(client.id)}>
               <div className="client-card__header">
@@ -106,7 +107,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
               </div>
               <div className="client-card__stats">
                 <div className="client-card__stat">
-                  <span className="client-card__stat-val">{formatCurrency(client.value)}</span>
+                  <span className="client-card__stat-val">{formatCurrency(totalBudget)}</span>
                   <span className="client-card__stat-lbl">Value</span>
                 </div>
                 <div className="client-card__stat">
@@ -149,7 +150,6 @@ export default function Clients({ clients, setClients, projects, sows, settings:
                 <div className="form-group"><label>Company Email</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="info@company.com" /></div>
                 <div className="form-group"><label>Company Phone</label><input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
                 <div className="form-group"><label>Website</label><input type="text" value={form.website || ''} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." /></div>
-                <div className="form-group"><label>Client Value ($)</label><input type="number" value={form.value} onChange={e => setForm(f => ({ ...f, value: parseInt(e.target.value) || 0 }))} /></div>
                 <div className="form-group form-group--full"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Additional notes..." /></div>
               </div>
             </div>
@@ -252,7 +252,7 @@ function ClientProfile({ client, setClients, projects, sows, onBack, onEdit, onD
           </div>
         </div>
         <div className="cp__hero-stats">
-          <div className="cp__stat"><span className="cp__stat-val">{formatCurrency(client.value)}</span><span className="cp__stat-lbl">Contract Value</span></div>
+          <div className="cp__stat"><span className="cp__stat-val">{formatCurrency(clientProjects.reduce((s, p) => s + (p.budget || 0), 0))}</span><span className="cp__stat-lbl">Total Budget</span></div>
           <div className="cp__stat"><span className="cp__stat-val">{clientProjects.length}</span><span className="cp__stat-lbl">Total Projects</span></div>
           <div className="cp__stat"><span className="cp__stat-val">{activeProjects.length}</span><span className="cp__stat-lbl">Active Projects</span></div>
           <div className="cp__stat"><span className="cp__stat-val">{formatCurrency(invoiceTotal)}</span><span className="cp__stat-lbl">Invoiced</span></div>
