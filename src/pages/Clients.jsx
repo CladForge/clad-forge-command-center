@@ -107,9 +107,9 @@ export default function Clients({ clients, setClients, projects, sows, settings:
           return (
             <div key={client.id} className="client-card" style={{ animationDelay: `${i * 40}ms` }} onClick={() => setViewClientId(client.id)}>
               <div className="client-card__header">
-                <div className="client-card__avatar">
+                <div className="client-card__avatar" style={{ overflow: 'hidden' }}>
                   {client.brandLogoUrl
-                    ? <img src={client.brandLogoUrl} alt={client.company} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+                    ? <img src={client.brandLogoUrl} alt={client.company} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }} />
                     : client.company.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="client-card__info">
@@ -265,9 +265,9 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
       <div className="cp__hero">
         <div className="cp__hero-top">
           <button className="cp__back" onClick={onBack}>← Back</button>
-          <div className="cp__hero-avatar">
+          <div className="cp__hero-avatar" style={{ overflow: 'hidden' }}>
             {client.brandLogoUrl
-              ? <img src={client.brandLogoUrl} alt={client.company} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+              ? <img src={client.brandLogoUrl} alt={client.company} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }} />
               : (client.company || '??').slice(0, 2).toUpperCase()}
           </div>
           <div className="cp__hero-info">
