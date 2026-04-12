@@ -32,6 +32,8 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   const [newUpdate, setNewUpdate] = useState('');
   const [editingScope, setEditingScope] = useState(false);
   const [scopeDraft, setScopeDraft] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState(null);
 
   const client = useMemo(() => clients.find(c => c.id === project?.clientId), [clients, project]);
 
@@ -170,13 +172,48 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
     updateProject({ proposalId: '' });
   }
 
+  function openEditModal() {
+    setEditForm({
+      title: project.title || '',
+      clientId: project.clientId || '',
+      stage: project.stage || 'lead',
+      budget: project.budget || 0,
+      deadline: project.deadline || '',
+      description: project.description || '',
+    });
+    setShowEditModal(true);
+  }
+
+  function saveEditModal() {
+    if (!editForm.title.trim()) return;
+    updateProject({
+      title: editForm.title.trim(),
+      clientId: editForm.clientId,
+      stage: editForm.stage,
+      budget: parseInt(editForm.budget) || 0,
+      deadline: editForm.deadline,
+      description: editForm.description,
+    });
+    setShowEditModal(false);
+  }
+
+  function deleteProject() {
+    if (!window.confirm(`Delete "${project.title}"? This cannot be undone.`)) return;
+    setProjects(prev => prev.filter(p => p.id !== id));
+    navigate('/pipeline');
+  }
+
   return (
     <div className="pd">
       {/* Header */}
       <div className="panel" style={{ marginBottom: 20, overflow: 'hidden' }}>
-        {/* Top bar: back + linked proposal */}
+        {/* Top bar: back + actions + linked proposal */}
         <div style={{ padding: '12px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button className="btn btn--ghost btn--sm" onClick={() => navigate(-1)}>← Back</button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="btn btn--ghost btn--sm" onClick={() => navigate(-1)}>← Back</button>
+            <button className="btn btn--secondary btn--sm" onClick={openEditModal}>Edit Project</button>
+            <button className="btn btn--ghost btn--sm" onClick={deleteProject} title="Delete project">Delete</button>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {linkedProposal ? (
               <>
@@ -519,6 +556,78 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
           )}
         </div>
       </div>
+
+      {/* Edit Project Modal */}
+      {showEditModal && editForm && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal__header">
+              <h2>Edit Project</h2>
+              <button className="modal__close" onClick={() => setShowEditModal(false)}>×</button>
+            </div>
+            <div className="modal__body">
+              <div className="form-grid">
+                <div className="form-group form-group--full">
+                  <label>Project Title *</label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                    placeholder="e.g., Acme Corp — Website Redesign"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Client</label>
+                  <select value={editForm.clientId} onChange={e => setEditForm(f => ({ ...f, clientId: e.target.value }))}>
+                    <option value="">No client</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.company}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Stage</label>
+                  <select value={editForm.stage} onChange={e => setEditForm(f => ({ ...f, stage: e.target.value }))}>
+                    {STAGES.map(s => (
+                      <option key={s.id} value={s.id}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Budget ($)</label>
+                  <input
+                    type="number"
+                    value={editForm.budget}
+                    onChange={e => setEditForm(f => ({ ...f, budget: e.target.value }))}
+                    min="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Deadline</label>
+                  <input
+                    type="date"
+                    value={editForm.deadline}
+                    onChange={e => setEditForm(f => ({ ...f, deadline: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Description</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="High-level project summary..."
+                    rows={4}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="modal__footer">
+              <button className="btn btn--ghost" onClick={() => setShowEditModal(false)}>Cancel</button>
+              <button className="btn btn--primary" onClick={saveEditModal}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
