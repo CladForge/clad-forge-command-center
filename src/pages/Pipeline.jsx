@@ -208,7 +208,7 @@ export default function Pipeline({ projects, setProjects, clients }) {
                   <select value={form.clientId} onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))}>
                     <option value="">Select client...</option>
                     {clients.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} — {c.company}</option>
+                      <option key={c.id} value={c.id}>{c.company}</option>
                     ))}
                   </select>
                 </div>

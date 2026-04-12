@@ -129,7 +129,6 @@ export default function SOWGenerator({ clients, sows, setSOWs, settings }) {
         <div class="section">
           <h2>Client Information</h2>
           <div class="info-grid">
-            <div class="info-item"><label>Client</label><span>${selectedClient?.name || 'N/A'}</span></div>
             <div class="info-item"><label>Company</label><span>${selectedClient?.company || 'N/A'}</span></div>
             <div class="info-item"><label>Email</label><span>${selectedClient?.email || 'N/A'}</span></div>
             <div class="info-item"><label>Phone</label><span>${selectedClient?.phone || 'N/A'}</span></div>
@@ -187,7 +186,7 @@ export default function SOWGenerator({ clients, sows, setSOWs, settings }) {
           </div>
           <div class="sig-block">
             <h3>Client</h3>
-            <div class="sig-line">${selectedClient?.name || '_______________'}, ${selectedClient?.company || '_______________'}</div>
+            <div class="sig-line">${selectedClient?.company || '_______________'}</div>
           </div>
         </div>
       </body>
@@ -236,7 +235,7 @@ export default function SOWGenerator({ clients, sows, setSOWs, settings }) {
                 <select value={form.clientId} onChange={e => updateForm({ clientId: e.target.value })}>
                   <option value="">Choose a client...</option>
                   {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} — {c.company}</option>
+                    <option key={c.id} value={c.id}>{c.company}</option>
                   ))}
                 </select>
               </div>
@@ -441,7 +440,7 @@ export default function SOWGenerator({ clients, sows, setSOWs, settings }) {
             <div className="sow__preview-body">
               <div className="sow__preview-section">
                 <h4>Client</h4>
-                <p>{selectedClient ? `${selectedClient.name} — ${selectedClient.company}` : 'No client selected'}</p>
+                <p>{selectedClient ? selectedClient.company : 'No client selected'}</p>
               </div>
 
               <div className="sow__preview-section">

@@ -54,7 +54,7 @@ export default function Documents({ documents, setDocuments, clients, projects }
 
   const clientName = (id) => {
     const c = clients.find(c => c.id === id);
-    return c ? c.company || c.name : '—';
+    return c ? c.company : '—';
   };
 
   const projectTitle = (id) => {
@@ -149,7 +149,7 @@ export default function Documents({ documents, setDocuments, clients, projects }
           style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: '0.82rem' }}
         >
           <option value="all">All Clients</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.company || c.name}</option>)}
+          {clients.map(c => <option key={c.id} value={c.id}>{c.company}</option>)}
         </select>
       </div>
 
@@ -247,7 +247,7 @@ export default function Documents({ documents, setDocuments, clients, projects }
                   <label>Client</label>
                   <select value={form.clientId} onChange={e => setForm({ ...form, clientId: e.target.value })}>
                     <option value="">None</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.company || c.name}</option>)}
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.company}</option>)}
                   </select>
                 </div>
                 <div className="form-group">

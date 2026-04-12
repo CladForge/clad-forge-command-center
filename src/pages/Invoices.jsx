@@ -424,7 +424,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
               <div className="inv-project-info__row">
                 <div className="inv-project-info__item">
                   <label>Client</label>
-                  <span>{form.clientName} — {form.clientCompany}</span>
+                  <span>{form.clientCompany || form.clientName}</span>
                 </div>
                 <div className="inv-project-info__item">
                   <label>Email</label>
