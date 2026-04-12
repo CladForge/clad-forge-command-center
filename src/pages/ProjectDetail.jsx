@@ -252,7 +252,7 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
         {/* Main header area */}
         <div style={{ padding: '22px 22px 18px' }}>
           {project.projectNumber && (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--brand)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 6 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.15rem', color: 'var(--brand)', fontWeight: 600, letterSpacing: '1px', marginBottom: 8 }}>
               {project.projectNumber}
             </div>
           )}
