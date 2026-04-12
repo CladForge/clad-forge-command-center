@@ -323,7 +323,14 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                   return (
                     <div key={project.id} className="cp__project-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/projects/${project.id}`)}>
                       <div className="cp__project-header">
-                        <h4>{project.title}</h4>
+                        <h4>
+                          {project.projectNumber && (
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--brand)', marginRight: 6, fontWeight: 500 }}>
+                              {project.projectNumber}
+                            </span>
+                          )}
+                          {project.title}
+                        </h4>
                         <span className={`status-pill status-pill--${project.stage === 'active' ? 'sent' : project.stage === 'completed' ? 'paid' : project.stage === 'on-hold' ? 'draft' : 'sent'}`}>
                           {project.stage}
                         </span>

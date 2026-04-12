@@ -174,6 +174,7 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
 
   function openEditModal() {
     setEditForm({
+      projectNumber: project.projectNumber || '',
       title: project.title || '',
       clientId: project.clientId || '',
       stage: project.stage || 'lead',
@@ -187,6 +188,7 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   function saveEditModal() {
     if (!editForm.title.trim()) return;
     updateProject({
+      projectNumber: editForm.projectNumber.trim(),
       title: editForm.title.trim(),
       clientId: editForm.clientId,
       stage: editForm.stage,
@@ -249,6 +251,11 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
 
         {/* Main header area */}
         <div style={{ padding: '22px 22px 18px' }}>
+          {project.projectNumber && (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--brand)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 6 }}>
+              {project.projectNumber}
+            </div>
+          )}
           <h1 style={{ margin: '0 0 10px', fontSize: '1.75rem', lineHeight: 1.2 }}>{project.title}</h1>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--slate)' }}>
             <span className="status-badge" style={{ background: `${stage.color}22`, color: stage.color, border: `1px solid ${stage.color}55` }}>
@@ -567,13 +574,22 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
             </div>
             <div className="modal__body">
               <div className="form-grid">
-                <div className="form-group form-group--full">
+                <div className="form-group">
+                  <label>Project Number</label>
+                  <input
+                    type="text"
+                    value={editForm.projectNumber}
+                    onChange={e => setEditForm(f => ({ ...f, projectNumber: e.target.value }))}
+                    placeholder="PRJ-2026-001"
+                  />
+                </div>
+                <div className="form-group">
                   <label>Project Title *</label>
                   <input
                     type="text"
                     value={editForm.title}
                     onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g., Acme Corp — Website Redesign"
+                    placeholder="e.g., Website Redesign"
                   />
                 </div>
                 <div className="form-group">

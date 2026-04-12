@@ -264,7 +264,14 @@ export default function Dashboard({ clients, projects, sows, activities, setting
               return (
                 <div key={project.id} className="dash__deadline-row" style={{ cursor: 'pointer' }} onClick={() => navigate(`/projects/${project.id}`)}>
                   <div className="dash__deadline-info">
-                    <span className="dash__deadline-title">{project.title}</span>
+                    <span className="dash__deadline-title">
+                      {project.projectNumber && (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--brand)', marginRight: 6, fontWeight: 500 }}>
+                          {project.projectNumber}
+                        </span>
+                      )}
+                      {project.title}
+                    </span>
                     <span className="dash__deadline-client">{client?.company || ''}</span>
                   </div>
                   <span className={`dash__deadline-days ${days <= 7 ? 'dash__deadline-days--warn' : ''} ${days <= 0 ? 'dash__deadline-days--overdue' : ''}`}>

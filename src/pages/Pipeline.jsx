@@ -11,10 +11,17 @@ const STAGES = [
 ];
 
 const emptyProject = {
-  title: '', clientId: '', stage: 'lead', budget: 0,
+  projectNumber: '', title: '', clientId: '', stage: 'lead', budget: 0,
   deadline: '', description: '',
   scopeOfWork: '', deliverables: [], updates: [], proposalId: '',
 };
+
+function generateProjectNumber(projects) {
+  const year = new Date().getFullYear();
+  const prefix = `PRJ-${year}`;
+  const existing = (projects || []).filter(p => p.projectNumber?.startsWith(prefix));
+  return `${prefix}-${String(existing.length + 1).padStart(3, '0')}`;
+}
 
 export default function Pipeline({ projects, setProjects, clients }) {
   const navigate = useNavigate();
@@ -90,7 +97,7 @@ export default function Pipeline({ projects, setProjects, clients }) {
             );
           })}
         </div>
-        <button className="btn btn--primary" onClick={() => setShowModal(true)}>
+        <button className="btn btn--primary" onClick={() => { setForm({ ...emptyProject, projectNumber: generateProjectNumber(projects) }); setShowModal(true); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
@@ -131,6 +138,11 @@ export default function Pipeline({ projects, setProjects, clients }) {
                     >
                       <div className="pipeline__card-header">
                         <h4 style={{ cursor: 'pointer' }} onClick={() => navigate(`/projects/${project.id}`)} title="Open project dashboard">
+                          {project.projectNumber && (
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--brand)', marginRight: 6, fontWeight: 500 }}>
+                              {project.projectNumber}
+                            </span>
+                          )}
                           {project.title}
                         </h4>
                         <button
@@ -207,13 +219,22 @@ export default function Pipeline({ projects, setProjects, clients }) {
             </div>
             <div className="modal__body">
               <div className="form-grid">
-                <div className="form-group form-group--full">
+                <div className="form-group">
+                  <label>Project Number</label>
+                  <input
+                    type="text"
+                    value={form.projectNumber}
+                    onChange={e => setForm(f => ({ ...f, projectNumber: e.target.value }))}
+                    placeholder="PRJ-2026-001"
+                  />
+                </div>
+                <div className="form-group">
                   <label>Project Title *</label>
                   <input
                     type="text"
                     value={form.title}
                     onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g., Acme Corp — Website Redesign"
+                    placeholder="e.g., Website Redesign"
                   />
                 </div>
                 <div className="form-group">
