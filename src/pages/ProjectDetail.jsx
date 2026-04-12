@@ -580,7 +580,7 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
                     type="text"
                     value={editForm.projectNumber}
                     onChange={e => setEditForm(f => ({ ...f, projectNumber: e.target.value }))}
-                    placeholder="PRJ-2026-001"
+                    placeholder="0001"
                   />
                 </div>
                 <div className="form-group">

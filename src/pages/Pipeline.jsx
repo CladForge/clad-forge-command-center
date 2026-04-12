@@ -17,10 +17,11 @@ const emptyProject = {
 };
 
 function generateProjectNumber(projects) {
-  const year = new Date().getFullYear();
-  const prefix = `PRJ-${year}`;
-  const existing = (projects || []).filter(p => p.projectNumber?.startsWith(prefix));
-  return `${prefix}-${String(existing.length + 1).padStart(3, '0')}`;
+  const maxNum = (projects || []).reduce((max, p) => {
+    const n = parseInt(p.projectNumber, 10);
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 0);
+  return String(maxNum + 1).padStart(4, '0');
 }
 
 export default function Pipeline({ projects, setProjects, clients }) {
@@ -225,7 +226,7 @@ export default function Pipeline({ projects, setProjects, clients }) {
                     type="text"
                     value={form.projectNumber}
                     onChange={e => setForm(f => ({ ...f, projectNumber: e.target.value }))}
-                    placeholder="PRJ-2026-001"
+                    placeholder="0001"
                   />
                 </div>
                 <div className="form-group">
