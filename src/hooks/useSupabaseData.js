@@ -45,7 +45,7 @@ function camelToSnake(obj) {
 // Known DB columns per table — prevents inserting fields that don't exist in Supabase
 const TABLE_COLUMNS = {
   clients: ['id','name','company','email','phone','industry','status','notes','value','created_at','created_by','brand_colors','brand_fonts','brand_tone','brand_logo_url','website','company_size','contacts'],
-  projects: ['id','title','client_id','stage','budget','deadline','description','created_at','created_by'],
+  projects: ['id','title','client_id','stage','budget','deadline','description','scope_of_work','deliverables','updates','created_at','created_by'],
   sows: ['id','client_id','project_title','description','scope_items','deliverables','timeline','budget','terms','status','created_at','created_by'],
   activities: ['id','type','message','icon','created_at','created_by'],
   settings: ['id','company_name','company_email','company_phone','company_address','company_website','tax_id','owner_name','owner_title','default_payment_terms','default_currency','default_tax_rate','invoice_prefix','invoice_next_number','default_invoice_notes','payment_instructions','auto_detect_overdue','sow_prefix','sow_footer','default_sow_terms','default_payment_schedule','default_hourly_rate','time_rounding','work_hours_per_day','pipeline_stages','default_stage','theme','accent_color','date_format','sidebar_collapsed','invoice_reminder_days','client_follow_up_days','project_deadline_warning_days','default_industry','custom_industries','updated_at'],

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { generateId, initialSettings } from '../data/initialData';
 
 const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
@@ -203,6 +204,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    ═══════════════════════════════════════════ */
 
 function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], onBack, onEdit, onDelete }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
   const [editContact, setEditContact] = useState(null);
@@ -319,7 +321,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                     s + (inv.items || []).reduce((ss, item) => ss + (item.quantity || 0) * (item.rate || 0), 0), 0);
                   const pct = project.budget > 0 ? Math.round((budgetUsed / project.budget) * 100) : 0;
                   return (
-                    <div key={project.id} className="cp__project-card">
+                    <div key={project.id} className="cp__project-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/projects/${project.id}`)}>
                       <div className="cp__project-header">
                         <h4>{project.title}</h4>
                         <span className={`status-pill status-pill--${project.stage === 'active' ? 'sent' : project.stage === 'completed' ? 'paid' : project.stage === 'on-hold' ? 'draft' : 'sent'}`}>

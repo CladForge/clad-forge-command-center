@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Pipeline from './pages/Pipeline';
+import ProjectDetail from './pages/ProjectDetail';
 import Proposals from './pages/Proposals';
 import Invoices from './pages/Invoices';
 import TimeTracker from './pages/TimeTracker';
@@ -133,6 +134,7 @@ export default function App() {
             <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} activities={activities} settings={settings} invoices={invoices} timeEntries={timeEntries} notifications={notifications} setClients={setClients} addNotification={addNotification} />} />
             <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} />} />
+            <Route path="/projects/:id" element={<ProjectDetail projects={projects} setProjects={setProjects} clients={clients} sows={sows} invoices={invoices} timeEntries={timeEntries} documents={documents} />} />
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} invoices={invoices} setInvoices={setInvoices} />} />
             <Route path="/time" element={<TimeTracker projects={projects} clients={clients} entries={timeEntries} setEntries={setTimeEntries} />} />

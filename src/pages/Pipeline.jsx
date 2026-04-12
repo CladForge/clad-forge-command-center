@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { generateId } from '../data/initialData';
 
 const STAGES = [
@@ -12,9 +13,11 @@ const STAGES = [
 const emptyProject = {
   title: '', clientId: '', stage: 'lead', budget: 0,
   deadline: '', description: '',
+  scopeOfWork: '', deliverables: [], updates: [],
 };
 
 export default function Pipeline({ projects, setProjects, clients }) {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyProject);
   const [dragId, setDragId] = useState(null);
@@ -127,7 +130,9 @@ export default function Pipeline({ projects, setProjects, clients }) {
                       style={{ animationDelay: `${i * 60}ms` }}
                     >
                       <div className="pipeline__card-header">
-                        <h4>{project.title}</h4>
+                        <h4 style={{ cursor: 'pointer' }} onClick={() => navigate(`/projects/${project.id}`)} title="Open project dashboard">
+                          {project.title}
+                        </h4>
                         <button
                           className="pipeline__card-delete"
                           onClick={() => handleDelete(project.id)}
@@ -160,6 +165,14 @@ export default function Pipeline({ projects, setProjects, clients }) {
                           title="Move left"
                         >
                           ←
+                        </button>
+                        <button
+                          className="pipeline__card-move"
+                          onClick={() => navigate(`/projects/${project.id}`)}
+                          title="Open project dashboard"
+                          style={{ flex: 1 }}
+                        >
+                          Open
                         </button>
                         <button
                           className="pipeline__card-move"

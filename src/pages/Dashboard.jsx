@@ -262,7 +262,7 @@ export default function Dashboard({ clients, projects, sows, activities, setting
               const days = Math.ceil((new Date(project.deadline) - new Date()) / 86400000);
               const client = clients.find(c => c.id === project.clientId);
               return (
-                <div key={project.id} className="dash__deadline-row">
+                <div key={project.id} className="dash__deadline-row" style={{ cursor: 'pointer' }} onClick={() => navigate(`/projects/${project.id}`)}>
                   <div className="dash__deadline-info">
                     <span className="dash__deadline-title">{project.title}</span>
                     <span className="dash__deadline-client">{client?.company || ''}</span>
