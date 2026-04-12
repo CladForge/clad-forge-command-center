@@ -19,7 +19,18 @@ export default function Clients({ clients, setClients, projects, sows, settings:
     name: '', company: '', email: '', phone: '',
     industry: settings.defaultIndustry || 'Construction',
     status: 'prospect', notes: '', value: 0, website: '', contacts: [],
+    brandLogoUrl: '',
   };
+
+  function handleLogoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Please select an image file'); return; }
+    if (file.size > 2 * 1024 * 1024) { alert('Logo must be under 2MB'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => setForm(f => ({ ...f, brandLogoUrl: ev.target.result }));
+    reader.readAsDataURL(file);
+  }
 
   const [form, setForm] = useState(emptyClient);
 
@@ -97,7 +108,9 @@ export default function Clients({ clients, setClients, projects, sows, settings:
             <div key={client.id} className="client-card" style={{ animationDelay: `${i * 40}ms` }} onClick={() => setViewClientId(client.id)}>
               <div className="client-card__header">
                 <div className="client-card__avatar">
-                  {client.company.slice(0, 2).toUpperCase()}
+                  {client.brandLogoUrl
+                    ? <img src={client.brandLogoUrl} alt={client.company} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+                    : client.company.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="client-card__info">
                   <h3 className="client-card__name">{client.company}</h3>
@@ -146,6 +159,25 @@ export default function Clients({ clients, setClients, projects, sows, settings:
             </div>
             <div className="modal__body">
               <div className="form-grid">
+                <div className="form-group form-group--full">
+                  <label>Logo</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--surface-muted, #f3f4f6)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                      {form.brandLogoUrl
+                        ? <img src={form.brandLogoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        : <span style={{ fontSize: '0.7rem', color: 'var(--slate)' }}>No logo</span>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label className="btn btn--secondary btn--sm" style={{ cursor: 'pointer', margin: 0 }}>
+                        {form.brandLogoUrl ? 'Replace Logo' : 'Upload Logo'}
+                        <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                      </label>
+                      {form.brandLogoUrl && (
+                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setForm(f => ({ ...f, brandLogoUrl: '' }))}>Remove</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className="form-group form-group--full"><label>Company Name *</label><input type="text" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Acme Corp" /></div>
                 <div className="form-group"><label>Industry</label><select value={form.industry} onChange={e => setForm(f => ({ ...f, industry: e.target.value }))}>{industries.map(ind => <option key={ind} value={ind}>{ind}</option>)}</select></div>
                 <div className="form-group"><label>Status</label><select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>{STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1).replace('-', ' ')}</option>)}</select></div>
@@ -233,7 +265,11 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
       <div className="cp__hero">
         <div className="cp__hero-top">
           <button className="cp__back" onClick={onBack}>← Back</button>
-          <div className="cp__hero-avatar">{(client.company || '??').slice(0, 2).toUpperCase()}</div>
+          <div className="cp__hero-avatar">
+            {client.brandLogoUrl
+              ? <img src={client.brandLogoUrl} alt={client.company} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 'inherit' }} />
+              : (client.company || '??').slice(0, 2).toUpperCase()}
+          </div>
           <div className="cp__hero-info">
             <h1 className="cp__hero-name">{client.company}</h1>
             <div className="cp__hero-meta">
