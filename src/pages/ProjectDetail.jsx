@@ -43,8 +43,12 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
     () => (timeEntries || []).filter(e => e.projectId === id),
     [timeEntries, id]
   );
-  const projectProposals = useMemo(
-    () => (sows || []).filter(s => s.clientId === project?.clientId && s.projectTitle === project?.title),
+  const linkedProposal = useMemo(
+    () => (sows || []).find(s => s.id === project?.proposalId) || null,
+    [sows, project]
+  );
+  const availableProposals = useMemo(
+    () => (sows || []).filter(s => !project?.clientId || s.clientId === project.clientId),
     [sows, project]
   );
   const projectDocs = useMemo(
@@ -120,32 +124,128 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
     setEditingScope(true);
   }
 
+  function buildScopeFromProposal(prop) {
+    const parts = [];
+    if (prop.description) parts.push(prop.description);
+    (prop.packages || []).forEach(pkg => {
+      const header = pkg.name ? `## ${pkg.name}${pkg.optional ? ' (optional)' : ''}` : '';
+      const body = pkg.description || '';
+      if (header || body) parts.push([header, body].filter(Boolean).join('\n'));
+    });
+    return parts.join('\n\n');
+  }
+
+  function buildDeliverablesFromProposal(prop) {
+    const items = [];
+    (prop.packages || []).forEach(pkg => {
+      (pkg.items || []).forEach(it => {
+        const text = it.text?.trim();
+        if (!text) return;
+        const prefix = pkg.name ? `${pkg.name}: ` : '';
+        items.push({ id: generateId(), text: `${prefix}${text}`, done: false });
+      });
+    });
+    return items;
+  }
+
+  function linkProposal(propId) {
+    if (!propId) {
+      updateProject({ proposalId: '' });
+      return;
+    }
+    const prop = (sows || []).find(s => s.id === propId);
+    if (!prop) return;
+    const hasExistingContent = (project.scopeOfWork || '').trim() || (project.deliverables || []).length > 0;
+    const shouldAutofill = !hasExistingContent
+      || window.confirm('Autofill Scope of Work and Deliverables from this proposal? This will replace any existing content.');
+    const patch = { proposalId: propId };
+    if (shouldAutofill) {
+      patch.scopeOfWork = buildScopeFromProposal(prop);
+      patch.deliverables = buildDeliverablesFromProposal(prop);
+    }
+    updateProject(patch);
+  }
+
+  function unlinkProposal() {
+    updateProject({ proposalId: '' });
+  }
+
   return (
     <div className="pd">
       {/* Header */}
-      <div className="panel" style={{ marginBottom: 20 }}>
-        <div style={{ padding: '18px 22px', display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+      <div className="panel" style={{ marginBottom: 20, overflow: 'hidden' }}>
+        {/* Top bar: back + linked proposal */}
+        <div style={{ padding: '12px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <button className="btn btn--ghost btn--sm" onClick={() => navigate(-1)}>← Back</button>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{project.title}</h1>
-              <span className="status-badge" style={{ background: `${stage.color}22`, color: stage.color, border: `1px solid ${stage.color}55` }}>
-                {stage.label}
-              </span>
-            </div>
-            {client && (
-              <div style={{ marginTop: 6, fontSize: '0.9rem', color: 'var(--slate)' }}>
-                Client: <span style={{ color: 'var(--brand)', cursor: 'pointer' }} onClick={() => navigate('/clients')}>{client.company}</span>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {linkedProposal ? (
+              <>
+                <span style={{ fontSize: '0.8rem', color: 'var(--slate)' }}>Linked proposal:</span>
+                <span
+                  onClick={() => navigate('/proposals')}
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 600, color: 'var(--brand)', cursor: 'pointer' }}
+                >
+                  {linkedProposal.proposalNumber || linkedProposal.id}
+                </span>
+                <button className="btn btn--ghost btn--sm" onClick={unlinkProposal} title="Unlink proposal">Unlink</button>
+              </>
+            ) : (
+              <>
+                <label style={{ fontSize: '0.8rem', color: 'var(--slate)' }}>Link proposal:</label>
+                <select
+                  value=""
+                  onChange={e => linkProposal(e.target.value)}
+                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: '0.8rem' }}
+                >
+                  <option value="">Select proposal...</option>
+                  {availableProposals.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.proposalNumber || p.id} — {p.projectTitle || 'Untitled'}
+                    </option>
+                  ))}
+                  {availableProposals.length === 0 && <option disabled>No proposals available</option>}
+                </select>
+              </>
             )}
           </div>
-          <select
-            value={project.stage}
-            onChange={e => updateProject({ stage: e.target.value })}
-            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: '0.85rem' }}
-          >
-            {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-          </select>
+        </div>
+
+        {/* Main header area */}
+        <div style={{ padding: '22px 22px 18px' }}>
+          <h1 style={{ margin: '0 0 10px', fontSize: '1.75rem', lineHeight: 1.2 }}>{project.title}</h1>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--slate)' }}>
+            <span className="status-badge" style={{ background: `${stage.color}22`, color: stage.color, border: `1px solid ${stage.color}55` }}>
+              {stage.label}
+            </span>
+            {client && (
+              <span>
+                Client: <span style={{ color: 'var(--brand)', cursor: 'pointer' }} onClick={() => navigate('/clients')}>{client.company}</span>
+              </span>
+            )}
+            {project.deadline && (
+              <span>
+                Due {project.deadline}
+                {dday !== null && (
+                  <span style={{ color: dday < 0 ? '#ef4444' : dday < 14 ? '#f59e0b' : 'var(--slate)', fontWeight: 500, marginLeft: 4 }}>
+                    ({dday < 0 ? `${Math.abs(dday)}d overdue` : dday === 0 ? 'today' : `${dday}d left`})
+                  </span>
+                )}
+              </span>
+            )}
+            {project.budget > 0 && (
+              <span>{formatCurrency(project.budget)}</span>
+            )}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+              <label style={{ fontSize: '0.8rem' }}>Stage:</label>
+              <select
+                value={project.stage}
+                onChange={e => updateProject({ stage: e.target.value })}
+                style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: '0.8rem' }}
+              >
+                {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -319,32 +419,32 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
 
         {/* RIGHT COLUMN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
-          {/* Proposals */}
+          {/* Linked Proposal */}
           <div className="panel">
-            <div className="panel__header"><h3>Proposals ({projectProposals.length})</h3></div>
+            <div className="panel__header"><h3>Proposal</h3></div>
             <div style={{ padding: '12px 16px' }}>
-              {projectProposals.length === 0 ? (
-                <p style={{ color: 'var(--slate)', fontSize: '0.85rem', fontStyle: 'italic', margin: 0 }}>
-                  No proposals linked. Proposals with matching client + title will appear here.
-                </p>
-              ) : (
-                projectProposals.map(p => (
-                  <div
-                    key={p.id}
-                    onClick={() => navigate('/proposals')}
-                    style={{ padding: 10, marginBottom: 8, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 600 }}>
-                        {p.proposalNumber || p.id}
-                      </span>
-                      <span className={`status-pill status-pill--${p.status}`} style={{ fontSize: '0.7rem' }}>{p.status}</span>
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--slate)', marginTop: 4 }}>
-                      {p.createdAt?.split('T')[0]}
-                    </div>
+              {linkedProposal ? (
+                <div
+                  onClick={() => navigate('/proposals')}
+                  style={{ padding: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 600 }}>
+                      {linkedProposal.proposalNumber || linkedProposal.id}
+                    </span>
+                    <span className={`status-pill status-pill--${linkedProposal.status}`} style={{ fontSize: '0.7rem' }}>{linkedProposal.status}</span>
                   </div>
-                ))
+                  {linkedProposal.projectTitle && (
+                    <div style={{ fontSize: '0.8rem', marginTop: 4 }}>{linkedProposal.projectTitle}</div>
+                  )}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--slate)', marginTop: 4 }}>
+                    {linkedProposal.createdAt?.split('T')[0]}
+                  </div>
+                </div>
+              ) : (
+                <p style={{ color: 'var(--slate)', fontSize: '0.85rem', fontStyle: 'italic', margin: 0 }}>
+                  No proposal linked. Use "Link proposal" at the top to attach one and autofill scope + deliverables.
+                </p>
               )}
             </div>
           </div>

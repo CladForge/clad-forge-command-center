@@ -13,7 +13,7 @@ const STAGES = [
 const emptyProject = {
   title: '', clientId: '', stage: 'lead', budget: 0,
   deadline: '', description: '',
-  scopeOfWork: '', deliverables: [], updates: [],
+  scopeOfWork: '', deliverables: [], updates: [], proposalId: '',
 };
 
 export default function Pipeline({ projects, setProjects, clients }) {
