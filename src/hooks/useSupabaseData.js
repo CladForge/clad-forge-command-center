@@ -72,6 +72,52 @@ function stripForDB(tableName, snakeObj) {
   return result;
 }
 
+// Cache of columns known to be missing in the live DB (e.g. migration not run yet).
+// Populated by safeWrite when Supabase rejects an unknown column.
+const MISSING_COLUMNS = {};
+
+function stripMissing(tableName, payload) {
+  const missing = MISSING_COLUMNS[tableName];
+  if (!missing || missing.size === 0) return payload;
+  const out = {};
+  for (const [k, v] of Object.entries(payload)) {
+    if (!missing.has(k)) out[k] = v;
+  }
+  return out;
+}
+
+// Upsert with automatic retry when the DB is missing columns (e.g. pending migration).
+// Strips the offending column, caches it as missing, and retries up to 8 times.
+async function safeWrite(tableName, snakePayload, opts = {}) {
+  let payload = stripMissing(tableName, { ...snakePayload });
+  for (let i = 0; i < 8; i++) {
+    const { error } = await supabase.from(tableName).upsert(payload);
+    if (!error) return { ok: true };
+
+    // Parse "column X of relation Y does not exist" / "Could not find the 'X' column"
+    const msg = error.message || '';
+    const colMatch = msg.match(/column ['"`]?([a-z_]+)['"`]? of relation/i)
+      || msg.match(/could not find the ['"`]?([a-z_]+)['"`]? column/i)
+      || msg.match(/column ['"`]?([a-z_]+)['"`]? does not exist/i);
+
+    if (colMatch && payload[colMatch[1]] !== undefined) {
+      const badCol = colMatch[1];
+      console.warn(
+        `[CladForge] ${tableName}: column "${badCol}" is missing in Supabase. ` +
+        `Stripping it and retrying. Run supabase-migration.sql to add it permanently.`
+      );
+      if (!MISSING_COLUMNS[tableName]) MISSING_COLUMNS[tableName] = new Set();
+      MISSING_COLUMNS[tableName].add(badCol);
+      delete payload[badCol];
+      continue;
+    }
+
+    console.error(`[CladForge] ${opts.label || tableName} save error:`, error, 'Payload:', payload);
+    return { ok: false, error };
+  }
+  return { ok: false };
+}
+
 function formatTime(date) {
   const now = new Date();
   const diff = now - new Date(date);
@@ -196,7 +242,7 @@ export function useSupabaseData() {
       if (next.length > prev.length) {
         const newClient = next.find(n => !prev.some(p => p.id === n.id));
         if (newClient && connectedRef.current) {
-          supabase.from('clients').insert(stripForDB('clients', camelToSnake(newClient))).then(({ error }) => { if (error) console.error('Client insert error:', error); });
+          safeWrite('clients', stripForDB('clients', camelToSnake(newClient)), { label: 'client insert' });
           addActivity('client', `New client added: ${newClient.company}`, 'user-plus');
         }
       } else if (next.length < prev.length) {
@@ -211,7 +257,7 @@ export function useSupabaseData() {
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
             if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('clients').update(stripForDB('clients', camelToSnake(rest))).eq('id', item.id).then(({ error }) => { if (error) console.error('Client update error:', error); });
+              safeWrite('clients', stripForDB('clients', camelToSnake(rest)), { label: 'client update' });
             }
             if (old.status !== item.status) {
               addActivity('client', `${item.company} status changed to ${item.status.replace('-', ' ')}`, 'arrow-right');
@@ -232,7 +278,7 @@ export function useSupabaseData() {
       if (next.length > prev.length) {
         const newProject = next.find(n => !prev.some(p => p.id === n.id));
         if (newProject && connectedRef.current) {
-          supabase.from('projects').insert(stripForDB('projects', camelToSnake(newProject))).then(({ error }) => { if (error) console.error('Project insert error:', error); });
+          safeWrite('projects', stripForDB('projects', camelToSnake(newProject)), { label: 'project insert' });
           addActivity('project', `New project created: ${newProject.title}`, 'play');
         }
       } else if (next.length < prev.length) {
@@ -247,7 +293,7 @@ export function useSupabaseData() {
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
             if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('projects').update(stripForDB('projects', camelToSnake(rest))).eq('id', item.id).then(({ error }) => { if (error) console.error('Project update error:', error); });
+              safeWrite('projects', stripForDB('projects', camelToSnake(rest)), { label: 'project update' });
             }
             if (old.stage !== item.stage) {
               const stageLabels = { lead: 'Lead', proposal: 'Proposal', active: 'Active', review: 'Review', completed: 'Completed' };
@@ -269,7 +315,7 @@ export function useSupabaseData() {
       if (next.length > prev.length) {
         const newSOW = next.find(n => !prev.some(p => p.id === n.id));
         if (newSOW && connectedRef.current) {
-          supabase.from('sows').insert(stripForDB('sows', camelToSnake(newSOW))).then(({ error }) => { if (error) console.error('SOW insert error:', error); });
+          safeWrite('sows', stripForDB('sows', camelToSnake(newSOW)), { label: 'SOW insert' });
           addActivity('sow', `SOW created: ${newSOW.projectTitle}`, 'file-text');
         }
       } else if (next.length < prev.length) {
@@ -283,7 +329,7 @@ export function useSupabaseData() {
           if (old && JSON.stringify(old) !== JSON.stringify(item)) {
             if (connectedRef.current) {
               const { createdAt: _ca, ...rest } = item;
-              supabase.from('sows').update(stripForDB('sows', camelToSnake(rest))).eq('id', item.id).then(({ error }) => { if (error) console.error('SOW update error:', error); });
+              safeWrite('sows', stripForDB('sows', camelToSnake(rest)), { label: 'SOW update' });
             }
           }
         }
@@ -317,7 +363,7 @@ export function useSupabaseData() {
         if (next.length > prev.length) {
           const added = next.find(n => !prev.some(p => p.id === n.id));
           if (added && connectedRef.current) {
-            supabase.from(tableName).insert(stripForDB(tableName, camelToSnake(added))).then(({ error }) => { if (error) console.error(`${entityLabel} insert error:`, error); });
+            safeWrite(tableName, stripForDB(tableName, camelToSnake(added)), { label: `${entityLabel} insert` });
             if (opts.logActivity !== false) {
               addActivity(activityType, `New ${entityLabel} added: ${added[labelField] || added.name || ''}`, opts.icon || 'plus');
             }
@@ -336,7 +382,7 @@ export function useSupabaseData() {
             if (old && JSON.stringify(old) !== JSON.stringify(item)) {
               if (connectedRef.current) {
                 const { createdAt: _ca, ...rest } = item;
-                supabase.from(tableName).update(stripForDB(tableName, camelToSnake(rest))).eq('id', item.id).then(({ error }) => { if (error) console.error(`${entityLabel} update error:`, error); });
+                safeWrite(tableName, stripForDB(tableName, camelToSnake(rest)), { label: `${entityLabel} update` });
               }
             }
           }
