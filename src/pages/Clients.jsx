@@ -55,6 +55,8 @@ export default function Clients({ clients, setClients, projects, sows, settings:
   }
 
   function handleDelete(id) {
+    const c = clients.find(cl => cl.id === id);
+    if (!window.confirm(`Delete client "${c?.company || 'this client'}"? This cannot be undone.`)) return;
     setClients(prev => prev.filter(c => c.id !== id));
     setViewClientId(null);
   }
@@ -248,6 +250,8 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
   }
 
   function deleteContact(contactId) {
+    const ct = contacts.find(x => x.id === contactId);
+    if (!window.confirm(`Remove ${ct?.name || 'this person'} from ${client.company}?`)) return;
     setClients(prev => prev.map(c => {
       if (c.id !== client.id) return c;
       return { ...c, contacts: (c.contacts || []).filter(ct => ct.id !== contactId) };

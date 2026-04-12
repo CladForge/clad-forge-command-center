@@ -98,6 +98,8 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   }
 
   function removeDeliverable(did) {
+    const d = deliverables.find(x => x.id === did);
+    if (!window.confirm(`Remove deliverable "${d?.text || 'this item'}"?`)) return;
     updateProject({ deliverables: deliverables.filter(d => d.id !== did) });
   }
 
@@ -113,6 +115,7 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   }
 
   function removeUpdate(uid) {
+    if (!window.confirm('Delete this update? This cannot be undone.')) return;
     updateProject({ updates: updates.filter(u => u.id !== uid) });
   }
 

@@ -146,6 +146,8 @@ export default function CRM({ deals, setDeals, crmActivities, setCrmActivities, 
   }
 
   function handleDeleteDeal(id) {
+    const d = deals.find(x => x.id === id);
+    if (!window.confirm(`Delete deal "${d?.title || 'this deal'}"? This cannot be undone.`)) return;
     setDeals(prev => prev.filter(d => d.id !== id));
     if (viewDealId === id) setViewDealId(null);
   }
@@ -195,6 +197,8 @@ export default function CRM({ deals, setDeals, crmActivities, setCrmActivities, 
   }
 
   function handleDeletePartner(id) {
+    const p = channelPartners.find(x => x.id === id);
+    if (!window.confirm(`Delete channel partner "${p?.name || 'this partner'}"? This cannot be undone.`)) return;
     setChannelPartners(prev => prev.filter(p => p.id !== id));
   }
 

@@ -40,6 +40,8 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
   }
 
   function handleDelete(id) {
+    const s = sows.find(x => x.id === id);
+    if (!window.confirm(`Delete proposal ${s?.proposalNumber || ''}? This cannot be undone.`)) return;
     setSOWs(prev => prev.filter(s => s.id !== id));
     setPreviewId(null);
   }

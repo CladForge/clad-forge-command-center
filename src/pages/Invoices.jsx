@@ -83,6 +83,8 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
   }).length;
 
   function handleDelete(id) {
+    const inv = invoices.find(i => i.id === id);
+    if (!window.confirm(`Delete invoice ${inv?.invoiceNumber || ''}? This cannot be undone.`)) return;
     setInvoices(prev => prev.filter(inv => inv.id !== id));
     setViewInvoice(null);
   }

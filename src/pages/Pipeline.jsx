@@ -79,6 +79,8 @@ export default function Pipeline({ projects, setProjects, clients }) {
   }
 
   function handleDelete(id) {
+    const p = projects.find(pr => pr.id === id);
+    if (!window.confirm(`Delete project "${p?.title || 'this project'}"? This cannot be undone.`)) return;
     setProjects(prev => prev.filter(p => p.id !== id));
   }
 

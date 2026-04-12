@@ -35,6 +35,7 @@ export default function SOWGenerator({ clients, sows, setSOWs, settings }) {
   }
 
   function removeScopeItem(index) {
+    if (!window.confirm('Remove this scope item?')) return;
     setForm(prev => ({
       ...prev,
       scopeItems: prev.scopeItems.filter((_, i) => i !== index),
@@ -58,6 +59,7 @@ export default function SOWGenerator({ clients, sows, setSOWs, settings }) {
   }
 
   function removeDeliverable(index) {
+    if (!window.confirm('Remove this deliverable?')) return;
     setForm(prev => ({
       ...prev,
       deliverables: prev.deliverables.filter((_, i) => i !== index),
