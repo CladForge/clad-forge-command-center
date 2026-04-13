@@ -483,6 +483,19 @@ ALTER TABLE automation_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all access to automation_logs" ON automation_logs FOR ALL USING (true) WITH CHECK (true);
 
 -- ================================================================
+-- ================================================================
+-- PROPOSAL COLUMNS (added for new Proposals page)
+-- ================================================================
+
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS proposal_number TEXT DEFAULT '';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS project_id TEXT REFERENCES projects(id) ON DELETE SET NULL;
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS packages JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS valid_until TEXT DEFAULT '';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS sent_date TEXT DEFAULT '';
+ALTER TABLE sows ADD COLUMN IF NOT EXISTS accepted_date TEXT DEFAULT '';
+
+-- ================================================================
 -- ADMIN SETUP NOTE
 -- ================================================================
 -- After signing up your first user, promote them to admin by running:

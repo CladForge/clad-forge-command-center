@@ -46,7 +46,7 @@ function camelToSnake(obj) {
 const TABLE_COLUMNS = {
   clients: ['id','name','company','email','phone','industry','status','notes','value','created_at','created_by','brand_colors','brand_fonts','brand_tone','brand_logo_url','website','company_size','contacts'],
   projects: ['id','title','project_number','client_id','stage','budget','deadline','description','scope_of_work','deliverables','updates','proposal_id','created_at','created_by'],
-  sows: ['id','client_id','project_title','description','scope_items','deliverables','timeline','budget','terms','status','created_at','created_by'],
+  sows: ['id','client_id','project_id','project_title','proposal_number','description','scope_items','deliverables','packages','timeline','budget','terms','notes','valid_until','status','sent_date','accepted_date','created_at','created_by'],
   activities: ['id','type','message','icon','created_at','created_by'],
   settings: ['id','company_name','company_email','company_phone','company_address','company_website','tax_id','owner_name','owner_title','default_payment_terms','default_currency','default_tax_rate','invoice_prefix','invoice_next_number','default_invoice_notes','payment_instructions','auto_detect_overdue','sow_prefix','sow_footer','default_sow_terms','default_payment_schedule','default_hourly_rate','time_rounding','work_hours_per_day','pipeline_stages','default_stage','theme','accent_color','date_format','sidebar_collapsed','invoice_reminder_days','client_follow_up_days','project_deadline_warning_days','default_industry','custom_industries','updated_at'],
   invoices: ['id','invoice_number','client_id','client_name','project_id','project_title','items','tax_rate','discount','status','due_date','sent_date','paid_date','paid_amount','notes','created_at','created_by'],
@@ -129,10 +129,23 @@ function formatTime(date) {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
+// localStorage cache helpers — ensures data survives refresh even if Supabase
+// is missing new columns (e.g. packages, proposal_number)
+function cacheToLocal(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch { /* full */ }
+}
+
+function loadFromLocal(key, fallback) {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : fallback;
+  } catch { return fallback; }
+}
+
 export function useSupabaseData() {
-  const [clients, setClientsState] = useState(initialClients);
-  const [projects, setProjectsState] = useState(initialProjects);
-  const [sows, setSOWsState] = useState(initialSOWs);
+  const [clients, setClientsState] = useState(() => loadFromLocal('cf-clients', initialClients));
+  const [projects, setProjectsState] = useState(() => loadFromLocal('cf-projects', initialProjects));
+  const [sows, setSOWsState] = useState(() => loadFromLocal('cf-sows', initialSOWs));
   const [activities, setActivitiesState] = useState(initialActivities);
   const [settings, setSettingsState] = useState(initialSettings);
   const [invoices, setInvoicesState] = useState(initialInvoices);
@@ -177,9 +190,26 @@ export function useSupabaseData() {
 
         if (clientsRes.error) throw clientsRes.error;
 
-        setClientsState(clientsRes.data.map(snakeToCamel));
-        setProjectsState(projectsRes.data.map(snakeToCamel));
-        setSOWsState(sowsRes.data.map(snakeToCamel));
+        // Merge Supabase data with localStorage cache so fields not yet
+        // in the DB (e.g. packages, proposalNumber) aren't lost
+        const mergeWithCache = (supaData, cacheKey) => {
+          const cached = loadFromLocal(cacheKey, []);
+          return supaData.map(item => {
+            const cachedItem = cached.find(c => c.id === item.id);
+            return cachedItem ? { ...cachedItem, ...item } : item;
+          });
+        };
+
+        const mergedClients = mergeWithCache(clientsRes.data.map(snakeToCamel), 'cf-clients');
+        const mergedProjects = mergeWithCache(projectsRes.data.map(snakeToCamel), 'cf-projects');
+        const mergedSows = mergeWithCache(sowsRes.data.map(snakeToCamel), 'cf-sows');
+
+        setClientsState(mergedClients);
+        setProjectsState(mergedProjects);
+        setSOWsState(mergedSows);
+        cacheToLocal('cf-clients', mergedClients);
+        cacheToLocal('cf-projects', mergedProjects);
+        cacheToLocal('cf-sows', mergedSows);
 
         // Format activity times
         setActivitiesState(activitiesRes.data.map(a => ({
@@ -266,6 +296,7 @@ export function useSupabaseData() {
         }
       }
 
+      cacheToLocal('cf-clients', next);
       return next;
     });
   }, [addActivity]);
@@ -303,6 +334,7 @@ export function useSupabaseData() {
         }
       }
 
+      cacheToLocal('cf-projects', next);
       return next;
     });
   }, [addActivity]);
@@ -316,7 +348,7 @@ export function useSupabaseData() {
         const newSOW = next.find(n => !prev.some(p => p.id === n.id));
         if (newSOW && connectedRef.current) {
           safeWrite('sows', stripForDB('sows', camelToSnake(newSOW)), { label: 'SOW insert' });
-          addActivity('sow', `SOW created: ${newSOW.projectTitle}`, 'file-text');
+          addActivity('sow', `Proposal created: ${newSOW.projectTitle}`, 'file-text');
         }
       } else if (next.length < prev.length) {
         const removed = prev.find(p => !next.some(n => n.id === p.id));
@@ -335,6 +367,7 @@ export function useSupabaseData() {
         }
       }
 
+      cacheToLocal('cf-sows', next);
       return next;
     });
   }, [addActivity]);
