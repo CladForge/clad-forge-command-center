@@ -1,13 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 import { generateId } from '../data/initialData';
 
 export default function TimeTracker({ projects, clients, entries, setEntries }) {
-  const [activeTimer, setActiveTimer] = useLocalStorage('cf-active-timer', null);
-  const [elapsed, setElapsed] = useState(() => {
-    if (activeTimer) return Math.floor((Date.now() - activeTimer.startTime) / 1000);
-    return 0;
-  });
+  const [activeTimer, setActiveTimer] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ projectId: '', description: '', hours: 0, minutes: 0, date: new Date().toISOString().split('T')[0] });
   const intervalRef = useRef(null);

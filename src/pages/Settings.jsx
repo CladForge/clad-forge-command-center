@@ -29,43 +29,8 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function handleExportAll() {
-    const allData = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      try { allData[key] = JSON.parse(localStorage.getItem(key)); }
-      catch { allData[key] = localStorage.getItem(key); }
-    }
-    downloadJSON(allData, `clad-forge-backup-${new Date().toISOString().split('T')[0]}.json`);
-  }
-
   function handleExportSettings() {
     downloadJSON({ settings, exportedAt: new Date().toISOString() }, `clad-forge-settings-${new Date().toISOString().split('T')[0]}.json`);
-  }
-
-  function handleImport(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target.result);
-        Object.entries(data).forEach(([key, value]) => {
-          localStorage.setItem(key, JSON.stringify(value));
-        });
-        window.location.reload();
-      } catch (err) {
-        console.error('Import failed:', err);
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  function handleClearData() {
-    if (window.confirm('Are you sure? This will delete ALL application data including clients, projects, invoices, and settings. This cannot be undone.')) {
-      localStorage.clear();
-      window.location.reload();
-    }
   }
 
   function downloadJSON(data, filename) {
@@ -425,29 +390,16 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                   buttonLabel="Export Settings" onClick={handleExportSettings}
                 />
                 <DataCard
-                  icon="📦" title="Full Backup" color="var(--info)"
-                  description="Export everything — clients, projects, invoices, time entries, and settings"
-                  buttonLabel="Export All Data" onClick={handleExportAll}
-                />
-                <DataCard
-                  icon="📤" title="Import Data" color="var(--success)"
-                  description="Restore from a previously exported JSON backup file"
-                  buttonLabel="Import" isUpload onUpload={handleImport}
-                />
-                <DataCard
-                  icon="🗑" title="Reset All Data" color="var(--danger)" danger
-                  description="Permanently delete all data and restore to defaults. Cannot be undone."
-                  buttonLabel="Clear All Data" onClick={handleClearData}
+                  icon="☁" title="Cloud Storage" color="var(--info)"
+                  description="All data is stored in Supabase and accessible from any device"
+                  buttonLabel="Connected" onClick={() => {}}
                 />
               </div>
 
               <div className="settings__storage">
-                <h4>Local Storage Usage</h4>
-                <div className="settings__storage-bar">
-                  <div className="settings__storage-fill" style={{ width: `${Math.min((JSON.stringify(localStorage).length / 5242880) * 100, 100)}%` }} />
-                </div>
+                <h4>Data Storage</h4>
                 <span className="settings__storage-text">
-                  {(JSON.stringify(localStorage).length / 1024).toFixed(1)} KB used of ~5 MB available
+                  All data is stored in your Supabase database and synced across all devices automatically.
                 </span>
               </div>
             </div>

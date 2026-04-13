@@ -129,23 +129,10 @@ function formatTime(date) {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
-// localStorage cache helpers — ensures data survives refresh even if Supabase
-// is missing new columns (e.g. packages, proposal_number)
-function cacheToLocal(key, data) {
-  try { localStorage.setItem(key, JSON.stringify(data)); } catch { /* full */ }
-}
-
-function loadFromLocal(key, fallback) {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
-  } catch { return fallback; }
-}
-
 export function useSupabaseData() {
-  const [clients, setClientsState] = useState(() => loadFromLocal('cf-clients', initialClients));
-  const [projects, setProjectsState] = useState(() => loadFromLocal('cf-projects', initialProjects));
-  const [sows, setSOWsState] = useState(() => loadFromLocal('cf-sows', initialSOWs));
+  const [clients, setClientsState] = useState(initialClients);
+  const [projects, setProjectsState] = useState(initialProjects);
+  const [sows, setSOWsState] = useState(initialSOWs);
   const [activities, setActivitiesState] = useState(initialActivities);
   const [settings, setSettingsState] = useState(initialSettings);
   const [invoices, setInvoicesState] = useState(initialInvoices);
@@ -190,26 +177,9 @@ export function useSupabaseData() {
 
         if (clientsRes.error) throw clientsRes.error;
 
-        // Merge Supabase data with localStorage cache so fields not yet
-        // in the DB (e.g. packages, proposalNumber) aren't lost
-        const mergeWithCache = (supaData, cacheKey) => {
-          const cached = loadFromLocal(cacheKey, []);
-          return supaData.map(item => {
-            const cachedItem = cached.find(c => c.id === item.id);
-            return cachedItem ? { ...cachedItem, ...item } : item;
-          });
-        };
-
-        const mergedClients = mergeWithCache(clientsRes.data.map(snakeToCamel), 'cf-clients');
-        const mergedProjects = mergeWithCache(projectsRes.data.map(snakeToCamel), 'cf-projects');
-        const mergedSows = mergeWithCache(sowsRes.data.map(snakeToCamel), 'cf-sows');
-
-        setClientsState(mergedClients);
-        setProjectsState(mergedProjects);
-        setSOWsState(mergedSows);
-        cacheToLocal('cf-clients', mergedClients);
-        cacheToLocal('cf-projects', mergedProjects);
-        cacheToLocal('cf-sows', mergedSows);
+        setClientsState(clientsRes.data.map(snakeToCamel));
+        setProjectsState(projectsRes.data.map(snakeToCamel));
+        setSOWsState(sowsRes.data.map(snakeToCamel));
 
         // Format activity times
         setActivitiesState(activitiesRes.data.map(a => ({
@@ -296,7 +266,6 @@ export function useSupabaseData() {
         }
       }
 
-      cacheToLocal('cf-clients', next);
       return next;
     });
   }, [addActivity]);
@@ -334,7 +303,6 @@ export function useSupabaseData() {
         }
       }
 
-      cacheToLocal('cf-projects', next);
       return next;
     });
   }, [addActivity]);
@@ -367,7 +335,6 @@ export function useSupabaseData() {
         }
       }
 
-      cacheToLocal('cf-sows', next);
       return next;
     });
   }, [addActivity]);
