@@ -26,8 +26,8 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
   const filtered = sows.filter(s => filterStatus === 'all' || s.status === filterStatus)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-  const totalValue = sows.filter(s => s.status === 'accepted').reduce((s, p) => s + calcTotal(p.packages), 0);
-  const pendingValue = sows.filter(s => s.status === 'sent').reduce((s, p) => s + calcTotal(p.packages), 0);
+  const totalValue = sows.filter(s => s.status === 'accepted').reduce((s, p) => s + (calcTotal(p.packages) || p.budget || 0), 0);
+  const pendingValue = sows.filter(s => s.status === 'sent').reduce((s, p) => s + (calcTotal(p.packages) || p.budget || 0), 0);
 
   function handleSave(proposal) {
     if (editId) {
@@ -132,14 +132,14 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
           <div className="proposals__grid">
             {filtered.map((proposal, i) => {
               const client = clients.find(c => c.id === proposal.clientId);
-              const total = calcTotal(proposal.packages);
+              const total = calcTotal(proposal.packages) || proposal.budget || 0;
               const pkgCount = (proposal.packages || []).length;
               const optCount = (proposal.packages || []).filter(p => p.optional).length;
               return (
                 <div key={proposal.id} className="proposal-card" style={{ animationDelay: `${i * 40}ms` }} onClick={() => setPreviewId(proposal.id)}>
                   <div className="proposal-card__top">
                     <div className="proposal-card__header">
-                      <span className="proposal-card__number">{proposal.proposalNumber || proposal.id}</span>
+                      <span className="proposal-card__number">{proposal.proposalNumber || `PROP-${proposal.id.slice(0, 6).toUpperCase()}`}</span>
                       <span className={`status-pill status-pill--${proposal.status}`}>{STATUS_LABELS[proposal.status]}</span>
                     </div>
                     <h3 className="proposal-card__title">{proposal.projectTitle}</h3>
@@ -216,12 +216,22 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
    ═══════════════════════════════════════════ */
 
 function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, onCancel }) {
-  const [form, setForm] = useState(initial ? {
-    ...initial,
-    packages: initial.packages || initial.scopeItems?.map((s) => ({
-      id: generateId(), name: s.title, description: s.description, price: 0, optional: false, items: []
-    })) || [makePackage()],
-  } : {
+  const [form, setForm] = useState(initial ? (() => {
+    // Migrate old SOW format (scopeItems/budget) to new packages format
+    let packages = initial.packages;
+    if (!packages && initial.scopeItems?.length) {
+      const perItem = initial.budget ? Math.round(initial.budget / initial.scopeItems.length) : 0;
+      packages = initial.scopeItems.map((s) => ({
+        id: generateId(), name: s.title, description: s.description, price: perItem, optional: false,
+        items: initial.deliverables ? initial.deliverables.map(d => ({ text: d.title, included: true })) : [],
+      }));
+    }
+    return {
+      ...initial,
+      proposalNumber: initial.proposalNumber || generateProposalNumber(sows, settings),
+      packages: packages || [makePackage()],
+    };
+  })() : {
     proposalNumber: generateProposalNumber(sows, settings),
     clientId: '',
     projectId: '',
@@ -594,7 +604,6 @@ function ProposalPreview({ proposal, clients, settings, onBack, onEdit, onDelete
           <div className="prop-document__info-col">
             <h4>Prepared For</h4>
             <p className="prop-document__client-name">{client?.company || '—'}</p>
-            <p>{client?.email || ''}</p>
           </div>
           <div className="prop-document__info-col">
             <h4>Project</h4>
@@ -809,7 +818,7 @@ function printProposal(proposal, clients, settings) {
     </style></head><body>
     <div class="header"><div><div class="company">${company}</div><h1>Proposal</h1><div class="number">${proposal.proposalNumber}</div></div>
     <div class="meta">Prepared ${proposal.createdAt?.split('T')[0]}<br>${proposal.validUntil ? `Valid until ${proposal.validUntil}` : ''}</div></div>
-    <div class="two-col"><div class="col"><h4>Prepared For</h4><p class="name">${client?.company || ''}</p><p>${client?.email || ''}</p></div>
+    <div class="two-col"><div class="col"><h4>Prepared For</h4><p class="name">${client?.name || ''}</p><p>${client?.company || ''}</p></div>
     <div class="col"><h4>Project</h4><p class="name">${proposal.projectTitle}</p>${proposal.timeline?.startDate ? `<p>${proposal.timeline.startDate} — ${proposal.timeline.endDate || 'TBD'}</p>` : ''}</div></div>
     ${proposal.description ? `<p class="desc">${proposal.description}</p>` : ''}
     <h3>Scope & Pricing</h3>

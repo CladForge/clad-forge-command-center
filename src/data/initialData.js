@@ -127,24 +127,20 @@ export const initialProjects = [
 export const initialSOWs = [
   {
     id: 'sow1',
+    proposalNumber: 'PROP-2026-001',
     clientId: 'c2',
+    projectId: 'p2',
     projectTitle: 'TradeLink — Fleet Dashboard',
     description: 'Design and develop a real-time fleet monitoring dashboard with route optimization, driver analytics, and maintenance scheduling capabilities.',
-    scopeItems: [
-      { title: 'UI/UX Design', description: 'Wireframes, mockups, and interactive prototype for dashboard interface' },
-      { title: 'Frontend Development', description: 'React-based dashboard with real-time data visualization components' },
-      { title: 'API Development', description: 'RESTful API layer for fleet data aggregation and processing' },
-      { title: 'GPS Integration', description: 'Real-time GPS tracking integration with map visualization' },
-    ],
-    deliverables: [
-      { title: 'Design System & Mockups', dueDate: '2026-05-15' },
-      { title: 'MVP Dashboard', dueDate: '2026-06-30' },
-      { title: 'API & Integration Layer', dueDate: '2026-07-31' },
-      { title: 'Final Delivery & Training', dueDate: '2026-08-15' },
+    packages: [
+      { id: 'pkg1', name: 'UI/UX Design', description: 'Wireframes, mockups, and interactive prototype for dashboard interface', price: 10000, optional: false, items: [{ text: 'Design System & Mockups', included: true }, { text: 'Interactive prototype', included: true }] },
+      { id: 'pkg2', name: 'Frontend Development', description: 'React-based dashboard with real-time data visualization components', price: 15000, optional: false, items: [{ text: 'MVP Dashboard build', included: true }, { text: 'Data visualization components', included: true }] },
+      { id: 'pkg3', name: 'API Development', description: 'RESTful API layer for fleet data aggregation and processing', price: 12000, optional: false, items: [{ text: 'API & Integration Layer', included: true }, { text: 'Third-party GPS integration', included: true }] },
+      { id: 'pkg4', name: 'Training & Documentation', description: 'End-user training sessions and technical documentation', price: 8000, optional: true, items: [{ text: 'User training sessions', included: true }, { text: 'Technical documentation', included: true }] },
     ],
     timeline: { startDate: '2026-05-01', endDate: '2026-08-15' },
-    budget: 45000,
     terms: 'Payment schedule: 30% upon signing, 30% at MVP delivery, 40% upon final delivery. All work remains property of Clad Forge until final payment is received. Includes 30 days of post-delivery support.',
+    validUntil: '2026-04-28',
     status: 'draft',
     createdAt: '2026-03-28',
   },
