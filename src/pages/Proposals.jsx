@@ -9,11 +9,18 @@ function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { min
 function calcTotal(packages) { return (packages || []).reduce((s, p) => s + (p.optional && !p.included ? 0 : (p.price || 0)), 0); }
 function calcFullTotal(packages) { return (packages || []).reduce((s, p) => s + (p.price || 0), 0); }
 
-function generateProposalNumber(sows, settings) {
-  const prefix = settings?.sowPrefix || 'PROP';
-  const year = new Date().getFullYear();
-  const existing = sows.filter(s => s.proposalNumber?.startsWith(`${prefix}-${year}`));
-  return `${prefix}-${year}-${String(existing.length + 1).padStart(3, '0')}`;
+function generateProposalNumber(sows) {
+  const yy = String(new Date().getFullYear()).slice(2); // "26"
+  // Find the highest existing number across all proposals matching YY-NNN format
+  let maxNum = 0;
+  for (const s of sows) {
+    const match = s.proposalNumber?.match(/(\d{2})-(\d{3})/);
+    if (match && match[1] === yy) {
+      const num = parseInt(match[2], 10);
+      if (num > maxNum) maxNum = num;
+    }
+  }
+  return `${yy}-${String(maxNum + 1).padStart(3, '0')}`;
 }
 
 export default function Proposals({ clients, projects, sows, setSOWs, settings: rawSettings }) {
@@ -65,7 +72,7 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
     const dup = {
       ...proposal,
       id: generateId(),
-      proposalNumber: generateProposalNumber(sows, settings),
+      proposalNumber: generateProposalNumber(sows),
       status: 'draft',
       createdAt: new Date().toISOString(),
       sentDate: '',
@@ -139,7 +146,7 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
                 <div key={proposal.id} className="proposal-card" style={{ animationDelay: `${i * 40}ms` }} onClick={() => setPreviewId(proposal.id)}>
                   <div className="proposal-card__top">
                     <div className="proposal-card__header">
-                      <span className="proposal-card__number">{proposal.proposalNumber || `PROP-${proposal.id.slice(0, 6).toUpperCase()}`}</span>
+                      <span className="proposal-card__number">{proposal.proposalNumber || '—'}</span>
                       <span className={`status-pill status-pill--${proposal.status}`}>{STATUS_LABELS[proposal.status]}</span>
                     </div>
                     <h3 className="proposal-card__title">{proposal.projectTitle}</h3>
@@ -228,11 +235,11 @@ function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, o
     }
     return {
       ...initial,
-      proposalNumber: initial.proposalNumber || generateProposalNumber(sows, settings),
+      proposalNumber: initial.proposalNumber || generateProposalNumber(sows),
       packages: packages || [makePackage()],
     };
   })() : {
-    proposalNumber: generateProposalNumber(sows, settings),
+    proposalNumber: generateProposalNumber(sows),
     clientId: '',
     projectId: '',
     projectTitle: '',

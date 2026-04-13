@@ -127,7 +127,7 @@ export const initialProjects = [
 export const initialSOWs = [
   {
     id: 'sow1',
-    proposalNumber: 'PROP-2026-001',
+    proposalNumber: '26-001',
     clientId: 'c2',
     projectId: 'p2',
     projectTitle: 'TradeLink — Fleet Dashboard',
