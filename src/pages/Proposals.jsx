@@ -651,7 +651,7 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
             <button className="btn btn--primary btn--sm" onClick={onCreateProject}>+ Create Project</button>
           )}
           {proposal.status === 'project-created' && (
-            <span style={{ fontSize: '0.78rem', color: 'var(--warning)', fontWeight: 500 }}>✓ Project Created</span>
+            <span style={{ fontSize: '0.78rem', color: '#b8860b', fontWeight: 500 }}>✓ Project Created</span>
           )}
           <button className="btn btn--ghost btn--sm" onClick={onPrint}>🖨 Print</button>
           <button className="btn btn--ghost btn--sm" onClick={onEdit}>Edit</button>

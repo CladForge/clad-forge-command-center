@@ -631,7 +631,7 @@
 .status-select--sent { background: var(--info-bg); color: var(--info); }
 .status-select--ready { background: var(--brand-pale); color: var(--brand); }
 .status-select--accepted { background: var(--success-bg); color: var(--success); }
-.status-select--project-created { background: var(--warning-bg); color: var(--warning); }
+.status-select--project-created { background: #fef9e7; color: #b8860b; }
 .status-select--declined { background: var(--danger-bg); color: var(--danger); }
 .status-select--expired { background: var(--stone-dark); color: var(--slate-light); }
 .status-select--paid, .status-select--accepted { background: var(--success-bg); color: var(--success); }
@@ -1366,7 +1366,7 @@
 .status-pill--draft { background: var(--stone); color: var(--slate); }
 .status-pill--sent { background: var(--info-bg); color: var(--info); }
 .status-pill--ready { background: var(--brand-pale); color: var(--brand); }
-.status-pill--project-created { background: var(--warning-bg); color: var(--warning); }
+.status-pill--project-created { background: #fef9e7; color: #b8860b; }
 .status-pill--paid, .status-pill--accepted { background: var(--success-bg); color: var(--success); }
 .status-pill--overdue { background: var(--danger-bg); color: var(--danger); }
 .status-pill--cancelled { background: var(--border-light); color: var(--slate-light); }
