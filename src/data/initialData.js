@@ -218,6 +218,8 @@ export const initialDocuments = [];
 export const initialNotifications = [];
 export const initialAutomations = [];
 export const initialRecurringExpenses = [];
+export const initialFinanceEntries = [];
+export const initialTaxPayments = [];
 
 export function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

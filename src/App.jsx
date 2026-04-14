@@ -18,6 +18,7 @@ import Calendar from './pages/Calendar';
 import AIAssistant from './pages/AIAssistant';
 import Automations from './pages/Automations';
 import RecurringExpenses from './pages/RecurringExpenses';
+import Finances from './pages/Finances';
 import Settings from './pages/Settings';
 import Contractors from './pages/Contractors';
 import CRM from './pages/CRM';
@@ -49,6 +50,8 @@ export default function App() {
     addNotification,
     automations, setAutomations,
     recurringExpenses, setRecurringExpenses,
+    financeEntries, setFinanceEntries,
+    taxPayments, setTaxPayments,
     loading, connected,
   } = useSupabaseData();
 
@@ -140,6 +143,7 @@ export default function App() {
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} invoices={invoices} setInvoices={setInvoices} />} />
             <Route path="/recurring" element={<RecurringExpenses clients={clients} projects={projects} expenses={recurringExpenses} setExpenses={setRecurringExpenses} settings={settings} />} />
+            <Route path="/finances" element={<Finances clients={clients} projects={projects} invoices={invoices} settings={settings} entries={financeEntries} setEntries={setFinanceEntries} taxPayments={taxPayments} setTaxPayments={setTaxPayments} />} />
             <Route path="/time" element={<TimeTracker projects={projects} clients={clients} entries={timeEntries} setEntries={setTimeEntries} />} />
             <Route path="/reports" element={<Reports clients={clients} projects={projects} sows={sows} invoices={invoices} timeEntries={timeEntries} settings={settings} />} />
             <Route path="/calendar" element={<Calendar events={events} setEvents={setEvents} projects={projects} invoices={invoices} clients={clients} />} />

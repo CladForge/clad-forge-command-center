@@ -9,6 +9,7 @@ const pageTitles = {
   '/proposals': 'Proposals',
   '/invoices': 'Invoices',
   '/recurring': 'Recurring Expenses',
+  '/finances': 'Finances & Taxes',
   '/time': 'Time Tracker',
   '/branding': 'Brand Guide',
   '/settings': 'Settings',
