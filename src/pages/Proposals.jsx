@@ -359,7 +359,6 @@ function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, o
   }
 
   function handleSave(status = 'draft') {
-    if (!form.projectTitle.trim()) return;
     onSave({
       ...form,
       id: initial?.id || generateId(),
