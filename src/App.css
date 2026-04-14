@@ -1362,7 +1362,7 @@
 .filter-chip__count { margin-left: 4px; opacity: 0.6; }
 
 /* Status Pills */
-.status-pill { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; }
+.status-pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; text-transform: capitalize; }
 .status-pill--draft { background: var(--stone); color: var(--slate); }
 .status-pill--sent { background: var(--info-bg); color: var(--info); }
 .status-pill--ready { background: var(--brand-pale); color: var(--brand); }
