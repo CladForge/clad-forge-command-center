@@ -663,9 +663,7 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
           <button className="btn btn--ghost btn--sm" onClick={onPrint}>🖨 Print</button>
           {!isLocked && <button className="btn btn--ghost btn--sm" onClick={onEdit}>Edit</button>}
           <button className="btn btn--ghost btn--sm" onClick={onDuplicate}>Duplicate</button>
-          {!isLocked && proposal.status !== 'project-created' && (
-            <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={onDelete}>Delete</button>
-          )}
+          <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={onDelete}>Delete</button>
         </div>
       </div>
 
