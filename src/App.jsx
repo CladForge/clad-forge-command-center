@@ -24,6 +24,7 @@ import Contractors from './pages/Contractors';
 import Documents from './pages/Documents';
 import Onboarding from './pages/Onboarding';
 import OnboardingReview from './components/OnboardingReview';
+import ProposalSign from './pages/ProposalSign';
 import './App.css';
 
 export default function App() {
@@ -98,11 +99,12 @@ export default function App() {
     );
   }
 
-  // Not logged in — show login, but allow /onboard route through
+  // Not logged in — show login, but allow public routes through
   if (!session) {
     return (
       <Routes>
         <Route path="/onboard" element={<Onboarding />} />
+        <Route path="/sign/:token" element={<ProposalSign />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -117,6 +119,15 @@ export default function App() {
           <span className="loading-text">Initializing Command Center...</span>
         </div>
       </div>
+    );
+  }
+
+  // Public signing page — render without sidebar/topbar even when logged in
+  if (window.location.pathname.startsWith('/sign/')) {
+    return (
+      <Routes>
+        <Route path="/sign/:token" element={<ProposalSign />} />
+      </Routes>
     );
   }
 

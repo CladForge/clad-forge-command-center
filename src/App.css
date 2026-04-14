@@ -1197,6 +1197,107 @@
 .pipeline__card-move:disabled { opacity: 0.2; cursor: default; }
 .pipeline__empty { display: flex; align-items: center; justify-content: center; padding: 32px 16px; color: var(--slate-light); font-size: 0.78rem; border: 1px dashed var(--border-light); border-radius: var(--radius); }
 
+/* ===== PROPOSAL SIGNING (Public Page) ===== */
+
+.sign-page { min-height: 100vh; background: var(--stone); display: flex; justify-content: center; padding: 40px 20px; font-family: var(--font-body); }
+.sign-loading, .sign-error { text-align: center; padding: 80px 20px; }
+.sign-loading { display: flex; flex-direction: column; align-items: center; gap: 16px; color: var(--slate); }
+.sign-error h2 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px; color: var(--ink); }
+.sign-error p { color: var(--slate); }
+
+.sign-document { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 48px; max-width: 800px; width: 100%; }
+
+.sign-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--brand); padding-bottom: 24px; margin-bottom: 32px; }
+.sign-company { font-size: 0.72rem; color: var(--slate); text-transform: uppercase; letter-spacing: 2px; }
+.sign-title { font-family: var(--font-display); font-size: 2.2rem; font-weight: 400; margin: 4px 0; color: var(--ink); }
+.sign-number { font-family: var(--font-mono); font-size: 0.88rem; color: var(--brand); }
+.sign-header-right { text-align: right; font-size: 0.82rem; color: var(--slate); line-height: 1.6; display: flex; flex-direction: column; }
+
+.sign-info { display: flex; gap: 40px; margin-bottom: 32px; }
+.sign-info-col { flex: 1; }
+.sign-info-col h4 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate-light); margin-bottom: 8px; font-weight: 600; }
+.sign-info-col p { font-size: 0.88rem; color: var(--ink); line-height: 1.5; }
+.sign-client-name { font-weight: 600; font-size: 1rem; }
+
+.sign-section { margin-bottom: 32px; }
+.sign-section h3 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 400; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--stone-dark); color: var(--ink); }
+.sign-section > p { font-size: 0.88rem; color: var(--slate); line-height: 1.7; }
+.sign-optional-desc { font-size: 0.85rem; color: var(--slate); margin-bottom: 16px; }
+
+/* Package cards */
+.sign-pkg { border: 1px solid var(--stone-dark); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; transition: all 0.2s; }
+.sign-pkg--optional { border-style: dashed; border-color: var(--slate-light); opacity: 0.7; }
+.sign-pkg--optional.sign-pkg--selected { border-style: solid; border-color: var(--brand); opacity: 1; }
+.sign-pkg-header { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px; background: var(--stone); }
+.sign-pkg-num { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 600; flex-shrink: 0; }
+.sign-pkg-check { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+.sign-pkg-check input { width: 20px; height: 20px; accent-color: var(--brand); cursor: pointer; }
+.sign-pkg-info { flex: 1; }
+.sign-pkg-info h4 { font-size: 1rem; font-weight: 600; margin: 0 0 4px; color: var(--ink); }
+.sign-pkg-info p { font-size: 0.82rem; color: var(--slate); line-height: 1.5; }
+.sign-pkg-price { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; color: var(--brand); flex-shrink: 0; }
+.sign-pkg-items { list-style: none; padding: 14px 20px 18px; }
+.sign-pkg-items li { padding: 3px 0 3px 18px; font-size: 0.85rem; color: var(--slate); position: relative; }
+.sign-pkg-items li::before { content: '•'; position: absolute; left: 0; color: var(--brand); font-weight: 700; }
+
+/* Total section */
+.sign-total-section { background: var(--stone); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 32px; }
+.sign-total-rows { margin-bottom: 12px; }
+.sign-total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.88rem; border-bottom: 1px solid var(--stone-dark); color: var(--ink); }
+.sign-total-row:last-child { border-bottom: none; }
+.sign-total-row--excluded { color: var(--slate-light); text-decoration: line-through; }
+.sign-total-amount { font-family: var(--font-mono); font-weight: 500; }
+.sign-total-final { display: flex; justify-content: space-between; padding: 16px 0 0; border-top: 2px solid var(--ink); font-size: 1.3rem; font-weight: 700; color: var(--ink); }
+.sign-total-final span:last-child { font-family: var(--font-mono); color: var(--brand); }
+
+/* Terms */
+.sign-terms { font-size: 0.82rem !important; white-space: pre-wrap; color: var(--slate) !important; }
+
+/* Notes */
+.sign-notes { width: 100%; padding: 14px; border: 1.5px solid var(--stone-dark); border-radius: var(--radius); font-size: 0.88rem; font-family: var(--font-body); resize: vertical; color: var(--ink); background: var(--white); }
+.sign-notes:focus { border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12); }
+
+/* Signature */
+.sign-signature-section { border: 2px solid var(--ink); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 28px; }
+.sign-signature-section h3 { border: none; padding: 0; margin-bottom: 8px; }
+.sign-signature-desc { font-size: 0.82rem; color: var(--slate); margin-bottom: 20px; line-height: 1.6; }
+.sign-signature-field { margin-bottom: 12px; }
+.sign-signature-field label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--slate); margin-bottom: 6px; }
+.sign-signature-input { width: 100%; padding: 14px; border: none; border-bottom: 2px solid var(--ink); font-size: 1.4rem; font-family: var(--font-display); color: var(--ink); background: transparent; outline: none; font-style: italic; }
+.sign-signature-input:focus { border-bottom-color: var(--brand); }
+.sign-signature-input::placeholder { color: var(--slate-light); font-size: 1rem; }
+.sign-signature-date { font-size: 0.82rem; color: var(--slate); margin-top: 8px; }
+
+/* Action buttons */
+.sign-actions { display: flex; gap: 12px; margin-bottom: 32px; }
+.sign-btn { flex: 1; padding: 16px 24px; border-radius: var(--radius); font-size: 1rem; font-weight: 600; font-family: var(--font-body); cursor: pointer; border: none; transition: all 0.2s; }
+.sign-btn:disabled { opacity: 0.5; cursor: default; }
+.sign-btn--accept { background: var(--success); color: #fff; }
+.sign-btn--accept:hover:not(:disabled) { background: #047857; box-shadow: 0 4px 16px rgba(5, 150, 105, 0.3); }
+.sign-btn--decline { background: transparent; color: var(--danger); border: 1.5px solid var(--danger); }
+.sign-btn--decline:hover:not(:disabled) { background: var(--danger-bg); }
+
+/* Footer */
+.sign-footer { text-align: center; padding-top: 24px; border-top: 1px solid var(--stone-dark); }
+.sign-footer p { font-size: 0.78rem; color: var(--slate-light); line-height: 1.6; }
+
+/* Submitted card */
+.sign-card--submitted { text-align: center; max-width: 480px; padding: 48px; background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+.sign-submitted-icon { font-size: 3rem; margin-bottom: 16px; }
+.sign-card--submitted h2 { font-family: var(--font-display); font-size: 1.6rem; margin-bottom: 8px; color: var(--ink); }
+.sign-card--submitted p { font-size: 0.88rem; color: var(--slate); line-height: 1.6; }
+.sign-confirmation { margin-top: 24px; padding: 16px; background: var(--stone); border-radius: var(--radius); display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--ink); }
+
+@media (max-width: 768px) {
+  .sign-document { padding: 24px; }
+  .sign-header { flex-direction: column; gap: 12px; }
+  .sign-header-right { text-align: left; }
+  .sign-info { flex-direction: column; gap: 16px; }
+  .sign-title { font-size: 1.6rem; }
+  .sign-actions { flex-direction: column; }
+  .sign-signature-input { font-size: 1.1rem; }
+}
+
 /* ===== PROPOSALS ===== */
 
 .proposals { animation: fadeIn 0.3s ease; }

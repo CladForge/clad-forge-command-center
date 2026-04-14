@@ -122,6 +122,21 @@ export default function Proposals({ clients, projects, setProjects, sows, setSOW
     setSOWs(prev => prev.map(s => s.id === proposal.id ? { ...s, status: 'project-created' } : s));
   }
 
+  function handleGenerateLink(proposal) {
+    // Generate a token if one doesn't exist
+    let token = proposal.shareToken;
+    if (!token) {
+      token = generateId() + generateId();
+      setSOWs(prev => prev.map(s => s.id === proposal.id ? { ...s, shareToken: token } : s));
+    }
+    const url = `${window.location.origin}/sign/${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      alert(`Signing link copied to clipboard!\n\n${url}`);
+    }).catch(() => {
+      prompt('Copy this signing link:', url);
+    });
+  }
+
   // ═══ LIST VIEW ═══
   if (view === 'list' && !previewId) {
     return (
@@ -240,6 +255,7 @@ export default function Proposals({ clients, projects, setProjects, sows, setSOW
         onStatusChange={(status) => handleStatusChange(proposal.id, status)}
         onDuplicate={() => { handleDuplicate(proposal); setPreviewId(null); }}
         onCreateProject={() => handleCreateProject(proposal)}
+        onGenerateLink={() => handleGenerateLink(proposal)}
         onSendEmail={() => sendProposalEmail(proposal, clients, settings)}
         onPrint={() => printProposal(proposal, clients, settings)}
       />
@@ -602,8 +618,9 @@ function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, o
    PROPOSAL PREVIEW
    ═══════════════════════════════════════════ */
 
-function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit, onDelete, onStatusChange, onDuplicate, onCreateProject, onSendEmail, onPrint }) {
+function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit, onDelete, onStatusChange, onDuplicate, onCreateProject, onGenerateLink, onSendEmail, onPrint }) {
   const alreadyHasProject = projects.some(p => p.proposalId === proposal.id || (p.title === proposal.projectTitle && p.clientId === proposal.clientId));
+  const isLocked = ['accepted', 'project-created'].includes(proposal.status);
   const client = clients.find(c => c.id === proposal.clientId);
   const total = calcTotal(proposal.packages);
   const fullTotal = calcFullTotal(proposal.packages);
@@ -638,8 +655,11 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
           {proposal.status === 'draft' && (
             <button className="btn btn--secondary btn--sm" onClick={() => onStatusChange('ready')}>Mark Ready</button>
           )}
+          {(proposal.status === 'ready' || proposal.status === 'sent') && (
+            <button className="btn btn--primary btn--sm" onClick={onGenerateLink}>🔗 Copy Signing Link</button>
+          )}
           {proposal.status === 'ready' && (
-            <button className="btn btn--primary btn--sm" onClick={() => { onStatusChange('sent'); onSendEmail(); }}>✉ Send Proposal</button>
+            <button className="btn btn--secondary btn--sm" onClick={() => { onStatusChange('sent'); onSendEmail(); }}>✉ Send Email</button>
           )}
           {proposal.status === 'sent' && (
             <>
@@ -654,9 +674,9 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
             <span style={{ fontSize: '0.78rem', color: '#06b6d4', fontWeight: 500 }}>✓ Project Created</span>
           )}
           <button className="btn btn--ghost btn--sm" onClick={onPrint}>🖨 Print</button>
-          <button className="btn btn--ghost btn--sm" onClick={onEdit}>Edit</button>
+          {!isLocked && <button className="btn btn--ghost btn--sm" onClick={onEdit}>Edit</button>}
           <button className="btn btn--ghost btn--sm" onClick={onDuplicate}>Duplicate</button>
-          {proposal.status !== 'project-created' && (
+          {!isLocked && proposal.status !== 'project-created' && (
             <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={onDelete}>Delete</button>
           )}
         </div>
@@ -757,6 +777,14 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
           </div>
         )}
 
+        {/* Client notes (from signing) */}
+        {proposal.clientNotes && (
+          <div className="prop-document__section">
+            <h3>Client Notes</h3>
+            <p>{proposal.clientNotes}</p>
+          </div>
+        )}
+
         {/* Signature blocks */}
         <div className="prop-document__signatures">
           <div className="prop-document__sig">
@@ -767,9 +795,22 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
           <div className="prop-document__sig">
             <span className="prop-document__sig-label">Client</span>
             <div className="prop-document__sig-line" />
-            <span>{client?.company || '___________'}</span>
+            {proposal.clientSignature ? (
+              <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.1rem' }}>
+                {proposal.clientSignature} — {proposal.clientSignedDate}
+              </span>
+            ) : (
+              <span>{client?.company || '___________'}</span>
+            )}
           </div>
         </div>
+
+        {/* Lock notice */}
+        {isLocked && (
+          <div style={{ textAlign: 'center', padding: '16px', marginTop: 16, background: 'rgba(6, 182, 212, 0.08)', borderRadius: 'var(--radius)', fontSize: '0.82rem', color: 'var(--slate)' }}>
+            This proposal is locked and cannot be edited. {proposal.clientSignature ? `Signed by ${proposal.clientSignature} on ${proposal.clientSignedDate}.` : ''}
+          </div>
+        )}
       </div>
     </div>
   );
