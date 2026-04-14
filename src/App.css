@@ -1391,10 +1391,13 @@
 
 /* Proposal Preview */
 .prop-preview { animation: fadeIn 0.3s ease; }
-.prop-preview__bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.prop-preview__bar-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.prop-preview__bar { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); flex-wrap: wrap; }
+.prop-preview__bar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.prop-preview__bar-actions .btn { font-size: 0.85rem; padding: 8px 16px; }
+.prop-preview__bar .status-pill--lg { font-size: 0.85rem; padding: 6px 16px; }
+.prop-preview__bar .status-select { font-size: 0.85rem; padding: 6px 28px 6px 12px; }
 
-.prop-document { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; box-shadow: var(--shadow-sm); max-width: 860px; margin: 0 auto; }
+.prop-document { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; box-shadow: var(--shadow-sm); }
 .prop-document__header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--brand); padding-bottom: 24px; margin-bottom: 28px; }
 .prop-document__company { font-size: 0.72rem; color: var(--slate); text-transform: uppercase; letter-spacing: 2px; }
 .prop-document__title { font-family: var(--font-display); font-size: 2rem; font-weight: 400; margin: 4px 0; }

@@ -631,7 +631,7 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
     <div className="prop-preview">
       {/* Action bar */}
       <div className="prop-preview__bar">
-        <button className="btn btn--ghost btn--sm" onClick={onBack}>← Back</button>
+        <button className="btn btn--ghost" onClick={onBack}>← Back to Proposals</button>
         <div style={{ flex: 1 }} />
         <span className={`status-pill status-pill--${proposal.status} status-pill--lg`}>
           {STATUS_LABELS[proposal.status]}
