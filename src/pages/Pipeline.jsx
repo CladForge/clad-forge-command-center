@@ -24,7 +24,7 @@ function generateProjectNumber(projects) {
   return String(maxNum + 1).padStart(4, '0');
 }
 
-export default function Pipeline({ projects, setProjects, clients, sows = [] }) {
+export default function Pipeline({ projects, setProjects, clients, sows = [], setSOWs }) {
   const navigate = useNavigate();
 
   // Pending proposals (sent but not accepted/declined) to show in the Proposal column
@@ -86,6 +86,42 @@ export default function Pipeline({ projects, setProjects, clients, sows = [] }) 
     const p = projects.find(pr => pr.id === id);
     if (!window.confirm(`Delete project "${p?.title || 'this project'}"? This cannot be undone.`)) return;
     setProjects(prev => prev.filter(p => p.id !== id));
+  }
+
+  function handleCreateProjectFromProposal(proposal) {
+    // Check if project already exists for this proposal
+    const exists = projects.some(p => p.proposalId === proposal.id || (p.title === proposal.projectTitle && p.clientId === proposal.clientId));
+    if (exists) {
+      alert('A project already exists for this proposal.');
+      return;
+    }
+
+    const total = (proposal.packages || []).reduce((s, p) => s + (p.optional && !p.included ? 0 : (p.price || 0)), 0) || proposal.budget || 0;
+    const packageNames = (proposal.packages || []).map(pkg => pkg.name).filter(Boolean);
+    const description = [
+      proposal.description,
+      packageNames.length > 0 ? '\n\nPackages:\n' + packageNames.map((d, i) => `${i + 1}. ${d}`).join('\n') : '',
+    ].filter(Boolean).join('');
+
+    const newProject = {
+      id: generateId(),
+      projectNumber: generateProjectNumber(projects),
+      title: proposal.projectTitle || 'Untitled Project',
+      clientId: proposal.clientId || '',
+      stage: 'active',
+      budget: total,
+      deadline: proposal.timeline?.endDate || '',
+      description,
+      proposalId: proposal.id,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    setProjects(prev => [...prev, newProject]);
+
+    // Update proposal status to project-created
+    if (setSOWs) {
+      setSOWs(prev => prev.map(s => s.id === proposal.id ? { ...s, status: 'project-created' } : s));
+    }
   }
 
   return (
@@ -155,10 +191,22 @@ export default function Pipeline({ projects, setProjects, clients, sows = [] }) 
                           {{ draft: 'Draft', ready: 'Ready', sent: 'Sent', accepted: 'Accepted' }[prop.status] || prop.status}
                         </span>
                       </div>
+                      {prop.description && (
+                        <p className="pipeline__card-desc">{prop.description}</p>
+                      )}
                       <div className="pipeline__card-actions">
                         <button className="pipeline__card-move" onClick={() => navigate('/proposals')} style={{ flex: 1 }}>
-                          View Proposal
+                          View
                         </button>
+                        {prop.status === 'accepted' && (
+                          <button
+                            className="pipeline__card-move"
+                            style={{ flex: 1, color: 'var(--success)', borderColor: 'var(--success-bg)', fontWeight: 600 }}
+                            onClick={() => handleCreateProjectFromProposal(prop)}
+                          >
+                            + Create Project
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
