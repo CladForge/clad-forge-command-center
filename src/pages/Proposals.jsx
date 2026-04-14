@@ -39,7 +39,12 @@ export default function Proposals({ clients, projects, setProjects, sows, setSOW
   const [previewId, setPreviewId] = useState(null);
 
   const filtered = sows.filter(s => filterStatus === 'all' || s.status === filterStatus)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    .sort((a, b) => {
+      // Sort by proposal number descending (highest first)
+      const numA = parseInt((a.proposalNumber || '').replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt((b.proposalNumber || '').replace(/\D/g, ''), 10) || 0;
+      return numB - numA;
+    });
 
   const totalValue = sows.filter(s => s.status === 'accepted').reduce((s, p) => s + (calcTotal(p.packages) || p.budget || 0), 0);
   const pendingValue = sows.filter(s => s.status === 'sent').reduce((s, p) => s + (calcTotal(p.packages) || p.budget || 0), 0);
