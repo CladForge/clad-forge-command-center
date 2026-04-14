@@ -130,12 +130,14 @@ export default function Pipeline({ projects, setProjects, clients, sows = [], se
       <div className="pipeline__header">
         <div className="pipeline__summary">
           {STAGES.map(stage => {
-            const count = projects.filter(p => p.stage === stage.id).length;
+            const projectCount = projects.filter(p => p.stage === stage.id).length;
+            const proposalCount = stage.id === 'proposal' ? pendingProposals.length : 0;
+            const total = projectCount + proposalCount;
             return (
               <div key={stage.id} className="pipeline__summary-item">
                 <span className="pipeline__summary-dot" style={{ background: stage.color }} />
                 <span className="pipeline__summary-label">{stage.label}</span>
-                <span className="pipeline__summary-count">{count}</span>
+                <span className="pipeline__summary-count">{total}</span>
               </div>
             );
           })}
@@ -166,7 +168,7 @@ export default function Pipeline({ projects, setProjects, clients, sows = [], se
                   <h3>{stage.label}</h3>
                 </div>
                 <span className="pipeline__column-count">
-                  {stageProjects.length}{stage.id === 'proposal' && pendingProposals.length > 0 ? ` + ${pendingProposals.length}` : ''}
+                  {stageProjects.length + (stage.id === 'proposal' ? pendingProposals.length : 0)}
                 </span>
               </div>
               <div className="pipeline__column-body">
