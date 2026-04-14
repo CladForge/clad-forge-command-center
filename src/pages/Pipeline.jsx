@@ -24,7 +24,7 @@ function generateProjectNumber(projects) {
   return String(maxNum + 1).padStart(4, '0');
 }
 
-export default function Pipeline({ projects, setProjects, clients, sows = [], deals = [], setDeals }) {
+export default function Pipeline({ projects, setProjects, clients, sows = [] }) {
   const navigate = useNavigate();
 
   // Pending proposals (sent but not accepted/declined) to show in the Proposal column

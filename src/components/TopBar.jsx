@@ -18,7 +18,6 @@ const pageTitles = {
   '/ai': 'AI Assistant',
   '/automations': 'Automations',
   '/contractors': 'Contractors',
-  '/crm': 'CRM',
   '/documents': 'Documents',
   '/onboard': 'Client Onboarding',
 };

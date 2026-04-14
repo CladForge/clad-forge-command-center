@@ -21,7 +21,6 @@ import RecurringExpenses from './pages/RecurringExpenses';
 import Finances from './pages/Finances';
 import Settings from './pages/Settings';
 import Contractors from './pages/Contractors';
-import CRM from './pages/CRM';
 import Documents from './pages/Documents';
 import Onboarding from './pages/Onboarding';
 import OnboardingReview from './components/OnboardingReview';
@@ -42,9 +41,6 @@ export default function App() {
     timeEntries, setTimeEntries,
     events, setEvents,
     contractors, setContractors,
-    deals, setDeals,
-    crmActivities, setCrmActivities,
-    channelPartners, setChannelPartners,
     documents, setDocuments,
     notifications, setNotifications,
     addNotification,
@@ -138,9 +134,9 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} activities={activities} settings={settings} invoices={invoices} timeEntries={timeEntries} notifications={notifications} setClients={setClients} addNotification={addNotification} />} />
             <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} />} />
-            <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} sows={sows} deals={deals} setDeals={setDeals} />} />
+            <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} sows={sows} />} />
             <Route path="/projects/:id" element={<ProjectDetail projects={projects} setProjects={setProjects} clients={clients} sows={sows} invoices={invoices} timeEntries={timeEntries} documents={documents} />} />
-            <Route path="/proposals" element={<Proposals clients={clients} projects={projects} sows={sows} setSOWs={setSOWs} settings={settings} deals={deals} setDeals={setDeals} />} />
+            <Route path="/proposals" element={<Proposals clients={clients} projects={projects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} invoices={invoices} setInvoices={setInvoices} />} />
             <Route path="/recurring" element={<RecurringExpenses clients={clients} projects={projects} expenses={recurringExpenses} setExpenses={setRecurringExpenses} settings={settings} />} />
             <Route path="/finances" element={<Finances clients={clients} projects={projects} invoices={invoices} settings={settings} entries={financeEntries} setEntries={setFinanceEntries} taxPayments={taxPayments} setTaxPayments={setTaxPayments} />} />
@@ -149,7 +145,6 @@ export default function App() {
             <Route path="/calendar" element={<Calendar events={events} setEvents={setEvents} projects={projects} invoices={invoices} clients={clients} />} />
             <Route path="/ai" element={<AIAssistant clients={clients} projects={projects} sows={sows} invoices={invoices} settings={settings} />} />
             <Route path="/contractors" element={<Contractors contractors={contractors} setContractors={setContractors} projects={projects} />} />
-            <Route path="/crm" element={<CRM deals={deals} setDeals={setDeals} crmActivities={crmActivities} setCrmActivities={setCrmActivities} channelPartners={channelPartners} setChannelPartners={setChannelPartners} clients={clients} sows={sows} />} />
             <Route path="/documents" element={<Documents documents={documents} setDocuments={setDocuments} clients={clients} projects={projects} />} />
             <Route path="/automations" element={<Automations automations={automations} setAutomations={setAutomations} />} />
             <Route path="/branding" element={<BrandingGuide />} />
