@@ -23,7 +23,7 @@ function generateProposalNumber(sows) {
   return `${yy}-${String(maxNum + 1).padStart(3, '0')}`;
 }
 
-export default function Proposals({ clients, projects, sows, setSOWs, settings: rawSettings }) {
+export default function Proposals({ clients, projects, sows, setSOWs, settings: rawSettings, deals = [], setDeals }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [view, setView] = useState('list'); // list | create | preview
   const [editId, setEditId] = useState(null);
@@ -42,6 +42,34 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
     } else {
       setSOWs(prev => [proposal, ...prev]);
     }
+
+    // Auto-create a CRM deal when a proposal is sent (if one doesn't already exist)
+    if (proposal.status === 'sent' && setDeals) {
+      const client = clients.find(c => c.id === proposal.clientId);
+      const total = calcTotal(proposal.packages) || proposal.budget || 0;
+      const existingDeal = deals.find(d => d.title === proposal.projectTitle && d.company === (client?.company || ''));
+      if (!existingDeal) {
+        setDeals(prev => [...prev, {
+          id: generateId(),
+          title: proposal.projectTitle,
+          company: client?.company || '',
+          contactName: client?.name || '',
+          contactEmail: client?.email || '',
+          contactPhone: client?.phone || '',
+          contactTitle: '',
+          stage: 'proposal',
+          source: 'Proposal',
+          value: total,
+          probability: 50,
+          priority: 'warm',
+          expectedCloseDate: proposal.validUntil || '',
+          nextStep: 'Follow up on proposal',
+          clientId: proposal.clientId || '',
+          createdAt: new Date().toISOString(),
+        }]);
+      }
+    }
+
     setView('list');
     setEditId(null);
   }
@@ -54,6 +82,7 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
   }
 
   function handleStatusChange(id, status) {
+    const proposal = sows.find(s => s.id === id);
     setSOWs(prev => prev.map(s => {
       if (s.id !== id) return s;
       const updates = { status };
@@ -61,6 +90,41 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
       if (status === 'sent') updates.sentDate = new Date().toISOString().split('T')[0];
       return { ...s, ...updates };
     }));
+
+    // Sync CRM deal status with proposal status
+    if (setDeals && proposal) {
+      const client = clients.find(c => c.id === proposal.clientId);
+      const matchingDeal = deals.find(d => d.title === proposal.projectTitle && d.company === (client?.company || ''));
+      if (matchingDeal) {
+        const dealStage = status === 'accepted' ? 'won' : status === 'declined' ? 'lost' : status === 'sent' ? 'proposal' : matchingDeal.stage;
+        setDeals(prev => prev.map(d => d.id === matchingDeal.id ? {
+          ...d,
+          stage: dealStage,
+          ...(status === 'accepted' ? { wonAt: new Date().toISOString(), probability: 100 } : {}),
+          ...(status === 'declined' ? { lostAt: new Date().toISOString(), probability: 0 } : {}),
+        } : d));
+      } else if (status === 'sent') {
+        // Create deal if one doesn't exist when marking as sent
+        const total = calcTotal(proposal.packages) || proposal.budget || 0;
+        setDeals(prev => [...prev, {
+          id: generateId(),
+          title: proposal.projectTitle,
+          company: client?.company || '',
+          contactName: client?.name || '',
+          contactEmail: client?.email || '',
+          contactPhone: client?.phone || '',
+          stage: 'proposal',
+          source: 'Proposal',
+          value: total,
+          probability: 50,
+          priority: 'warm',
+          expectedCloseDate: proposal.validUntil || '',
+          nextStep: 'Follow up on proposal',
+          clientId: proposal.clientId || '',
+          createdAt: new Date().toISOString(),
+        }]);
+      }
+    }
   }
 
   function handleEdit(proposal) {

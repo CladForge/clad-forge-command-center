@@ -24,8 +24,11 @@ function generateProjectNumber(projects) {
   return String(maxNum + 1).padStart(4, '0');
 }
 
-export default function Pipeline({ projects, setProjects, clients }) {
+export default function Pipeline({ projects, setProjects, clients, sows = [], deals = [], setDeals }) {
   const navigate = useNavigate();
+
+  // Pending proposals (sent but not accepted/declined) to show in the Proposal column
+  const pendingProposals = sows.filter(s => s.status === 'draft' || s.status === 'sent');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyProject);
   const [dragId, setDragId] = useState(null);
@@ -125,9 +128,40 @@ export default function Pipeline({ projects, setProjects, clients }) {
                   <span className="pipeline__column-dot" style={{ background: stage.color }} />
                   <h3>{stage.label}</h3>
                 </div>
-                <span className="pipeline__column-count">{stageProjects.length}</span>
+                <span className="pipeline__column-count">
+                  {stageProjects.length}{stage.id === 'proposal' && pendingProposals.length > 0 ? ` + ${pendingProposals.length}` : ''}
+                </span>
               </div>
               <div className="pipeline__column-body">
+                {/* Pending proposals shown in the Proposal column */}
+                {stage.id === 'proposal' && pendingProposals.map((prop, i) => {
+                  const client = clients.find(c => c.id === prop.clientId);
+                  const total = (prop.packages || []).reduce((s, p) => s + (p.optional && !p.included ? 0 : (p.price || 0)), 0) || prop.budget || 0;
+                  return (
+                    <div key={`prop-${prop.id}`} className="pipeline__card pipeline__card--proposal" style={{ animationDelay: `${i * 60}ms` }}>
+                      <div className="pipeline__card-header">
+                        <h4 style={{ cursor: 'pointer' }} onClick={() => navigate('/proposals')} title="View proposal">
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--purple)', marginRight: 6, fontWeight: 500 }}>
+                            {prop.proposalNumber || 'PROP'}
+                          </span>
+                          {prop.projectTitle}
+                        </h4>
+                      </div>
+                      {client && <span className="pipeline__card-client">{client.company}</span>}
+                      <div className="pipeline__card-meta">
+                        {total > 0 && <span className="pipeline__card-budget">${total.toLocaleString()}</span>}
+                        <span className={`status-pill status-pill--${prop.status}`} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                          {prop.status === 'draft' ? 'Draft' : 'Sent'}
+                        </span>
+                      </div>
+                      <div className="pipeline__card-actions">
+                        <button className="pipeline__card-move" onClick={() => navigate('/proposals')} style={{ flex: 1 }}>
+                          View Proposal
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
                 {stageProjects.map((project, i) => {
                   const client = clients.find(c => c.id === project.clientId);
                   const stageIndex = STAGES.findIndex(s => s.id === stage.id);
@@ -201,7 +235,7 @@ export default function Pipeline({ projects, setProjects, clients }) {
                     </div>
                   );
                 })}
-                {stageProjects.length === 0 && (
+                {stageProjects.length === 0 && !(stage.id === 'proposal' && pendingProposals.length > 0) && (
                   <div className="pipeline__empty">
                     <span>No projects</span>
                   </div>

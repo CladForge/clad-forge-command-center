@@ -34,7 +34,7 @@ const emptyActivity = {
   title: '', type: 'call', description: '', activityDate: '',
 };
 
-export default function CRM({ deals, setDeals, crmActivities, setCrmActivities, channelPartners, setChannelPartners, clients }) {
+export default function CRM({ deals, setDeals, crmActivities, setCrmActivities, channelPartners, setChannelPartners, clients, sows = [] }) {
   const [activeTab, setActiveTab] = useState('leads');
   const [viewMode, setViewMode] = useState('kanban');
   const [search, setSearch] = useState('');
@@ -342,6 +342,14 @@ export default function CRM({ deals, setDeals, crmActivities, setCrmActivities, 
         </div>
         {deal.company && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>{deal.company}</div>}
         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent)', marginBottom: 4 }}>{fmt(deal.value)}</div>
+        {(() => {
+          const linkedProposal = sows.find(s => s.projectTitle === deal.title && s.clientId === (clients.find(c => c.company === deal.company)?.id));
+          return linkedProposal ? (
+            <div style={{ fontSize: 11, color: 'var(--purple)', background: '#f5f3ff', padding: '2px 8px', borderRadius: 4, marginBottom: 4, display: 'inline-block', fontWeight: 500 }}>
+              📋 {linkedProposal.proposalNumber || 'Proposal'} — {linkedProposal.status}
+            </div>
+          ) : null;
+        })()}
         {!isDraggable && stage && (
           <span className="status-badge" style={{ background: stage.color + '22', color: stage.color, fontSize: 11 }}>
             {stage.label}
