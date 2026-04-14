@@ -634,19 +634,9 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
         <button className="btn btn--ghost" onClick={onBack}>← Back to Proposals</button>
         <div style={{ flex: 1 }} />
 
-        {/* Status selector */}
-        {proposal.status !== 'project-created' && (
-          <select
-            className={`status-select status-select--${proposal.status}`}
-            value={proposal.status}
-            onChange={e => onStatusChange(e.target.value)}
-            style={{ fontSize: '0.78rem' }}
-          >
-            {STATUS_OPTIONS.filter(s => s !== 'project-created').map(s => (
-              <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-            ))}
-          </select>
-        )}
+        <span className={`status-pill status-pill--${proposal.status}`}>
+          {STATUS_LABELS[proposal.status]}
+        </span>
 
         <div className="prop-preview__bar-actions">
           {proposal.status === 'draft' && (
