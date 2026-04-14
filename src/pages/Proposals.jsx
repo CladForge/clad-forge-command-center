@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { generateId, initialSettings } from '../data/initialData';
 
-const STATUS_OPTIONS = ['draft', 'sent', 'accepted', 'declined', 'expired'];
-const STATUS_LABELS = { draft: 'Draft', sent: 'Sent', accepted: 'Accepted', declined: 'Declined', expired: 'Expired' };
-const STATUS_COLORS = { draft: 'var(--slate)', sent: 'var(--info)', accepted: 'var(--success)', declined: 'var(--danger)', expired: 'var(--slate-light)' };
+const STATUS_OPTIONS = ['draft', 'ready', 'sent', 'accepted', 'declined', 'expired', 'project-created'];
+const STATUS_LABELS = { draft: 'Draft', ready: 'Ready', sent: 'Sent', accepted: 'Accepted', declined: 'Declined', expired: 'Expired', 'project-created': 'Project Created' };
+const STATUS_COLORS = { draft: 'var(--slate)', ready: 'var(--brand)', sent: 'var(--info)', accepted: 'var(--success)', declined: 'var(--danger)', expired: 'var(--slate-light)', 'project-created': 'var(--success)' };
 
 function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function calcTotal(packages) { return (packages || []).reduce((s, p) => s + (p.optional && !p.included ? 0 : (p.price || 0)), 0); }
@@ -112,7 +112,9 @@ export default function Proposals({ clients, projects, setProjects, sows, setSOW
     };
 
     setProjects(prev => [...prev, newProject]);
-    alert(`Project ${newProject.projectNumber} created: ${newProject.title}`);
+
+    // Update proposal status to "project-created"
+    setSOWs(prev => prev.map(s => s.id === proposal.id ? { ...s, status: 'project-created' } : s));
   }
 
   // ═══ LIST VIEW ═══
@@ -611,8 +613,26 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
         <span className={`status-pill status-pill--${proposal.status} status-pill--lg`}>
           {STATUS_LABELS[proposal.status]}
         </span>
+
+        {/* Status selector */}
+        {proposal.status !== 'project-created' && (
+          <select
+            className={`status-select status-select--${proposal.status}`}
+            value={proposal.status}
+            onChange={e => onStatusChange(e.target.value)}
+            style={{ fontSize: '0.78rem' }}
+          >
+            {STATUS_OPTIONS.filter(s => s !== 'project-created').map(s => (
+              <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+            ))}
+          </select>
+        )}
+
         <div className="prop-preview__bar-actions">
           {proposal.status === 'draft' && (
+            <button className="btn btn--secondary btn--sm" onClick={() => onStatusChange('ready')}>Mark Ready</button>
+          )}
+          {proposal.status === 'ready' && (
             <button className="btn btn--primary btn--sm" onClick={() => { onStatusChange('sent'); onSendEmail(); }}>✉ Send Proposal</button>
           )}
           {proposal.status === 'sent' && (
@@ -624,13 +644,15 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
           {proposal.status === 'accepted' && !alreadyHasProject && (
             <button className="btn btn--primary btn--sm" onClick={onCreateProject}>+ Create Project</button>
           )}
-          {proposal.status === 'accepted' && alreadyHasProject && (
+          {proposal.status === 'project-created' && (
             <span style={{ fontSize: '0.78rem', color: 'var(--success)', fontWeight: 500 }}>✓ Project created</span>
           )}
           <button className="btn btn--ghost btn--sm" onClick={onPrint}>🖨 Print</button>
           <button className="btn btn--ghost btn--sm" onClick={onEdit}>Edit</button>
           <button className="btn btn--ghost btn--sm" onClick={onDuplicate}>Duplicate</button>
-          <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={onDelete}>Delete</button>
+          {proposal.status !== 'project-created' && (
+            <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={onDelete}>Delete</button>
+          )}
         </div>
       </div>
 

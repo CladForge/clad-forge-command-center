@@ -28,7 +28,8 @@ export default function Pipeline({ projects, setProjects, clients, sows = [] }) 
   const navigate = useNavigate();
 
   // Pending proposals (sent but not accepted/declined) to show in the Proposal column
-  const pendingProposals = sows.filter(s => s.status === 'draft' || s.status === 'sent');
+  // Show draft, ready, sent, and accepted proposals in the Proposal column
+  const pendingProposals = sows.filter(s => ['draft', 'ready', 'sent', 'accepted'].includes(s.status));
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyProject);
   const [dragId, setDragId] = useState(null);
@@ -151,7 +152,7 @@ export default function Pipeline({ projects, setProjects, clients, sows = [] }) 
                       <div className="pipeline__card-meta">
                         {total > 0 && <span className="pipeline__card-budget">${total.toLocaleString()}</span>}
                         <span className={`status-pill status-pill--${prop.status}`} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-                          {prop.status === 'draft' ? 'Draft' : 'Sent'}
+                          {{ draft: 'Draft', ready: 'Ready', sent: 'Sent', accepted: 'Accepted' }[prop.status] || prop.status}
                         </span>
                       </div>
                       <div className="pipeline__card-actions">
