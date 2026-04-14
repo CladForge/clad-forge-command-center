@@ -324,6 +324,8 @@ function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, o
   }
 
   function removePackage(pkgId) {
+    const pkg = form.packages.find(p => p.id === pkgId);
+    if (!window.confirm(`Remove package "${pkg?.name || 'this package'}"?`)) return;
     setForm(f => ({ ...f, packages: f.packages.filter(p => p.id !== pkgId) }));
   }
 

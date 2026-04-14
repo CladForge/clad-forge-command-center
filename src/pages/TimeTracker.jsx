@@ -54,6 +54,7 @@ export default function TimeTracker({ projects, clients, entries, setEntries }) 
   }
 
   function handleDelete(id) {
+    if (!window.confirm('Delete this time entry? This cannot be undone.')) return;
     setEntries(prev => prev.filter(e => e.id !== id));
   }
 
