@@ -4,7 +4,7 @@ import { generateId } from '../data/initialData';
 
 const STAGES = [
   { id: 'lead', label: 'Lead', color: '#666' },
-  { id: 'proposal', label: 'Proposal', color: '#ffcc00' },
+  { id: 'proposal', label: 'Proposal', color: '#7c3aed' },
   { id: 'active', label: 'Active', color: '#ff8c00' },
   { id: 'review', label: 'Review', color: '#5ac8fa' },
   { id: 'completed', label: 'Completed', color: '#34c759' },
