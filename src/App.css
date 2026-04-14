@@ -609,7 +609,7 @@
   text-transform: capitalize;
 }
 
-.status-badge--active { background: var(--success-bg); color: var(--success); }
+.status-badge--active, .status-badge--accepted { background: var(--success-bg); color: var(--success); }
 .status-badge--prospect { background: var(--warning-bg); color: var(--warning); }
 .status-badge--on-hold { background: var(--info-bg); color: var(--info); }
 .status-badge--inactive { background: var(--border-light); color: var(--slate); }
@@ -629,7 +629,7 @@
 
 .status-select--draft { background: var(--stone); color: var(--slate); }
 .status-select--sent { background: var(--info-bg); color: var(--info); }
-.status-select--paid { background: var(--success-bg); color: var(--success); }
+.status-select--paid, .status-select--accepted { background: var(--success-bg); color: var(--success); }
 .status-select--overdue { background: var(--danger-bg); color: var(--danger); }
 .status-select--cancelled { background: var(--border-light); color: var(--slate); }
 
@@ -1360,7 +1360,7 @@
 .status-pill { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; }
 .status-pill--draft { background: var(--stone); color: var(--slate); }
 .status-pill--sent { background: var(--info-bg); color: var(--info); }
-.status-pill--paid { background: var(--success-bg); color: var(--success); }
+.status-pill--paid, .status-pill--accepted { background: var(--success-bg); color: var(--success); }
 .status-pill--overdue { background: var(--danger-bg); color: var(--danger); }
 .status-pill--cancelled { background: var(--border-light); color: var(--slate-light); }
 .status-pill--lg { padding: 5px 14px; font-size: 0.78rem; }
