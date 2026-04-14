@@ -16,6 +16,7 @@ import {
   initialDocuments,
   initialNotifications,
   initialAutomations,
+  initialRecurringExpenses,
   generateId,
 } from '../data/initialData';
 
@@ -59,6 +60,7 @@ const TABLE_COLUMNS = {
   documents: ['id','name','type','client_id','project_id','file_url','file_size','notes','status','created_at','created_by'],
   notifications: ['id','text','type','entity_type','entity_id','read','user_id','created_at'],
   automations: ['id','name','description','trigger_type','trigger_config','actions','status','run_count','last_run_at','created_at','created_by'],
+  recurring_expenses: ['id','client_id','project_id','title','description','amount','frequency','start_date','next_due','status','category','auto_invoice','notes','created_at','created_by'],
 };
 
 // Strip fields not in the DB table before sending to Supabase
@@ -145,6 +147,7 @@ export function useSupabaseData() {
   const [documents, setDocumentsState] = useState(initialDocuments);
   const [notifications, setNotificationsState] = useState(initialNotifications);
   const [automations, setAutomationsState] = useState(initialAutomations);
+  const [recurringExpenses, setRecurringExpensesState] = useState(initialRecurringExpenses);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const connectedRef = useRef(false);
@@ -156,7 +159,7 @@ export function useSupabaseData() {
         const [
           clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
           invoicesRes, timeEntriesRes, eventsRes, contractorsRes,
-          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes,
         ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
@@ -173,6 +176,7 @@ export function useSupabaseData() {
           supabase.from('documents').select('*').order('created_at', { ascending: false }),
           supabase.from('notifications').select('*').order('created_at', { ascending: false }),
           supabase.from('automations').select('*').order('created_at', { ascending: false }),
+          supabase.from('recurring_expenses').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (clientsRes.error) throw clientsRes.error;
@@ -203,6 +207,7 @@ export function useSupabaseData() {
         if (documentsRes.data) setDocumentsState(documentsRes.data.map(snakeToCamel));
         if (notificationsRes.data) setNotificationsState(notificationsRes.data.map(snakeToCamel));
         if (automationsRes.data) setAutomationsState(automationsRes.data.map(snakeToCamel));
+        if (recurringExpensesRes.data) setRecurringExpensesState(recurringExpensesRes.data.map(snakeToCamel));
 
         connectedRef.current = true;
         setConnected(true);
@@ -462,6 +467,11 @@ export function useSupabaseData() {
     [addActivity]
   );
 
+  const setRecurringExpenses = useCallback(
+    makeSetter(setRecurringExpensesState, 'recurring_expenses', { labelField: 'title', entityLabel: 'recurring expense', icon: 'repeat' }),
+    [addActivity]
+  );
+
   return {
     clients, setClients,
     projects, setProjects,
@@ -479,6 +489,7 @@ export function useSupabaseData() {
     notifications, setNotifications,
     addNotification,
     automations, setAutomations,
+    recurringExpenses, setRecurringExpenses,
     loading,
     connected,
   };

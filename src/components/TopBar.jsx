@@ -8,6 +8,7 @@ const pageTitles = {
   '/pipeline': 'Project Pipeline',
   '/proposals': 'Proposals',
   '/invoices': 'Invoices',
+  '/recurring': 'Recurring Expenses',
   '/time': 'Time Tracker',
   '/branding': 'Brand Guide',
   '/settings': 'Settings',

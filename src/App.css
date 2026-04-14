@@ -1454,6 +1454,54 @@
 .inv-detail-notes h4 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate-light); margin-bottom: 6px; font-weight: 600; }
 .inv-detail-notes p { font-size: 0.85rem; color: var(--slate); line-height: 1.6; }
 
+/* ===== RECURRING EXPENSES ===== */
+
+.recurring { animation: fadeIn 0.3s ease; }
+
+.recurring__layout { display: flex; gap: 20px; align-items: flex-start; }
+.recurring__main { flex: 1; min-width: 0; }
+.recurring__sidebar { width: 300px; flex-shrink: 0; position: sticky; top: 80px; }
+
+/* Frequency badges */
+.freq-badge { display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; }
+.freq-badge--weekly { background: #ede9fe; color: #7c3aed; }
+.freq-badge--monthly { background: var(--info-bg); color: var(--info); }
+.freq-badge--quarterly { background: var(--brand-pale); color: var(--brand); }
+.freq-badge--semi-annual { background: var(--warning-bg); color: var(--warning); }
+.freq-badge--annual { background: var(--success-bg); color: var(--success); }
+
+/* Upcoming sidebar */
+.recurring__upcoming-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.04); gap: 10px; }
+.recurring__upcoming-row:last-child { border-bottom: none; }
+.recurring__upcoming-info { flex: 1; min-width: 0; }
+.recurring__upcoming-title { font-size: 0.82rem; font-weight: 500; color: var(--ink); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recurring__upcoming-client { font-size: 0.72rem; color: var(--slate-light); }
+.recurring__upcoming-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.recurring__upcoming-amount { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: var(--brand); }
+
+/* By client sidebar */
+.recurring__client-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.04); gap: 10px; }
+.recurring__client-row:last-child { border-bottom: none; }
+.recurring__client-info { flex: 1; min-width: 0; }
+.recurring__client-name { font-size: 0.82rem; font-weight: 500; color: var(--ink); display: block; }
+.recurring__client-count { font-size: 0.72rem; color: var(--slate-light); }
+.recurring__client-amounts { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.recurring__client-monthly { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: var(--brand); }
+.recurring__client-annual { font-family: var(--font-mono); font-size: 0.72rem; color: var(--slate-light); }
+
+/* Revenue preview in modal */
+.recurring__preview { margin-top: 20px; padding: 16px; background: var(--brand-wash); border: 1px solid var(--brand-pale); border-radius: var(--radius); }
+.recurring__preview h4 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brand-deep); margin-bottom: 10px; font-weight: 600; }
+.recurring__preview-grid { display: flex; gap: 20px; }
+.recurring__preview-grid > div { flex: 1; }
+.recurring__preview-label { font-size: 0.72rem; color: var(--slate); display: block; }
+.recurring__preview-value { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; color: var(--brand); }
+
+@media (max-width: 1200px) {
+  .recurring__layout { flex-direction: column; }
+  .recurring__sidebar { width: 100%; position: static; }
+}
+
 /* ===== TIME TRACKER ===== */
 
 .time-tracker { animation: fadeIn 0.3s ease; }
