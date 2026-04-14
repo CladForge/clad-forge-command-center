@@ -136,7 +136,7 @@ export default function App() {
             <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} sows={sows} />} />
             <Route path="/projects/:id" element={<ProjectDetail projects={projects} setProjects={setProjects} clients={clients} sows={sows} invoices={invoices} timeEntries={timeEntries} documents={documents} />} />
-            <Route path="/proposals" element={<Proposals clients={clients} projects={projects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
+            <Route path="/proposals" element={<Proposals clients={clients} projects={projects} setProjects={setProjects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} invoices={invoices} setInvoices={setInvoices} />} />
             <Route path="/recurring" element={<RecurringExpenses clients={clients} projects={projects} expenses={recurringExpenses} setExpenses={setRecurringExpenses} settings={settings} />} />
             <Route path="/finances" element={<Finances clients={clients} projects={projects} invoices={invoices} settings={settings} entries={financeEntries} setEntries={setFinanceEntries} taxPayments={taxPayments} setTaxPayments={setTaxPayments} />} />

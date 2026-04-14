@@ -23,7 +23,15 @@ function generateProposalNumber(sows) {
   return `${yy}-${String(maxNum + 1).padStart(3, '0')}`;
 }
 
-export default function Proposals({ clients, projects, sows, setSOWs, settings: rawSettings }) {
+function generateProjectNumber(projects) {
+  const maxNum = (projects || []).reduce((max, p) => {
+    const n = parseInt(p.projectNumber, 10);
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 0);
+  return String(maxNum + 1).padStart(4, '0');
+}
+
+export default function Proposals({ clients, projects, setProjects, sows, setSOWs, settings: rawSettings }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [view, setView] = useState('list'); // list | create | preview
   const [editId, setEditId] = useState(null);
@@ -80,6 +88,31 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
       acceptedDate: '',
     };
     setSOWs(prev => [dup, ...prev]);
+  }
+
+  function handleCreateProject(proposal) {
+    const total = calcTotal(proposal.packages) || proposal.budget || 0;
+    const deliverables = (proposal.packages || []).map(pkg => pkg.name).filter(Boolean);
+    const description = [
+      proposal.description,
+      deliverables.length > 0 ? '\n\nPackages:\n' + deliverables.map((d, i) => `${i + 1}. ${d}`).join('\n') : '',
+    ].filter(Boolean).join('');
+
+    const newProject = {
+      id: generateId(),
+      projectNumber: generateProjectNumber(projects),
+      title: proposal.projectTitle,
+      clientId: proposal.clientId || '',
+      stage: 'active',
+      budget: total,
+      deadline: proposal.timeline?.endDate || '',
+      description,
+      proposalId: proposal.id,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    setProjects(prev => [...prev, newProject]);
+    alert(`Project ${newProject.projectNumber} created: ${newProject.title}`);
   }
 
   // ═══ LIST VIEW ═══
@@ -192,12 +225,14 @@ export default function Proposals({ clients, projects, sows, setSOWs, settings: 
       <ProposalPreview
         proposal={proposal}
         clients={clients}
+        projects={projects}
         settings={settings}
         onBack={() => setPreviewId(null)}
         onEdit={() => { setPreviewId(null); handleEdit(proposal); }}
         onDelete={() => handleDelete(proposal.id)}
         onStatusChange={(status) => handleStatusChange(proposal.id, status)}
         onDuplicate={() => { handleDuplicate(proposal); setPreviewId(null); }}
+        onCreateProject={() => handleCreateProject(proposal)}
         onSendEmail={() => sendProposalEmail(proposal, clients, settings)}
         onPrint={() => printProposal(proposal, clients, settings)}
       />
@@ -559,7 +594,8 @@ function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, o
    PROPOSAL PREVIEW
    ═══════════════════════════════════════════ */
 
-function ProposalPreview({ proposal, clients, settings, onBack, onEdit, onDelete, onStatusChange, onDuplicate, onSendEmail, onPrint }) {
+function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit, onDelete, onStatusChange, onDuplicate, onCreateProject, onSendEmail, onPrint }) {
+  const alreadyHasProject = projects.some(p => p.proposalId === proposal.id || (p.title === proposal.projectTitle && p.clientId === proposal.clientId));
   const client = clients.find(c => c.id === proposal.clientId);
   const total = calcTotal(proposal.packages);
   const fullTotal = calcFullTotal(proposal.packages);
@@ -584,6 +620,12 @@ function ProposalPreview({ proposal, clients, settings, onBack, onEdit, onDelete
               <button className="btn btn--secondary btn--sm" onClick={() => onStatusChange('accepted')}>✓ Mark Accepted</button>
               <button className="btn btn--ghost btn--sm" onClick={onSendEmail}>✉ Resend</button>
             </>
+          )}
+          {proposal.status === 'accepted' && !alreadyHasProject && (
+            <button className="btn btn--primary btn--sm" onClick={onCreateProject}>+ Create Project</button>
+          )}
+          {proposal.status === 'accepted' && alreadyHasProject && (
+            <span style={{ fontSize: '0.78rem', color: 'var(--success)', fontWeight: 500 }}>✓ Project created</span>
           )}
           <button className="btn btn--ghost btn--sm" onClick={onPrint}>🖨 Print</button>
           <button className="btn btn--ghost btn--sm" onClick={onEdit}>Edit</button>
