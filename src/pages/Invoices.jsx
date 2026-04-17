@@ -132,30 +132,34 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
       }
     }
 
-    const company = settings?.companyName || 'Clad Forge';
-    const owner = settings?.ownerName || '';
+    // Build from template
+    const codes = {
+      '{{recipient_name}}': recipientName,
+      '{{recipient_email}}': recipientEmail,
+      '{{invoice_number}}': invoice.invoiceNumber || '',
+      '{{invoice_link}}': url,
+      '{{project_title}}': invoice.projectTitle || '',
+      '{{total_due}}': formatCurrency(total),
+      '{{due_date}}': invoice.dueDate || 'Upon receipt',
+      '{{payment_terms}}': invoice.paymentTerms || 'Net 15',
+      '{{issue_date}}': invoice.issueDate || '',
+      '{{client_company}}': invoice.clientCompany || client?.company || '',
+      '{{company_name}}': settings?.companyName || 'Clad Forge',
+      '{{company_email}}': settings?.companyEmail || '',
+      '{{company_phone}}': settings?.companyPhone || '',
+      '{{owner_name}}': settings?.ownerName || '',
+    };
 
-    const subject = `Invoice ${invoice.invoiceNumber} — ${invoice.projectTitle} | ${company}`;
-    const body = `Hi ${recipientName},
+    function applyTemplate(template) {
+      let result = template || '';
+      for (const [code, value] of Object.entries(codes)) {
+        result = result.split(code).join(value);
+      }
+      return result;
+    }
 
-I hope this message finds you well. Please find Invoice ${invoice.invoiceNumber} at the link below:
-
-${url}
-
-Project: ${invoice.projectTitle}
-Invoice #: ${invoice.invoiceNumber}
-Amount Due: ${formatCurrency(total)}
-Due Date: ${invoice.dueDate || 'Upon receipt'}
-
-You can view the full invoice, download a copy, and confirm your payment directly from the link above.
-
-Thank you for your business!
-
-Best regards,
-${owner}
-${company}
-${settings?.companyEmail || ''}
-${settings?.companyPhone || ''}`;
+    const subject = applyTemplate(settings?.invoiceEmailSubject || 'Invoice {{invoice_number}} — {{project_title}} | {{company_name}}');
+    const body = applyTemplate(settings?.invoiceEmailBody || `Hi {{recipient_name}},\n\nPlease find your invoice at the link below:\n\n{{invoice_link}}\n\nInvoice #: {{invoice_number}}\nAmount Due: {{total_due}}\nDue Date: {{due_date}}\n\nBest regards,\n{{owner_name}}\n{{company_name}}`);
 
     window.location.href = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }

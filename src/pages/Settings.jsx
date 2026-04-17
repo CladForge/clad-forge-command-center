@@ -145,6 +145,36 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
               </div>
 
               <div className="settings__section">
+                <h4 className="settings__section-title">Email Template</h4>
+                <p style={{ fontSize: '0.78rem', color: 'var(--slate)', marginBottom: 12 }}>
+                  Customize the email sent with invoice links. Use the codes below to auto-fill invoice data.
+                </p>
+                <div className="form-grid">
+                  <Field label="Email Subject" value={settings.invoiceEmailSubject} onChange={v => update('invoiceEmailSubject', v)} full />
+                  <TextareaField label="Email Body" value={settings.invoiceEmailBody} onChange={v => update('invoiceEmailBody', v)} rows={12} full />
+                </div>
+                <div className="settings__codes">
+                  <h4 className="settings__section-title" style={{ marginTop: 16 }}>Available Codes</h4>
+                  <div className="settings__codes-grid">
+                    <div className="settings__code"><code>{'{{recipient_name}}'}</code><span>Contact person or company name</span></div>
+                    <div className="settings__code"><code>{'{{recipient_email}}'}</code><span>Contact person's email</span></div>
+                    <div className="settings__code"><code>{'{{invoice_number}}'}</code><span>Invoice number (e.g., INV-2026-0001-1)</span></div>
+                    <div className="settings__code"><code>{'{{invoice_link}}'}</code><span>Public link to view the invoice</span></div>
+                    <div className="settings__code"><code>{'{{project_title}}'}</code><span>Linked project name</span></div>
+                    <div className="settings__code"><code>{'{{total_due}}'}</code><span>Total amount due</span></div>
+                    <div className="settings__code"><code>{'{{due_date}}'}</code><span>Payment due date</span></div>
+                    <div className="settings__code"><code>{'{{payment_terms}}'}</code><span>Payment terms (e.g., Net 15)</span></div>
+                    <div className="settings__code"><code>{'{{issue_date}}'}</code><span>Date invoice was issued</span></div>
+                    <div className="settings__code"><code>{'{{client_company}}'}</code><span>Client's company name</span></div>
+                    <div className="settings__code"><code>{'{{company_name}}'}</code><span>Your company name</span></div>
+                    <div className="settings__code"><code>{'{{company_email}}'}</code><span>Your company email</span></div>
+                    <div className="settings__code"><code>{'{{company_phone}}'}</code><span>Your company phone</span></div>
+                    <div className="settings__code"><code>{'{{owner_name}}'}</code><span>Your name</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="settings__section">
                 <h4 className="settings__section-title">Automation</h4>
                 <ToggleField label="Auto-detect overdue invoices" description="Automatically mark invoices as overdue when they pass their due date"
                   value={settings.autoDetectOverdue} onChange={v => update('autoDetectOverdue', v)} />

@@ -171,6 +171,28 @@ export const initialSettings = {
   paymentInstructions: '',
   autoDetectOverdue: true,
 
+  invoiceEmailSubject: 'Invoice {{invoice_number}} — {{project_title}} | {{company_name}}',
+  invoiceEmailBody: `Hi {{recipient_name}},
+
+I hope this message finds you well. Please find Invoice {{invoice_number}} at the link below:
+
+{{invoice_link}}
+
+Project: {{project_title}}
+Invoice #: {{invoice_number}}
+Amount Due: {{total_due}}
+Due Date: {{due_date}}
+
+You can view the full invoice, download a copy, and confirm your payment directly from the link above.
+
+Thank you for your business!
+
+Best regards,
+{{owner_name}}
+{{company_name}}
+{{company_email}}
+{{company_phone}}`,
+
   // ── SOW / Proposals ──
   sowPrefix: 'SOW',
   sowFooter: 'This Statement of Work is subject to the terms and conditions of the Master Services Agreement between Clad Forge and the Client.',
