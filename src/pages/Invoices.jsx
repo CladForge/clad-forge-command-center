@@ -543,7 +543,13 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
             </div>
             <div className="form-group">
               <label>Payment Terms</label>
-              <select value={form.paymentTerms} onChange={e => setForm(f => ({ ...f, paymentTerms: e.target.value }))}>
+              <select value={form.paymentTerms} onChange={e => {
+                const terms = e.target.value;
+                const days = terms === 'Due on Receipt' ? 0 : parseInt(terms.replace(/\D/g, '')) || 30;
+                const issue = new Date(form.issueDate || new Date());
+                issue.setDate(issue.getDate() + days);
+                setForm(f => ({ ...f, paymentTerms: terms, dueDate: issue.toISOString().split('T')[0] }));
+              }}>
                 <option>Net 15</option>
                 <option>Net 30</option>
                 <option>Net 45</option>
@@ -553,7 +559,13 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
             </div>
             <div className="form-group">
               <label>Issue Date</label>
-              <input type="date" value={form.issueDate} onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))} />
+              <input type="date" value={form.issueDate} onChange={e => {
+                const issueDate = e.target.value;
+                const days = form.paymentTerms === 'Due on Receipt' ? 0 : parseInt((form.paymentTerms || '').replace(/\D/g, '')) || 30;
+                const due = new Date(issueDate);
+                due.setDate(due.getDate() + days);
+                setForm(f => ({ ...f, issueDate, dueDate: due.toISOString().split('T')[0] }));
+              }}
             </div>
             <div className="form-group">
               <label>Due Date</label>
