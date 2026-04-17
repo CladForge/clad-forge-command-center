@@ -809,13 +809,20 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
           </div>
           <div className="prop-document__sig">
             <span className="prop-document__sig-label">Client</span>
-            <div className="prop-document__sig-line" />
             {proposal.clientSignature ? (
-              <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.1rem' }}>
-                {proposal.clientSignature} — {proposal.clientSignedDate}
-              </span>
+              <>
+                <div className="prop-sig-signed">
+                  <span className="prop-sig-cursive">{proposal.clientSignature}</span>
+                  <span className="prop-sig-date">{proposal.clientSignedDate}</span>
+                </div>
+                <div className="prop-document__sig-line" />
+                <span>{proposal.clientSignature}, {client?.company || ''}</span>
+              </>
             ) : (
-              <span>{client?.company || '___________'}</span>
+              <>
+                <div className="prop-document__sig-line" />
+                <span>{client?.company || '___________'}</span>
+              </>
             )}
           </div>
         </div>
