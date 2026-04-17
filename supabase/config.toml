@@ -8,3 +8,8 @@ verify_jwt = false
 # stripe-webhook is called by Stripe with its own signature header.
 [functions.stripe-webhook]
 verify_jwt = false
+
+# list-stripe-methods is called from the public invoice page to show accurate
+# payment method labels. Returns only public info (method names).
+[functions.list-stripe-methods]
+verify_jwt = false

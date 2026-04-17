@@ -36,6 +36,7 @@ export default function InvoiceView() {
   const [breakdown, setBreakdown] = useState(null); // { subtotal, fee, total, payment_method_type }
   const [stripeError, setStripeError] = useState('');
   const [initializingStripe, setInitializingStripe] = useState(false);
+  const [stripeMethodLabels, setStripeMethodLabels] = useState(null); // null = loading, [] = fetch failed
 
   // Manual payment (wire / ACH / other off-platform method) fallback
   const [markingManual, setMarkingManual] = useState(false);
@@ -61,6 +62,21 @@ export default function InvoiceView() {
     }
     load();
   }, [token]);
+
+  // Fetch the actual payment methods enabled in Stripe Dashboard, so the
+  // "Pay Online" description only lists what the client will really see.
+  useEffect(() => {
+    if (!STRIPE_CONFIGURED) { setStripeMethodLabels([]); return; }
+    fetch(`${SUPABASE_URL}/functions/v1/list-stripe-methods`, {
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+    })
+      .then(r => r.json())
+      .then(d => setStripeMethodLabels(Array.isArray(d.labels) ? d.labels : []))
+      .catch(() => setStripeMethodLabels([]));
+  }, []);
 
   // Live-sync invoice status (webhook updates → instant UI feedback)
   useEffect(() => {
@@ -318,7 +334,13 @@ export default function InvoiceView() {
                     <div className="pay-option__icon">💳</div>
                     <div className="pay-option__body">
                       <span className="pay-option__title">Pay Online</span>
-                      <span className="pay-option__desc">Card · ACH · Link · Cash App Pay · Apple Pay · Google Pay</span>
+                      <span className="pay-option__desc">
+                        {stripeMethodLabels === null
+                          ? 'Loading payment options...'
+                          : stripeMethodLabels.length > 0
+                          ? stripeMethodLabels.join(' · ')
+                          : 'Secure online payment via Stripe'}
+                      </span>
                       <span className="pay-option__fee-note">Processing fee varies by method — see breakdown at checkout</span>
                     </div>
                     <div className="pay-option__arrow">{initializingStripe ? '...' : '→'}</div>
