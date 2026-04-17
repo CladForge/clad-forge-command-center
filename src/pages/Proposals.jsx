@@ -256,6 +256,21 @@ export default function Proposals({ clients, projects, setProjects, sows, setSOW
         onDuplicate={() => { handleDuplicate(proposal); setPreviewId(null); }}
         onCreateProject={() => handleCreateProject(proposal)}
         onGenerateLink={() => handleGenerateLink(proposal)}
+        onSign={() => {
+          setSOWs(prev => prev.map(s => s.id === proposal.id ? {
+            ...s,
+            providerSignature: settings.ownerName || 'Courtland Adaire',
+            providerSignedDate: new Date().toISOString().split('T')[0],
+          } : s));
+        }}
+        onUnsign={() => {
+          if (!window.confirm('Remove your signature from this proposal?')) return;
+          setSOWs(prev => prev.map(s => s.id === proposal.id ? {
+            ...s,
+            providerSignature: '',
+            providerSignedDate: '',
+          } : s));
+        }}
         onSendEmail={() => sendProposalEmail(proposal, clients, settings)}
         onPrint={() => printProposal(proposal, clients, settings)}
       />
@@ -618,7 +633,7 @@ function ProposalBuilder({ initial, clients, projects, sows, settings, onSave, o
    PROPOSAL PREVIEW
    ═══════════════════════════════════════════ */
 
-function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit, onDelete, onStatusChange, onDuplicate, onCreateProject, onGenerateLink, onSendEmail, onPrint }) {
+function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit, onDelete, onStatusChange, onDuplicate, onCreateProject, onGenerateLink, onSign, onUnsign, onSendEmail, onPrint }) {
   const alreadyHasProject = projects.some(p => p.proposalId === proposal.id || (p.title === proposal.projectTitle && p.clientId === proposal.clientId));
   const isLocked = ['accepted', 'project-created'].includes(proposal.status);
   const client = clients.find(c => c.id === proposal.clientId);
@@ -774,8 +789,22 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
         <div className="prop-document__signatures">
           <div className="prop-document__sig">
             <span className="prop-document__sig-label">Provider</span>
-            <div className="prop-document__sig-line" />
-            <span>{settings.ownerName}, {settings.companyName}</span>
+            {proposal.providerSignature ? (
+              <>
+                <div className="prop-sig-signed">
+                  <span className="prop-sig-cursive">{proposal.providerSignature}</span>
+                  <span className="prop-sig-date">{proposal.providerSignedDate}</span>
+                </div>
+                <span>{proposal.providerSignature}, {settings.companyName}</span>
+                <button className="btn btn--ghost btn--sm" style={{ marginTop: 8, fontSize: '0.72rem' }} onClick={onUnsign}>Remove Signature</button>
+              </>
+            ) : (
+              <>
+                <div className="prop-document__sig-line" />
+                <span>{settings.ownerName}, {settings.companyName}</span>
+                <button className="btn btn--primary btn--sm" style={{ marginTop: 8 }} onClick={onSign}>Sign Proposal</button>
+              </>
+            )}
           </div>
           <div className="prop-document__sig">
             <span className="prop-document__sig-label">Client</span>

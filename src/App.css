@@ -1453,6 +1453,11 @@
 .prop-document__sig-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate-light); display: block; margin-bottom: 48px; font-weight: 600; }
 .prop-document__sig-line { border-top: 1px solid var(--ink); padding-top: 8px; font-size: 0.82rem; color: var(--slate); max-width: 240px; }
 
+/* Provider signature */
+.prop-sig-signed { margin-bottom: 6px; }
+.prop-sig-cursive { font-family: 'Dancing Script', cursive; font-size: 1.6rem; color: var(--ink); display: block; line-height: 1.2; }
+.prop-sig-date { font-family: var(--font-mono); font-size: 0.75rem; color: var(--slate-light); display: block; margin-top: 2px; }
+
 /* ===== INVOICES ===== */
 
 .invoices { animation: fadeIn 0.3s ease; }
