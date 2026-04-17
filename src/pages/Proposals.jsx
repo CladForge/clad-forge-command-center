@@ -931,7 +931,7 @@ ${company}
 ${settings?.companyEmail || ''}
 ${settings?.companyPhone || ''}`;
 
-  const mailBody = body.replace(/\r?\n/g, '\r\n');
+  const mailBody = body.replace(/\{\{br\}\}/g, '\n').replace(/\r?\n/g, '\r\n');
   window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
 }
 

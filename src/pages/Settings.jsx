@@ -547,6 +547,7 @@ const TEMPLATE_CODES = [
   ['{{company_email}}', 'Your company email'],
   ['{{company_phone}}', 'Your company phone'],
   ['{{owner_name}}', 'Your name'],
+  ['{{br}}', 'Line break (new line)'],
 ];
 
 function CodeGrid({ copiedCode, onCopy }) {
