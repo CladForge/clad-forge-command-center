@@ -1,4 +1,10 @@
 import { useState } from 'react';
+import logoUrl from '../../images/cladforge-logo.svg';
+
+// Inline SVG string so we can embed as a data URI in the emailed HTML
+// (external image refs get blocked by many email clients until the user clicks "show images")
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#ffb84d;stop-opacity:1"/><stop offset="100%" style="stop-color:#ff8c00;stop-opacity:1"/></linearGradient></defs><path d="M 540 140 L 887 340 L 887 740 L 540 940 L 193 740 L 193 340 Z M 540 350 L 385 440 L 385 640 L 540 730 L 695 640 L 695 440 Z" fill="url(#g1)" fill-rule="evenodd"/></svg>`;
+const LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(LOGO_SVG)}`;
 
 const brandColors = [
   { name: 'Orange (Primary)', hex: '#ff8c00', usage: 'Primary brand color, buttons, CTAs, active states' },
@@ -55,7 +61,7 @@ export default function BrandingGuide({ settings = {} }) {
   const companyName = settings.companyName || 'Clad Forge';
   const companyEmail = settings.companyEmail || 'cort@cladforge.com';
   const companyPhone = settings.companyPhone || '+1 (800) 555-1234';
-  const companyWebsite = settings.companyWebsite || 'https://cladforge.com';
+  const companyWebsite = settings.companyWebsite || 'https://www.cladforge.com';
   const websiteDisplay = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
   function copyColor(hex) {
@@ -67,36 +73,36 @@ export default function BrandingGuide({ settings = {} }) {
   function buildFooterHTML() {
     // Email-client-compatible HTML: inline styles + a <style> block for hover effects
     // Most modern clients (Gmail, Apple Mail, Proton Mail, Outlook.com) support hover styles
-    return `<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;border-collapse:collapse;max-width:520px">
+    const fontStack = `'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,Helvetica,sans-serif`;
+    return `<table cellpadding="0" cellspacing="0" border="0" style="font-family:${fontStack};border-collapse:collapse;max-width:520px">
   <tr><td style="padding:0">
-    <style>.cf-sig a:hover{color:#e07800!important;text-decoration:underline!important}.cf-sig .cf-bar{background:linear-gradient(90deg,#b45309,#d97706,#f59e0b,#d97706,#b45309);background-size:200% 100%;animation:cfShine 3s linear infinite}.cf-sig .cf-logo{transition:transform .3s ease}.cf-sig .cf-logo:hover{transform:scale(1.08)}@keyframes cfShine{0%{background-position:200% 0}100%{background-position:-200% 0}}</style>
+    <style>.cf-sig a:hover{color:#e07800!important;text-decoration:underline!important}.cf-sig .cf-bar{background:linear-gradient(90deg,#ff8c00,#ffab40,#ffb84d,#ffab40,#ff8c00);background-size:200% 100%;animation:cfShine 3s linear infinite}.cf-sig .cf-logo{transition:transform .3s ease}.cf-sig .cf-logo:hover{transform:scale(1.08) rotate(-3deg)}@keyframes cfShine{0%{background-position:200% 0}100%{background-position:-200% 0}}</style>
     <div class="cf-sig">
-      <div class="cf-bar" style="height:3px;background:#b45309;border-radius:2px;margin-bottom:16px"></div>
+      <div class="cf-bar" style="height:3px;background:#ff8c00;border-radius:2px;margin-bottom:16px"></div>
       <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
         <tr>
-          <td style="vertical-align:top;padding-right:20px">
-            <div class="cf-logo" style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#b45309,#d97706);display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:24px;font-weight:700;color:#ffffff;text-align:center;line-height:56px">CF</div>
+          <td style="vertical-align:middle;padding-right:20px">
+            <img class="cf-logo" src="${LOGO_DATA_URI}" alt="${companyName}" width="56" height="56" style="display:block;width:56px;height:56px;border:0;outline:none"/>
           </td>
-          <td style="vertical-align:top">
-            <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:600;color:#1f2937;letter-spacing:1px;line-height:1.2">${companyName.toUpperCase()}</div>
-            <div style="font-size:11px;color:#9ca3af;letter-spacing:2px;text-transform:uppercase;margin-top:2px">Industrial Digital Engineering</div>
+          <td style="vertical-align:middle">
+            <div style="font-family:${fontStack};font-size:22px;font-weight:800;color:#1a1b27;letter-spacing:-0.5px;line-height:1.2">${companyName.toUpperCase()}</div>
+            <div style="font-family:${fontStack};font-size:11px;color:#8e8da0;letter-spacing:2px;text-transform:uppercase;margin-top:4px;font-weight:500">Industrial Digital Engineering</div>
           </td>
         </tr>
       </table>
       <div style="height:16px"></div>
-      <div style="font-size:14px;font-weight:600;color:#1f2937;line-height:1.3">${ownerName}</div>
-      <div style="font-size:12px;color:#6b7280;line-height:1.5">${ownerTitle}</div>
+      <div style="font-family:${fontStack};font-size:14px;font-weight:700;color:#1a1b27;line-height:1.3">${ownerName}</div>
+      <div style="font-family:${fontStack};font-size:12px;color:#5a5b72;line-height:1.5;font-weight:500">${ownerTitle}</div>
       <div style="height:10px"></div>
       <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
         <tr>
-          <td style="padding-right:14px"><a href="mailto:${companyEmail}" style="color:#b45309;text-decoration:none;font-size:13px;font-weight:500">&#9993; ${companyEmail}</a></td>
+          <td style="padding-right:14px"><a href="mailto:${companyEmail}" style="color:#ff8c00;text-decoration:none;font-family:${fontStack};font-size:13px;font-weight:600">&#9993; ${companyEmail}</a></td>
           <td style="padding-right:14px;color:#d1d5db">|</td>
-          <td style="padding-right:14px"><a href="tel:${companyPhone.replace(/\s/g, '')}" style="color:#b45309;text-decoration:none;font-size:13px;font-weight:500">&#9990; ${companyPhone}</a></td>
+          <td style="padding-right:14px"><a href="tel:${companyPhone.replace(/\s/g, '')}" style="color:#ff8c00;text-decoration:none;font-family:${fontStack};font-size:13px;font-weight:600">&#9990; ${companyPhone}</a></td>
           <td style="padding-right:14px;color:#d1d5db">|</td>
-          <td><a href="${companyWebsite}" style="color:#b45309;text-decoration:none;font-size:13px;font-weight:500">&#127760; ${websiteDisplay}</a></td>
+          <td><a href="${companyWebsite}" style="color:#ff8c00;text-decoration:none;font-family:${fontStack};font-size:13px;font-weight:600">&#127760; ${websiteDisplay}</a></td>
         </tr>
       </table>
-      <div style="margin-top:12px;font-size:10px;color:#9ca3af;letter-spacing:1px">CUSTOM-BUILT · ENGINEERING-DRIVEN · ZERO TEMPLATES</div>
     </div>
   </td></tr>
 </table>`;
@@ -294,7 +300,7 @@ export default function BrandingGuide({ settings = {} }) {
             <div className="email-sig">
               <div className="email-sig__bar" />
               <div className="email-sig__top">
-                <div className="email-sig__logo">CF</div>
+                <img src={logoUrl} alt={companyName} className="email-sig__logo" />
                 <div>
                   <div className="email-sig__brand">{companyName.toUpperCase()}</div>
                   <div className="email-sig__tagline">Industrial Digital Engineering</div>
@@ -309,7 +315,6 @@ export default function BrandingGuide({ settings = {} }) {
                 <span className="email-sig__sep">|</span>
                 <a href={companyWebsite} target="_blank" rel="noopener noreferrer" className="email-sig__link">🌐 {websiteDisplay}</a>
               </div>
-              <div className="email-sig__footer-text">CUSTOM-BUILT · ENGINEERING-DRIVEN · ZERO TEMPLATES</div>
             </div>
           </div>
 
