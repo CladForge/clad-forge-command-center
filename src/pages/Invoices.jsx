@@ -565,7 +565,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
                 const due = new Date(issueDate);
                 due.setDate(due.getDate() + days);
                 setForm(f => ({ ...f, issueDate, dueDate: due.toISOString().split('T')[0] }));
-              }}
+              }} />
             </div>
             <div className="form-group">
               <label>Due Date</label>
