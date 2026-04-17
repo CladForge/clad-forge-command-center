@@ -172,7 +172,7 @@ export const initialSettings = {
   autoDetectOverdue: true,
 
   invoiceEmailSubject: 'Invoice {{invoice_number}} — {{project_title}} | {{company_name}}',
-  invoiceEmailBody: `Hi {{recipient_name}},
+  invoiceEmailBody: `Hi {{name}},
 
 I hope this message finds you well. Please find Invoice {{invoice_number}} at the link below:
 

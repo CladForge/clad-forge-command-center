@@ -156,7 +156,8 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                 <div className="settings__codes">
                   <h4 className="settings__section-title" style={{ marginTop: 16 }}>Available Codes</h4>
                   <div className="settings__codes-grid">
-                    <div className="settings__code"><code>{'{{recipient_name}}'}</code><span>Contact person or company name</span></div>
+                    <div className="settings__code"><code>{'{{name}}'}</code><span>First name of contact person</span></div>
+                    <div className="settings__code"><code>{'{{full_name}}'}</code><span>Full name of contact person</span></div>
                     <div className="settings__code"><code>{'{{recipient_email}}'}</code><span>Contact person's email</span></div>
                     <div className="settings__code"><code>{'{{invoice_number}}'}</code><span>Invoice number (e.g., INV-2026-0001-1)</span></div>
                     <div className="settings__code"><code>{'{{invoice_link}}'}</code><span>Public link to view the invoice</span></div>

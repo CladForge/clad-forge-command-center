@@ -133,8 +133,10 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
     }
 
     // Build from template
+    const firstName = recipientName.split(' ')[0] || recipientName;
     const codes = {
-      '{{recipient_name}}': recipientName,
+      '{{name}}': firstName,
+      '{{full_name}}': recipientName,
       '{{recipient_email}}': recipientEmail,
       '{{invoice_number}}': invoice.invoiceNumber || '',
       '{{invoice_link}}': url,
@@ -159,7 +161,7 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
     }
 
     const subject = applyTemplate(settings?.invoiceEmailSubject || 'Invoice {{invoice_number}} — {{project_title}} | {{company_name}}');
-    const body = applyTemplate(settings?.invoiceEmailBody || `Hi {{recipient_name}},\n\nPlease find your invoice at the link below:\n\n{{invoice_link}}\n\nInvoice #: {{invoice_number}}\nAmount Due: {{total_due}}\nDue Date: {{due_date}}\n\nBest regards,\n{{owner_name}}\n{{company_name}}`);
+    const body = applyTemplate(settings?.invoiceEmailBody || `Hi {{name}},\n\nPlease find your invoice at the link below:\n\n{{invoice_link}}\n\nInvoice #: {{invoice_number}}\nAmount Due: {{total_due}}\nDue Date: {{due_date}}\n\nBest regards,\n{{owner_name}}\n{{company_name}}`);
 
     window.location.href = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
