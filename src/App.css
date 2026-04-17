@@ -1206,7 +1206,26 @@
 
 .sign-document { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 48px; max-width: 900px; width: 100%; margin: 0 auto; }
 
-.sign-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--brand); padding-bottom: 24px; margin-bottom: 32px; }
+.sign-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--brand); padding-bottom: 24px; margin-bottom: 32px; gap: 24px; }
+.sign-header-brand { display: flex; align-items: center; gap: 16px; }
+.sign-header-logo { width: 64px; height: 64px; display: block; flex-shrink: 0; filter: drop-shadow(0 2px 8px rgba(255, 140, 0, 0.25)); }
+.sign-client-attn { font-weight: 600; color: var(--ink); }
+
+.sign-payment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.08), rgba(255, 171, 64, 0.14));
+  border: 1px solid rgba(255, 140, 0, 0.28);
+  border-radius: 10px;
+  margin-bottom: 28px;
+}
+.sign-payment-badge__label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--brand-deep); font-weight: 700; }
+.sign-payment-badge__frac { font-family: var(--font-mono); font-size: 1rem; color: var(--ink); font-weight: 500; }
+.sign-payment-badge__frac strong { color: var(--brand); font-weight: 700; }
+.sign-payment-badge__sub { font-size: 0.72rem; color: var(--slate); font-weight: 500; }
+
 .sign-company { font-size: 0.72rem; color: var(--slate); text-transform: uppercase; letter-spacing: 2px; }
 .sign-title { font-family: var(--font-display); font-size: 2.2rem; font-weight: 400; margin: 4px 0; color: var(--ink); }
 .sign-number { font-family: var(--font-mono); font-size: 0.88rem; color: var(--brand); }
@@ -1555,6 +1574,21 @@
 /* Invoice Detail Modal */
 .inv-detail-bar { display: flex; align-items: center; gap: 12px; padding: 14px 0; margin-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .inv-detail-actions { display: flex; gap: 6px; }
+.inv-payment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.08), rgba(255, 171, 64, 0.14));
+  border: 1px solid rgba(255, 140, 0, 0.28);
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+.inv-payment-badge__label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--brand-deep); font-weight: 700; }
+.inv-payment-badge__fraction { font-family: var(--font-mono); font-size: 0.95rem; color: var(--ink); font-weight: 500; }
+.inv-payment-badge__fraction strong { color: var(--brand); font-weight: 700; }
+.inv-payment-badge__sub { font-size: 0.72rem; color: var(--slate); font-weight: 500; }
+
 .inv-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px; }
 .inv-detail-section h4 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate-light); margin-bottom: 8px; font-weight: 600; }
 .inv-detail-name { font-weight: 600; font-size: 1rem; }

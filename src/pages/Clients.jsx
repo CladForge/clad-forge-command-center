@@ -19,7 +19,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
   const emptyClient = {
     company: '', email: '', phone: '',
     industry: settings.defaultIndustry || 'Construction',
-    status: 'prospect', notes: '', value: 0, website: '', contacts: [],
+    status: 'prospect', notes: '', value: 0, website: '', address: '', contacts: [],
     brandLogoUrl: '',
   };
 
@@ -187,6 +187,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
                 <div className="form-group"><label>Company Email</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="info@company.com" /></div>
                 <div className="form-group"><label>Company Phone</label><input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
                 <div className="form-group"><label>Website</label><input type="text" value={form.website || ''} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." /></div>
+                <div className="form-group form-group--full"><label>Billing Address</label><textarea value={form.address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St, Suite 100&#10;Austin, TX 78701" rows={2} /></div>
                 <div className="form-group form-group--full"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Additional notes..." /></div>
               </div>
             </div>

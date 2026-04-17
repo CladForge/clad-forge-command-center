@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { generateId } from '../data/initialData';
+import { CLAD_FORGE_LOGO_DATA_URI, BRAND, BRAND_FONTS_LINK } from '../lib/brand';
 
 const STATUS_OPTIONS = ['draft', 'sent', 'processing', 'paid', 'overdue', 'cancelled'];
 const STATUS_LABELS = { draft: 'Draft', sent: 'Sent', processing: 'Processing', paid: 'Paid', overdue: 'Overdue', cancelled: 'Cancelled' };
@@ -450,6 +451,8 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
     dueDate: prebuilt?.dueDate || '',
     notes: '',
     paymentTerms: prebuilt?.paymentTerms || settings?.defaultPaymentTerms || 'Net 15',
+    paymentNumber: '',
+    paymentTotal: '',
     status: 'draft',
   });
 
@@ -507,6 +510,8 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
     if (!form.projectId || !form.invoiceNumber) return;
     onSave({
       ...form,
+      paymentNumber: form.paymentNumber ? Number(form.paymentNumber) : null,
+      paymentTotal: form.paymentTotal ? Number(form.paymentTotal) : null,
       id: generateId(),
       createdAt: new Date().toISOString(),
     });
@@ -640,6 +645,32 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
             </div>
           </div>
 
+          {/* Multi-stage payment indicator */}
+          <div className="form-group" style={{ marginTop: 16 }}>
+            <label>Payment Schedule <span style={{ color: 'var(--slate)', fontWeight: 400, fontSize: '0.78rem' }}>(optional — for multi-stage projects)</span></label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--slate)', fontWeight: 500 }}>Payment</span>
+              <input
+                type="number"
+                min="1"
+                placeholder="1"
+                value={form.paymentNumber}
+                onChange={e => setForm(f => ({ ...f, paymentNumber: e.target.value }))}
+                style={{ width: 70, textAlign: 'center' }}
+              />
+              <span style={{ fontSize: '0.85rem', color: 'var(--slate)', fontWeight: 500 }}>of</span>
+              <input
+                type="number"
+                min="1"
+                placeholder="3"
+                value={form.paymentTotal}
+                onChange={e => setForm(f => ({ ...f, paymentTotal: e.target.value }))}
+                style={{ width: 70, textAlign: 'center' }}
+              />
+              <span style={{ fontSize: '0.78rem', color: 'var(--slate-light)' }}>Leave blank for single-payment invoices</span>
+            </div>
+          </div>
+
           {/* Line Items */}
           <h3 className="form-section-title">Line Items</h3>
           <div className="inv-line-header">
@@ -715,6 +746,8 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
             const token = generateId() + generateId();
             const invoice = {
               ...form,
+              paymentNumber: form.paymentNumber ? Number(form.paymentNumber) : null,
+              paymentTotal: form.paymentTotal ? Number(form.paymentTotal) : null,
               id: generateId(),
               status: 'sent',
               sentDate: new Date().toISOString().split('T')[0],
@@ -786,17 +819,34 @@ function InvoiceDetail({ invoice, clients, projects, settings, onClose, onStatus
             </div>
           </div>
 
+          {/* Payment X of X badge */}
+          {invoice.paymentNumber && invoice.paymentTotal && (
+            <div className="inv-payment-badge">
+              <span className="inv-payment-badge__label">Payment</span>
+              <span className="inv-payment-badge__fraction">
+                <strong>{invoice.paymentNumber}</strong> of <strong>{invoice.paymentTotal}</strong>
+              </span>
+              <span className="inv-payment-badge__sub">Multi-stage billing</span>
+            </div>
+          )}
+
           {/* Two-column info */}
           <div className="inv-detail-grid">
             <div className="inv-detail-section">
               <h4>Bill To</h4>
-              <p className="inv-detail-name">{invoice.clientName}</p>
-              {invoice.contactPerson && (() => {
+              <p className="inv-detail-name">{invoice.clientCompany || invoice.clientName || '—'}</p>
+              {(() => {
                 const cl = clients.find(c => c.id === invoice.clientId);
-                const ct = (cl?.contacts || []).find(c => c.id === invoice.contactPerson);
-                return ct ? <p>Attn: {ct.name}{ct.title ? `, ${ct.title}` : ''}</p> : null;
+                const ct = invoice.contactPerson ? (cl?.contacts || []).find(c => c.id === invoice.contactPerson) : null;
+                const addr = cl?.address;
+                return (
+                  <>
+                    {ct && <p>Attn: {ct.name}{ct.title ? `, ${ct.title}` : ''}</p>}
+                    {addr && <p style={{ whiteSpace: 'pre-line' }}>{addr}</p>}
+                    {invoice.clientEmail && <p>{invoice.clientEmail}</p>}
+                  </>
+                );
               })()}
-              <p>{invoice.clientEmail}</p>
             </div>
             <div className="inv-detail-section">
               <h4>Invoice Details</h4>
@@ -880,59 +930,102 @@ function InvoiceDetail({ invoice, clients, projects, settings, onClose, onStatus
 
 function handlePrint(invoice, clients, settings) {
   const client = clients.find(c => c.id === invoice.clientId);
+  const html = buildInvoiceHTML(invoice, client, settings);
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+
+/* ═══════════════════════════════════════════
+   BRANDED INVOICE HTML TEMPLATE
+   Shared between internal print/PDF and the client-facing
+   InvoiceView download. Uses Plus Jakarta Sans, brand colors,
+   and the Clad Forge hexagon logo.
+   ═══════════════════════════════════════════ */
+
+export function buildInvoiceHTML(invoice, client, settings) {
   const subtotal = calcSubtotal(invoice.items);
   const taxAmount = subtotal * ((invoice.taxRate || 0) / 100);
   const total = calcTotal(invoice.items, invoice.taxRate, invoice.discount);
   const company = settings?.companyName || 'Clad Forge';
+  const contact = invoice.contactPerson && client?.contacts
+    ? client.contacts.find(c => c.id === invoice.contactPerson)
+    : null;
+  const billToLines = [];
+  billToLines.push(`<p class="bill-company">${escapeHtml(invoice.clientCompany || invoice.clientName || client?.company || '')}</p>`);
+  if (contact) billToLines.push(`<p class="bill-attn">Attn: ${escapeHtml(contact.name)}${contact.title ? `, ${escapeHtml(contact.title)}` : ''}</p>`);
+  if (client?.address) billToLines.push(`<p class="bill-addr">${escapeHtml(client.address).replace(/\n/g, '<br>')}</p>`);
+  if (invoice.clientEmail || client?.email) billToLines.push(`<p class="bill-email">${escapeHtml(invoice.clientEmail || client?.email || '')}</p>`);
+  const paymentBadge = invoice.paymentNumber && invoice.paymentTotal
+    ? `<div class="pay-badge"><span class="pay-badge__label">Payment</span><span class="pay-badge__frac"><b>${invoice.paymentNumber}</b> of <b>${invoice.paymentTotal}</b></span></div>`
+    : '';
 
-  const w = window.open('', '_blank');
-  if (!w) return;
-  w.document.write(`<!DOCTYPE html><html><head><title>Invoice ${invoice.invoiceNumber}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${escapeHtml(invoice.invoiceNumber || '')}</title>
+    ${BRAND_FONTS_LINK}
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:'Inter',sans-serif;color:#1f2937;padding:48px;max-width:800px;margin:0 auto;line-height:1.6;font-size:14px}
-      .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:28px;margin-bottom:28px;border-bottom:2px solid #b45309}
-      .header-left{} .header-right{text-align:right}
-      .company{font-family:'Instrument Serif',Georgia,serif;font-size:24px;color:#1f2937;margin-bottom:2px}
-      .company-info{font-size:12px;color:#6b7280;line-height:1.5}
-      .inv-title{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;color:#b45309}
-      .inv-meta{font-size:12px;color:#6b7280;margin-top:4px;line-height:1.6}
+      body{font-family:${BRAND.fontStack};color:${BRAND.ink};padding:48px;max-width:820px;margin:0 auto;line-height:1.55;font-size:14px;background:#ffffff}
+      .header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:24px;margin-bottom:28px;border-bottom:3px solid ${BRAND.primary}}
+      .brand{display:flex;align-items:center;gap:14px}
+      .brand__logo{width:60px;height:60px;display:block;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(255,140,0,0.25))}
+      .brand__text{display:flex;flex-direction:column}
+      .company{font-family:${BRAND.fontStack};font-size:22px;font-weight:800;color:${BRAND.ink};letter-spacing:-0.5px;line-height:1.1}
+      .company-info{font-size:12px;color:${BRAND.slate};line-height:1.55;margin-top:10px;font-weight:500}
+      .header-right{text-align:right}
+      .inv-label{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:${BRAND.muted};font-weight:600;margin-bottom:4px}
+      .inv-title{font-family:${BRAND.fontMono};font-size:24px;font-weight:600;color:${BRAND.primary};letter-spacing:-0.5px}
+      .inv-meta{font-size:12px;color:${BRAND.slate};margin-top:8px;line-height:1.7;font-weight:500}
+      .inv-meta b{color:${BRAND.ink};font-weight:600}
+      .pay-badge{display:inline-flex;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,rgba(255,140,0,0.08),rgba(255,171,64,0.12));border:1px solid rgba(255,140,0,0.25);border-radius:10px;margin-bottom:24px}
+      .pay-badge__label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.deep};font-weight:700}
+      .pay-badge__frac{font-family:${BRAND.fontMono};font-size:15px;color:${BRAND.ink};font-weight:500}
+      .pay-badge__frac b{color:${BRAND.primary};font-weight:700}
       .two-col{display:flex;gap:40px;margin-bottom:28px}
-      .col{flex:1} .col h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px;font-weight:600}
-      .col p{font-size:14px;color:#1f2937;line-height:1.5}
-      .col .name{font-weight:600;font-size:15px}
+      .col{flex:1}
+      .col h3{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.muted};margin-bottom:10px;font-weight:700}
+      .col p{font-size:13px;color:${BRAND.slate};line-height:1.6;font-weight:500}
+      .col .bill-company{font-weight:700;font-size:15px;color:${BRAND.ink};margin-bottom:4px}
+      .col .bill-attn{color:${BRAND.ink};font-weight:600;margin-bottom:4px}
+      .col .bill-addr{color:${BRAND.slate};margin-bottom:4px}
+      .col .bill-email{color:${BRAND.slate}}
       table{width:100%;border-collapse:collapse;margin-bottom:24px}
-      th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;padding:10px 12px;border-bottom:2px solid #e5e7eb;font-weight:600}
-      td{padding:10px 12px;border-bottom:1px solid #f3f4f6;font-size:14px}
-      .mono{font-family:'JetBrains Mono',monospace;font-size:13px}
+      th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.muted};padding:12px 12px;border-bottom:2px solid ${BRAND.primary};font-weight:700}
+      td{padding:12px 12px;border-bottom:1px solid #eef0f3;font-size:13px;color:${BRAND.ink};font-weight:500}
+      .mono{font-family:${BRAND.fontMono};font-size:12px;font-weight:500}
       .right{text-align:right}
-      .totals{margin-left:auto;width:280px}
-      .totals-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}
-      .totals-row.total{border-top:2px solid #1f2937;margin-top:8px;padding-top:12px;font-weight:700;font-size:18px}
-      .totals-row.total .amt{color:#b45309;font-family:'JetBrains Mono',monospace}
-      .amt{font-family:'JetBrains Mono',monospace}
-      .notes{margin-top:28px;padding-top:20px;border-top:1px solid #e5e7eb;font-size:13px;color:#6b7280}
-      .notes h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:6px;font-weight:600}
-      .footer{margin-top:48px;text-align:center;font-size:12px;color:#9ca3af;padding-top:20px;border-top:1px solid #e5e7eb}
+      .totals{margin-left:auto;width:300px}
+      .totals-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:${BRAND.slate};font-weight:500}
+      .totals-row.total{border-top:2px solid ${BRAND.ink};margin-top:10px;padding-top:14px;font-weight:800;font-size:18px;color:${BRAND.ink}}
+      .totals-row.total .amt{color:${BRAND.primary};font-family:${BRAND.fontMono};font-size:20px;font-weight:700}
+      .amt{font-family:${BRAND.fontMono};color:${BRAND.ink}}
+      .notes{margin-top:28px;padding:18px 20px;border-left:3px solid ${BRAND.primary};background:rgba(255,140,0,0.04);border-radius:4px;font-size:13px;color:${BRAND.slate};line-height:1.6}
+      .notes h3{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.deep};margin-bottom:8px;font-weight:700}
+      .footer{margin-top:48px;text-align:center;font-size:11px;color:${BRAND.muted};padding-top:20px;border-top:1px solid #eef0f3;font-weight:500;letter-spacing:0.5px}
       @media print{body{padding:24px}}
     </style></head><body>
     <div class="header">
-      <div class="header-left">
-        <div class="company">${company}</div>
-        <div class="company-info">${settings?.ownerName || ''}<br>${settings?.companyAddress || ''}<br>${settings?.companyEmail || ''}<br>${settings?.companyPhone || ''}</div>
+      <div>
+        <div class="brand">
+          <img class="brand__logo" src="${CLAD_FORGE_LOGO_DATA_URI}" alt="${escapeHtml(company)}"/>
+          <div class="brand__text"><span class="company">${escapeHtml(company).toUpperCase()}</span></div>
+        </div>
+        <div class="company-info">${escapeHtml(settings?.ownerName || '')}${settings?.companyAddress ? `<br>${escapeHtml(settings.companyAddress)}` : ''}${settings?.companyEmail ? `<br>${escapeHtml(settings.companyEmail)}` : ''}${settings?.companyPhone ? `<br>${escapeHtml(settings.companyPhone)}` : ''}</div>
       </div>
       <div class="header-right">
-        <div class="inv-title">${invoice.invoiceNumber}</div>
-        <div class="inv-meta">Issued: ${invoice.issueDate}<br>Due: ${invoice.dueDate || 'Upon receipt'}<br>Terms: ${invoice.paymentTerms || 'Net 30'}</div>
+        <div class="inv-label">Invoice</div>
+        <div class="inv-title">${escapeHtml(invoice.invoiceNumber || '')}</div>
+        <div class="inv-meta"><b>Issued:</b> ${escapeHtml(invoice.issueDate || '—')}<br><b>Due:</b> ${escapeHtml(invoice.dueDate || 'Upon receipt')}<br><b>Terms:</b> ${escapeHtml(invoice.paymentTerms || 'Net 30')}</div>
       </div>
     </div>
+    ${paymentBadge}
     <div class="two-col">
-      <div class="col"><h3>Bill To</h3><p class="name">${invoice.clientName || client?.company || ''}</p>${(() => { if (invoice.contactPerson && client?.contacts) { const ct = client.contacts.find(c => c.id === invoice.contactPerson); if (ct) return `<p>Attn: ${ct.name}${ct.title ? ', ' + ct.title : ''}</p>`; } return ''; })()}<p>${invoice.clientEmail || client?.email || ''}</p></div>
-      <div class="col"><h3>Project</h3><p class="name">${invoice.projectTitle || ''}</p></div>
+      <div class="col"><h3>Bill To</h3>${billToLines.join('')}</div>
+      <div class="col"><h3>Project</h3><p class="bill-company">${escapeHtml(invoice.projectTitle || '—')}</p></div>
     </div>
     <table><thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th class="right">Amount</th></tr></thead><tbody>
-    ${invoice.items.map(item => `<tr><td>${item.description}</td><td class="mono">${item.quantity}</td><td class="mono">${formatCurrency(item.rate)}</td><td class="mono right">${formatCurrency(item.quantity * item.rate)}</td></tr>`).join('')}
+    ${invoice.items.map(item => `<tr><td>${escapeHtml(item.description || '')}</td><td class="mono">${item.quantity}</td><td class="mono">${formatCurrency(item.rate)}</td><td class="mono right">${formatCurrency(item.quantity * item.rate)}</td></tr>`).join('')}
     </tbody></table>
     <div class="totals">
       <div class="totals-row"><span>Subtotal</span><span class="amt">${formatCurrency(subtotal)}</span></div>
@@ -940,9 +1033,17 @@ function handlePrint(invoice, clients, settings) {
       ${invoice.discount > 0 ? `<div class="totals-row"><span>Discount</span><span class="amt">-${formatCurrency(invoice.discount)}</span></div>` : ''}
       <div class="totals-row total"><span>Total Due</span><span class="amt">${formatCurrency(total)}</span></div>
     </div>
-    ${invoice.notes ? `<div class="notes"><h3>Notes</h3><p>${invoice.notes}</p></div>` : ''}
-    <div class="footer">${company} — ${settings?.companyAddress || ''} — ${settings?.companyEmail || ''}</div>
-    </body></html>`);
-  w.document.close();
-  setTimeout(() => w.print(), 500);
+    ${invoice.notes ? `<div class="notes"><h3>Notes</h3><p>${escapeHtml(invoice.notes).replace(/\n/g, '<br>')}</p></div>` : ''}
+    <div class="footer">${escapeHtml(company)}${settings?.companyEmail ? ` · ${escapeHtml(settings.companyEmail)}` : ''}${settings?.companyPhone ? ` · ${escapeHtml(settings.companyPhone)}` : ''}</div>
+    </body></html>`;
+}
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
