@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { supabase } from '../lib/supabase';
 import { CLAD_FORGE_LOGO_DATA_URI } from '../lib/brand';
-import { stripePromise, stripeAppearance, STRIPE_CONFIGURED } from '../lib/stripe';
+import { stripePromise, getStripeAppearance, STRIPE_CONFIGURED } from '../lib/stripe';
 import { buildInvoiceHTML } from './Invoices';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -332,26 +332,18 @@ export default function InvoiceView() {
                   </button>
                 )}
 
-                {settings?.paymentInstructions && (
-                  <button
-                    className="pay-option pay-option--manual"
-                    onClick={() => setManualMode(true)}
-                  >
-                    <div className="pay-option__icon">🏦</div>
-                    <div className="pay-option__body">
-                      <span className="pay-option__title">Pay by Bank Transfer</span>
-                      <span className="pay-option__desc">Wire or ACH from your bank — settles in 1–3 business days</span>
-                      <span className="pay-option__fee-note pay-option__fee-note--free">No processing fee · You pay exactly {fmt(total)}</span>
-                    </div>
-                    <div className="pay-option__arrow">→</div>
-                  </button>
-                )}
-
-                {!STRIPE_CONFIGURED && !settings?.paymentInstructions && (
-                  <p className="pay-panel__manual-note">
-                    Online payments are not yet configured. Please contact {settings?.companyEmail || company} to arrange payment.
-                  </p>
-                )}
+                <button
+                  className="pay-option pay-option--manual"
+                  onClick={() => setManualMode(true)}
+                >
+                  <div className="pay-option__icon">🏦</div>
+                  <div className="pay-option__body">
+                    <span className="pay-option__title">Pay by Bank Transfer</span>
+                    <span className="pay-option__desc">Wire or ACH from your bank — settles in 1–3 business days</span>
+                    <span className="pay-option__fee-note pay-option__fee-note--free">No processing fee · You pay exactly {fmt(total)}</span>
+                  </div>
+                  <div className="pay-option__arrow">→</div>
+                </button>
               </div>
             )}
 
@@ -385,7 +377,7 @@ export default function InvoiceView() {
                   </div>
                 )}
 
-                <Elements stripe={stripePromise} options={{ clientSecret, appearance: stripeAppearance }}>
+                <Elements stripe={stripePromise} options={{ clientSecret, appearance: getStripeAppearance() }}>
                   <StripeCheckoutForm
                     onMethodChange={handleMethodChange}
                     returnUrl={window.location.href}
@@ -405,7 +397,13 @@ export default function InvoiceView() {
                   <strong>{fmt(total)}</strong>
                 </div>
                 <h4>Transfer Instructions</h4>
-                <pre className="pay-manual__instructions">{settings.paymentInstructions}</pre>
+                {settings?.paymentInstructions ? (
+                  <pre className="pay-manual__instructions">{settings.paymentInstructions}</pre>
+                ) : (
+                  <div className="pay-manual__instructions">
+                    Please contact {settings?.companyEmail ? <a href={`mailto:${settings.companyEmail}?subject=Bank transfer details for invoice ${invoice.invoiceNumber}`} style={{ color: 'var(--brand)' }}>{settings.companyEmail}</a> : company} to request bank transfer details (ACH routing / account number or wire instructions). Reference invoice <strong>{invoice.invoiceNumber}</strong> on your transfer.
+                  </div>
+                )}
                 <button
                   className="sign-btn sign-btn--accept"
                   onClick={handleManualPayment}
