@@ -61,7 +61,7 @@ export default function BrandingGuide({ settings = {} }) {
   const companyName = settings.companyName || 'Clad Forge';
   const companyEmail = settings.companyEmail || 'cort@cladforge.com';
   const companyPhone = settings.companyPhone || '+1 (800) 555-1234';
-  const companyWebsite = settings.companyWebsite || 'https://www.cladforge.com';
+  const companyWebsite = settings.companyWebsite || 'https://cladforge.com/';
   const websiteDisplay = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
   function copyColor(hex) {
