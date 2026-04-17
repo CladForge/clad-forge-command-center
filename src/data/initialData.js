@@ -162,7 +162,7 @@ export const initialSettings = {
   ownerTitle: 'Founder & Engineer',
 
   // ── Invoicing ──
-  defaultPaymentTerms: 'Net 30',
+  defaultPaymentTerms: 'Net 15',
   defaultCurrency: 'USD',
   defaultTaxRate: 0,
   invoicePrefix: 'INV',

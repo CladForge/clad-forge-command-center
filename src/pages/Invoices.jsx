@@ -375,7 +375,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
     const client = clients.find(c => c.id === project.clientId);
     const invoiced = projectInvoiceTotals[projectId] || 0;
     const remaining = project.budget - invoiced;
-    const termDays = parseInt((settings?.defaultPaymentTerms || '').replace(/\D/g, '')) || 30;
+    const termDays = parseInt((settings?.defaultPaymentTerms || 'Net 15').replace(/\D/g, '')) || 15;
     const due = new Date();
     due.setDate(due.getDate() + termDays);
     return {
@@ -408,7 +408,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
     issueDate: new Date().toISOString().split('T')[0],
     dueDate: '',
     notes: '',
-    paymentTerms: settings?.defaultPaymentTerms || 'Net 30',
+    paymentTerms: settings?.defaultPaymentTerms || 'Net 15',
     status: 'draft',
     ...(preselectedProjectId ? buildFormForProject(preselectedProjectId) : {}),
   });
@@ -426,7 +426,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
     const remaining = project.budget - invoiced;
 
     // Calculate due date from payment terms
-    const termDays = parseInt(settings?.defaultPaymentTerms?.replace(/\D/g, '')) || 30;
+    const termDays = parseInt((settings?.defaultPaymentTerms || 'Net 15').replace(/\D/g, '')) || 15;
     const due = new Date();
     due.setDate(due.getDate() + termDays);
 
