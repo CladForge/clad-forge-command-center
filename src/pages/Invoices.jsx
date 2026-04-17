@@ -163,9 +163,21 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
     const subject = applyTemplate(settings?.invoiceEmailSubject || 'Invoice {{invoice_number}} — {{project_title}} | {{company_name}}');
     const body = applyTemplate(settings?.invoiceEmailBody || `Hi {{name}},\n\nPlease find your invoice at the link below:\n\n{{invoice_link}}\n\nInvoice #: {{invoice_number}}\nAmount Due: {{total_due}}\nDue Date: {{due_date}}\n\nBest regards,\n{{owner_name}}\n{{company_name}}`);
 
-    // Replace {{br}} with actual line breaks, then normalize all newlines to CRLF
-    const mailBody = body.replace(/\{\{br\}\}/g, '\n').replace(/\r?\n/g, '\r\n');
-    window.location.href = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
+    // Replace {{br}} with actual newline, normalize all to LF only (Proton Mail prefers this)
+    const mailBody = body.replace(/\{\{br\}\}/g, '\n').replace(/\r\n/g, '\n');
+
+    // Manually build the mailto URL — encodeURIComponent converts \n to %0A correctly
+    const mailto = 'mailto:' + encodeURIComponent(recipientEmail) +
+      '?subject=' + encodeURIComponent(subject) +
+      '&body=' + encodeURIComponent(mailBody);
+
+    // Use an anchor click instead of location.href — more reliable for mailto
+    const a = document.createElement('a');
+    a.href = mailto;
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   return (

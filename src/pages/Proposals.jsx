@@ -931,8 +931,16 @@ ${company}
 ${settings?.companyEmail || ''}
 ${settings?.companyPhone || ''}`;
 
-  const mailBody = body.replace(/\{\{br\}\}/g, '\n').replace(/\r?\n/g, '\r\n');
-  window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
+  const mailBody = body.replace(/\{\{br\}\}/g, '\n').replace(/\r\n/g, '\n');
+  const mailto = 'mailto:' + encodeURIComponent(email) +
+    '?subject=' + encodeURIComponent(subject) +
+    '&body=' + encodeURIComponent(mailBody);
+  const a = document.createElement('a');
+  a.href = mailto;
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function printProposal(proposal, clients, settings) {
