@@ -22,7 +22,25 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
   const [copiedCode, setCopiedCode] = useState('');
 
   function copyCode(code) {
-    navigator.clipboard.writeText(code);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(() => {
+        setCopiedCode(code);
+        setTimeout(() => setCopiedCode(''), 1500);
+      }).catch(() => fallbackCopy(code));
+    } else {
+      fallbackCopy(code);
+    }
+  }
+
+  function fallbackCopy(code) {
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(''), 1500);
   }
