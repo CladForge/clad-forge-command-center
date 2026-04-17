@@ -876,8 +876,8 @@ function handlePrint(invoice, clients, settings) {
       </div>
     </div>
     <div class="two-col">
-      <div class="col"><h3>Bill To</h3><p class="name">${invoice.clientName || client?.company || ''}</p><p>${client?.email || ''}</p></div>
-      <div class="col"><h3>Project</h3><p class="name">${invoice.projectTitle || ''}</p><p>Status: ${invoice.status}</p>${invoice.paidDate ? `<p>Paid: ${invoice.paidDate}</p>` : ''}</div>
+      <div class="col"><h3>Bill To</h3><p class="name">${invoice.clientName || client?.company || ''}</p>${(() => { if (invoice.contactPerson && client?.contacts) { const ct = client.contacts.find(c => c.id === invoice.contactPerson); if (ct) return `<p>Attn: ${ct.name}${ct.title ? ', ' + ct.title : ''}</p>`; } return ''; })()}<p>${invoice.clientEmail || client?.email || ''}</p></div>
+      <div class="col"><h3>Project</h3><p class="name">${invoice.projectTitle || ''}</p></div>
     </div>
     <table><thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th class="right">Amount</th></tr></thead><tbody>
     ${invoice.items.map(item => `<tr><td>${item.description}</td><td class="mono">${item.quantity}</td><td class="mono">${formatCurrency(item.rate)}</td><td class="mono right">${formatCurrency(item.quantity * item.rate)}</td></tr>`).join('')}
