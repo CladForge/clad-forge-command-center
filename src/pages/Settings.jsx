@@ -19,6 +19,13 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
 
   const [activeTab, setActiveTab] = useState('company');
   const [saved, setSaved] = useState(false);
+  const [copiedCode, setCopiedCode] = useState('');
+
+  function copyCode(code) {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(''), 1500);
+  }
 
   function update(field, value) {
     setSettings(prev => ({ ...initialSettings, ...prev, [field]: value }));

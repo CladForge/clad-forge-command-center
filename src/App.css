@@ -1945,9 +1945,12 @@
 /* Save bar */
 /* Template codes */
 .settings__codes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.settings__code { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 0.78rem; }
+.settings__code { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: all 0.14s; }
+.settings__code:hover { border-color: var(--brand); background: var(--brand-wash); }
+.settings__code--copied { border-color: var(--success); background: var(--success-bg); }
 .settings__code code { font-family: var(--font-mono); font-size: 0.72rem; color: var(--brand); background: var(--brand-pale); padding: 2px 6px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
 .settings__code span { color: var(--slate); }
+.settings__code--copied span { color: var(--success); font-weight: 500; }
 
 .settings__save-bar {
   display: flex;
