@@ -371,7 +371,7 @@ ${settings?.companyPhone || ''}`;
 function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvoiceTotals, preselectedProjectId, onSave, onClose }) {
   function buildFormForProject(projectId) {
     const project = projects.find(p => p.id === projectId);
-    if (!project) return {};
+    if (!project) return null;
     const client = clients.find(c => c.id === project.clientId);
     const invoiced = projectInvoiceTotals[projectId] || 0;
     const remaining = project.budget - invoiced;
@@ -387,30 +387,32 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
       projectTitle: project.title,
       invoiceNumber: generateInvoiceNumber(invoices, project.projectNumber),
       dueDate: due.toISOString().split('T')[0],
+      paymentTerms: settings?.defaultPaymentTerms || 'Net 15',
       items: remaining > 0
         ? [{ description: `${project.title} — Development Services`, quantity: 1, rate: remaining }]
         : [{ description: '', quantity: 1, rate: 0 }],
     };
   }
 
+  const prebuilt = preselectedProjectId ? buildFormForProject(preselectedProjectId) : null;
+
   const [form, setForm] = useState({
-    projectId: '',
-    clientId: '',
-    clientName: '',
-    clientCompany: '',
-    clientEmail: '',
+    projectId: prebuilt?.projectId || '',
+    clientId: prebuilt?.clientId || '',
+    clientName: prebuilt?.clientName || '',
+    clientCompany: prebuilt?.clientCompany || '',
+    clientEmail: prebuilt?.clientEmail || '',
     contactPerson: '',
-    projectTitle: '',
-    invoiceNumber: '',
-    items: [{ description: '', quantity: 1, rate: 0 }],
+    projectTitle: prebuilt?.projectTitle || '',
+    invoiceNumber: prebuilt?.invoiceNumber || '',
+    items: prebuilt?.items || [{ description: '', quantity: 1, rate: 0 }],
     taxRate: 0,
     discount: 0,
     issueDate: new Date().toISOString().split('T')[0],
-    dueDate: '',
+    dueDate: prebuilt?.dueDate || '',
     notes: '',
-    paymentTerms: settings?.defaultPaymentTerms || 'Net 15',
+    paymentTerms: prebuilt?.paymentTerms || settings?.defaultPaymentTerms || 'Net 15',
     status: 'draft',
-    ...(preselectedProjectId ? buildFormForProject(preselectedProjectId) : {}),
   });
 
   // When project is selected, auto-populate everything
