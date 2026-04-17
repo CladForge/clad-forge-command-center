@@ -175,8 +175,8 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                   Customize the email sent with invoice links. Use the codes below to auto-fill invoice data.
                 </p>
                 <div className="form-grid">
-                  <Field label="Email Subject" value={settings.invoiceEmailSubject} onChange={v => update('invoiceEmailSubject', v)} full />
-                  <TextareaField label="Email Body" value={settings.invoiceEmailBody} onChange={v => update('invoiceEmailBody', v)} rows={12} full />
+                  <HighlightedField label="Email Subject" value={settings.invoiceEmailSubject} onChange={v => update('invoiceEmailSubject', v)} full />
+                  <HighlightedTextarea label="Email Body" value={settings.invoiceEmailBody} onChange={v => update('invoiceEmailBody', v)} rows={12} full />
                 </div>
                 <div className="settings__codes">
                   <h4 className="settings__section-title" style={{ marginTop: 16 }}>Available Codes</h4>
@@ -527,6 +527,58 @@ function SaveBar({ saved, onSave }) {
       <button className="btn btn--primary" onClick={onSave}>
         {saved ? '✓ Saved' : 'Save Changes'}
       </button>
+    </div>
+  );
+}
+
+function renderHighlighted(text) {
+  const parts = [];
+  const regex = /\{\{[^}]+\}\}/g;
+  let lastIndex = 0;
+  let match;
+  let i = 0;
+  while ((match = regex.exec(text || '')) !== null) {
+    if (match.index > lastIndex) parts.push(text.substring(lastIndex, match.index));
+    parts.push(<mark key={i++} className="code-highlight">{match[0]}</mark>);
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < (text || '').length) parts.push(text.substring(lastIndex));
+  // Add trailing space so last line shows cursor space
+  parts.push(' ');
+  return parts;
+}
+
+function HighlightedTextarea({ label, value, onChange, rows = 12, full }) {
+  function handleScroll(e) {
+    const backdrop = e.target.previousSibling;
+    if (backdrop) {
+      backdrop.scrollTop = e.target.scrollTop;
+      backdrop.scrollLeft = e.target.scrollLeft;
+    }
+  }
+  return (
+    <div className={`form-group ${full ? 'form-group--full' : ''}`}>
+      {label && <label>{label}</label>}
+      <div className="ht-wrap">
+        <div className="ht-backdrop"><div className="ht-highlights">{renderHighlighted(value || '')}</div></div>
+        <textarea className="ht-input" value={value || ''} onChange={e => onChange(e.target.value)} onScroll={handleScroll} rows={rows} spellCheck={false} />
+      </div>
+    </div>
+  );
+}
+
+function HighlightedField({ label, value, onChange, full }) {
+  function handleScroll(e) {
+    const backdrop = e.target.previousSibling;
+    if (backdrop) backdrop.scrollLeft = e.target.scrollLeft;
+  }
+  return (
+    <div className={`form-group ${full ? 'form-group--full' : ''}`}>
+      {label && <label>{label}</label>}
+      <div className="ht-wrap ht-wrap--single">
+        <div className="ht-backdrop"><div className="ht-highlights ht-highlights--single">{renderHighlighted(value || '')}</div></div>
+        <input type="text" className="ht-input ht-input--single" value={value || ''} onChange={e => onChange(e.target.value)} onScroll={handleScroll} spellCheck={false} />
+      </div>
     </div>
   );
 }

@@ -1943,6 +1943,58 @@
 .settings__account-role { font-size: 0.75rem; color: var(--slate-light); text-transform: capitalize; }
 
 /* Save bar */
+/* Highlighted textarea for email templates */
+.ht-wrap { position: relative; width: 100%; }
+.ht-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  pointer-events: none;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius);
+  scrollbar-width: none;
+}
+.ht-backdrop::-webkit-scrollbar { display: none; }
+.ht-highlights {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  color: var(--ink);
+  min-height: 100%;
+}
+.ht-highlights--single { white-space: pre; padding: 10px 14px; }
+.ht-input {
+  position: relative;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  line-height: 1.5;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: transparent;
+  caret-color: var(--ink);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.14s;
+}
+.ht-input:focus { border-color: var(--brand); }
+.ht-input:focus + .ht-backdrop, .ht-input--single { }
+.ht-input--single { resize: none; }
+.ht-input::selection { background: rgba(180, 83, 9, 0.25); color: transparent; }
+mark.code-highlight {
+  background: var(--brand-pale);
+  color: var(--brand);
+  border-radius: 3px;
+  padding: 0;
+  font-weight: 600;
+}
+
 /* Template codes */
 .settings__codes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .settings__code { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: all 0.14s; }
