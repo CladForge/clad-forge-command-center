@@ -555,9 +555,7 @@ function StripeCheckoutForm({ onMethodChange, returnUrl }) {
   return (
     <form onSubmit={handleSubmit} className="stripe-form">
       <PaymentElement
-        options={{
-          layout: { type: 'accordion', defaultCollapsed: false, radios: true, spacedAccordionItems: true },
-        }}
+        options={{ layout: 'tabs' }}
         onChange={(e) => {
           if (e?.value?.type && onMethodChange) onMethodChange(e.value.type, elements);
         }}
