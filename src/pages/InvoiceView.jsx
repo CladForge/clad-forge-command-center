@@ -431,12 +431,14 @@ export default function InvoiceView() {
           </div>
         )}
 
-        {/* Download always available */}
-        <div className="sign-actions" style={{ marginTop: 24 }}>
-          <button className="sign-btn sign-btn--download" onClick={handleDownload} style={{ width: '100%' }}>
-            {isPaid ? 'Download Paid Invoice' : 'Download Invoice'}
-          </button>
-        </div>
+        {/* Download only available after payment is confirmed */}
+        {isPaid && (
+          <div className="sign-actions" style={{ marginTop: 24 }}>
+            <button className="sign-btn sign-btn--download" onClick={handleDownload} style={{ width: '100%' }}>
+              Download Paid Invoice (PDF)
+            </button>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="sign-footer">
