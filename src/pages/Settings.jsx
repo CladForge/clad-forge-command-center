@@ -163,9 +163,29 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                 <div className="form-grid">
                   <TextareaField label="Default Invoice Notes" value={settings.defaultInvoiceNotes} onChange={v => update('defaultInvoiceNotes', v)}
                     placeholder="Thank you for your business..." full />
-                  <TextareaField label="Payment Instructions" value={settings.paymentInstructions} onChange={v => update('paymentInstructions', v)}
-                    placeholder="Bank transfer details, PayPal, Stripe link, etc." full
-                    hint="Included at the bottom of every invoice and email" />
+                  <TextareaField label="Additional Payment Notes" value={settings.paymentInstructions} onChange={v => update('paymentInstructions', v)}
+                    placeholder="Any extra payment context beyond the structured bank details below (e.g. 'Prefer ACH over wire for invoices under $5k')" full
+                    hint="Free-form notes shown under the bank details" />
+                </div>
+              </div>
+
+              <div className="settings__section">
+                <h4 className="settings__section-title">Bank Details for Transfers</h4>
+                <p style={{ fontSize: '0.82rem', color: 'var(--slate)', marginBottom: 14, lineHeight: 1.5 }}>
+                  Structured bank details for clients paying by wire or ACH. Shown on every invoice's <strong>Bank Transfer</strong> panel and on the downloaded PDF. Leave blank to fall back to a "contact us for details" message.
+                  <br /><br />
+                  <strong style={{ color: 'var(--warning)' }}>Safety tip:</strong> Turn on an ACH debit block at your bank so these numbers can only receive credits, not be debited.
+                </p>
+                <div className="form-grid">
+                  <Field label="Bank Name" value={settings.bankName} onChange={v => update('bankName', v)} placeholder="e.g. Chase, Mercury, Bluebird" />
+                  <Field label="Account Holder Name" value={settings.bankAccountName} onChange={v => update('bankAccountName', v)} placeholder="Clad Forge LLC" />
+                  <Field label="ACH Routing Number" value={settings.bankRoutingNumber} onChange={v => update('bankRoutingNumber', v)} placeholder="9 digits" />
+                  <Field label="Account Number" value={settings.bankAccountNumber} onChange={v => update('bankAccountNumber', v)} placeholder="Checking account number" />
+                  <Field label="Wire Routing Number (if different)" value={settings.bankWireRoutingNumber} onChange={v => update('bankWireRoutingNumber', v)} placeholder="Optional — for wires only" />
+                  <Field label="SWIFT / BIC (international wires)" value={settings.bankSwiftCode} onChange={v => update('bankSwiftCode', v)} placeholder="Optional" />
+                  <TextareaField label="Verification Callout" value={settings.bankVerificationNote} onChange={v => update('bankVerificationNote', v)}
+                    placeholder="Anti-invoice-fraud notice shown with the bank details" full
+                    hint="A short warning telling clients to verify by phone before paying. Prevents the common scam where criminals intercept invoices and swap the bank details." />
                 </div>
               </div>
 

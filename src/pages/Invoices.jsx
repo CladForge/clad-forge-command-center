@@ -966,6 +966,24 @@ export function buildInvoiceHTML(invoice, client, settings) {
     : '';
   const totalLabel = invoice.status === 'paid' ? 'Paid in Full' : 'Total Due';
 
+  // Bank details section (only when NOT paid and at least bank name/routing/account is set)
+  const hasBank = settings?.bankName || settings?.bankRoutingNumber || settings?.bankAccountNumber;
+  const bankRows = [
+    ['Bank', settings?.bankName],
+    ['Account Name', settings?.bankAccountName],
+    ['ACH Routing #', settings?.bankRoutingNumber],
+    ['Account #', settings?.bankAccountNumber],
+    ['Wire Routing #', settings?.bankWireRoutingNumber],
+    ['SWIFT / BIC', settings?.bankSwiftCode],
+    ['Reference', invoice.invoiceNumber],
+  ].filter(([, v]) => v);
+  const bankSection = (invoice.status !== 'paid' && hasBank)
+    ? `<div class="bank-section"><h3>Pay by Bank Transfer (no processing fee)</h3>
+        <table class="bank-table">${bankRows.map(([l, v]) => `<tr><td class="bank-label">${escapeHtml(l)}</td><td class="bank-value">${escapeHtml(String(v))}</td></tr>`).join('')}</table>
+        ${settings?.bankVerificationNote ? `<div class="bank-notice"><strong>⚠ Verify first:</strong> ${escapeHtml(settings.bankVerificationNote)}</div>` : ''}
+       </div>`
+    : '';
+
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${escapeHtml(invoice.invoiceNumber || '')}</title>
     ${BRAND_FONTS_LINK}
     <style>
@@ -1009,6 +1027,15 @@ export function buildInvoiceHTML(invoice, client, settings) {
       .amt{font-family:${BRAND.fontMono};color:${BRAND.ink}}
       .notes{margin-top:28px;padding:18px 20px;border-left:3px solid ${BRAND.primary};background:rgba(255,140,0,0.04);border-radius:4px;font-size:13px;color:${BRAND.slate};line-height:1.6}
       .notes h3{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.deep};margin-bottom:8px;font-weight:700}
+      .bank-section{margin-top:28px;padding:20px 22px;background:#fafafa;border:1px solid #eef0f3;border-radius:8px}
+      .bank-section h3{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.deep};margin-bottom:12px;font-weight:700}
+      .bank-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+      .bank-table tr{border-bottom:1px solid #eef0f3}
+      .bank-table tr:last-child{border-bottom:none}
+      .bank-label{padding:8px 12px 8px 0;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:${BRAND.muted};font-weight:600;width:140px;vertical-align:middle}
+      .bank-value{padding:8px 0;font-family:${BRAND.fontMono};font-size:13px;color:${BRAND.ink};font-weight:600}
+      .bank-notice{margin-top:10px;padding:10px 14px;background:rgba(255,171,64,0.1);border-left:3px solid #ffab40;border-radius:4px;font-size:11px;color:${BRAND.ink};line-height:1.5}
+      .bank-notice strong{color:${BRAND.deep}}
       .footer{margin-top:48px;text-align:center;font-size:11px;color:${BRAND.muted};padding-top:20px;border-top:1px solid #eef0f3;font-weight:500;letter-spacing:0.5px}
       @media print{body{padding:24px}}
     </style></head><body>
@@ -1042,6 +1069,7 @@ export function buildInvoiceHTML(invoice, client, settings) {
       <div class="totals-row total"><span>${totalLabel}</span><span class="amt">${formatCurrency(total)}</span></div>
     </div>
     ${invoice.notes ? `<div class="notes"><h3>Notes</h3><p>${escapeHtml(invoice.notes).replace(/\n/g, '<br>')}</p></div>` : ''}
+    ${bankSection}
     <div class="footer">${escapeHtml(company)}${settings?.companyEmail ? ` · ${escapeHtml(settings.companyEmail)}` : ''}${settings?.companyPhone ? ` · ${escapeHtml(settings.companyPhone)}` : ''}</div>
     </body></html>`;
 }

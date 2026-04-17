@@ -396,13 +396,12 @@ export default function InvoiceView() {
                   <span>Amount to transfer:</span>
                   <strong>{fmt(total)}</strong>
                 </div>
-                <h4>Transfer Instructions</h4>
-                {settings?.paymentInstructions ? (
-                  <pre className="pay-manual__instructions">{settings.paymentInstructions}</pre>
-                ) : (
-                  <div className="pay-manual__instructions">
-                    Please contact {settings?.companyEmail ? <a href={`mailto:${settings.companyEmail}?subject=Bank transfer details for invoice ${invoice.invoiceNumber}`} style={{ color: 'var(--brand)' }}>{settings.companyEmail}</a> : company} to request bank transfer details (ACH routing / account number or wire instructions). Reference invoice <strong>{invoice.invoiceNumber}</strong> on your transfer.
-                  </div>
+                <BankDetails settings={settings} invoice={invoice} company={company} />
+                {settings?.paymentInstructions && (
+                  <>
+                    <h4>Additional Notes</h4>
+                    <pre className="pay-manual__instructions">{settings.paymentInstructions}</pre>
+                  </>
                 )}
                 <button
                   className="sign-btn sign-btn--accept"
@@ -434,6 +433,67 @@ export default function InvoiceView() {
         </div>
       </div>
     </div>
+  );
+}
+
+function BankDetails({ settings, invoice, company }) {
+  const hasBank = settings?.bankName || settings?.bankRoutingNumber || settings?.bankAccountNumber;
+
+  if (!hasBank) {
+    return (
+      <>
+        <h4>Transfer Instructions</h4>
+        <div className="pay-manual__instructions">
+          Please contact {settings?.companyEmail ? <a href={`mailto:${settings.companyEmail}?subject=Bank transfer details for invoice ${invoice.invoiceNumber}`} style={{ color: 'var(--brand)' }}>{settings.companyEmail}</a> : company} to request bank transfer details. Reference invoice <strong>{invoice.invoiceNumber}</strong> on your transfer.
+        </div>
+      </>
+    );
+  }
+
+  const rows = [
+    ['Bank', settings.bankName],
+    ['Account Name', settings.bankAccountName],
+    ['ACH Routing #', settings.bankRoutingNumber],
+    ['Account #', settings.bankAccountNumber],
+    ['Wire Routing #', settings.bankWireRoutingNumber],
+    ['SWIFT / BIC', settings.bankSwiftCode],
+    ['Reference', invoice.invoiceNumber],
+  ].filter(([, v]) => v);
+
+  function copyField(label, value) {
+    if (navigator.clipboard) navigator.clipboard.writeText(value).catch(() => {});
+  }
+
+  return (
+    <>
+      <h4>Transfer Details</h4>
+      <div className="bank-details">
+        <table className="bank-details__table">
+          <tbody>
+            {rows.map(([label, value]) => (
+              <tr key={label}>
+                <td className="bank-details__label">{label}</td>
+                <td className="bank-details__value">
+                  <span>{value}</span>
+                  <button
+                    type="button"
+                    className="bank-details__copy"
+                    onClick={() => copyField(label, value)}
+                    title={`Copy ${label}`}
+                  >⎘</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {settings?.bankVerificationNote && (
+        <div className="bank-details__notice">
+          <span className="bank-details__notice-icon">⚠</span>
+          <span>{settings.bankVerificationNote}</span>
+        </div>
+      )}
+    </>
   );
 }
 

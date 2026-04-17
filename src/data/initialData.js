@@ -171,6 +171,15 @@ export const initialSettings = {
   paymentInstructions: '',
   autoDetectOverdue: true,
 
+  // ── Bank Details (shown on invoice Bank Transfer panel) ──
+  bankName: '',
+  bankAccountName: '',
+  bankRoutingNumber: '',
+  bankAccountNumber: '',
+  bankWireRoutingNumber: '',
+  bankSwiftCode: '',
+  bankVerificationNote: 'If these details differ from what you expect, call us directly before sending payment to verify. Never act on banking changes received only via email.',
+
   invoiceEmailSubject: 'Invoice {{invoice_number}} — {{project_title}} | {{company_name}}',
   invoiceEmailBody: `Hi {{name}},
 

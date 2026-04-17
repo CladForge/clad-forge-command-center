@@ -1435,6 +1435,71 @@
 
 .pay-stripe { display: flex; flex-direction: column; }
 
+/* Structured bank details */
+.bank-details {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.bank-details__table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.bank-details__table tr { border-bottom: 1px solid var(--border); }
+.bank-details__table tr:last-child { border-bottom: none; }
+.bank-details__label {
+  padding: 12px 16px;
+  color: var(--slate);
+  font-weight: 500;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  width: 160px;
+  vertical-align: middle;
+}
+.bank-details__value {
+  padding: 12px 16px;
+  font-family: var(--font-mono);
+  color: var(--ink);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  word-break: break-all;
+}
+.bank-details__copy {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--slate);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bank-details__copy:hover { color: var(--brand); border-color: var(--brand); background: var(--brand-wash); }
+.bank-details__copy:active { transform: scale(0.95); }
+
+.bank-details__notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: var(--warning-bg);
+  border: 1px solid rgba(255, 171, 64, 0.3);
+  border-left: 3px solid var(--warning);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.bank-details__notice-icon { color: var(--warning); font-size: 1.1rem; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+
 /* Payment status blocks (paid / processing / cancelled) */
 .pay-status {
   margin-top: 32px;
