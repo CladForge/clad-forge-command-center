@@ -961,12 +961,19 @@ export function buildInvoiceHTML(invoice, client, settings) {
   const paymentBadge = invoice.paymentNumber && invoice.paymentTotal
     ? `<div class="pay-badge"><span class="pay-badge__label">Payment</span><span class="pay-badge__frac"><b>${invoice.paymentNumber}</b> of <b>${invoice.paymentTotal}</b></span></div>`
     : '';
+  const paidStamp = invoice.status === 'paid'
+    ? `<div class="paid-stamp"><span class="paid-stamp__text">PAID</span>${invoice.paidDate ? `<span class="paid-stamp__date">${escapeHtml(invoice.paidDate)}</span>` : ''}</div>`
+    : '';
+  const totalLabel = invoice.status === 'paid' ? 'Paid in Full' : 'Total Due';
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${escapeHtml(invoice.invoiceNumber || '')}</title>
     ${BRAND_FONTS_LINK}
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:${BRAND.fontStack};color:${BRAND.ink};padding:48px;max-width:820px;margin:0 auto;line-height:1.55;font-size:14px;background:#ffffff}
+      body{font-family:${BRAND.fontStack};color:${BRAND.ink};padding:48px;max-width:820px;margin:0 auto;line-height:1.55;font-size:14px;background:#ffffff;position:relative}
+      .paid-stamp{position:absolute;top:120px;right:60px;transform:rotate(-14deg);display:flex;flex-direction:column;align-items:center;padding:12px 30px;border:4px solid #16a34a;border-radius:10px;color:#16a34a;opacity:0.9;z-index:10;box-shadow:0 0 0 2px rgba(22,163,74,0.15)}
+      .paid-stamp__text{font-family:${BRAND.fontStack};font-size:2.1rem;font-weight:800;letter-spacing:4px;line-height:1}
+      .paid-stamp__date{font-family:${BRAND.fontMono};font-size:10px;letter-spacing:1.5px;margin-top:4px;opacity:0.8}
       .header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:24px;margin-bottom:28px;border-bottom:3px solid ${BRAND.primary}}
       .brand{display:flex;align-items:center;gap:14px}
       .brand__logo{width:60px;height:60px;display:block;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(255,140,0,0.25))}
@@ -1005,6 +1012,7 @@ export function buildInvoiceHTML(invoice, client, settings) {
       .footer{margin-top:48px;text-align:center;font-size:11px;color:${BRAND.muted};padding-top:20px;border-top:1px solid #eef0f3;font-weight:500;letter-spacing:0.5px}
       @media print{body{padding:24px}}
     </style></head><body>
+    ${paidStamp}
     <div class="header">
       <div>
         <div class="brand">
@@ -1031,7 +1039,7 @@ export function buildInvoiceHTML(invoice, client, settings) {
       <div class="totals-row"><span>Subtotal</span><span class="amt">${formatCurrency(subtotal)}</span></div>
       ${invoice.taxRate > 0 ? `<div class="totals-row"><span>Tax (${invoice.taxRate}%)</span><span class="amt">${formatCurrency(taxAmount)}</span></div>` : ''}
       ${invoice.discount > 0 ? `<div class="totals-row"><span>Discount</span><span class="amt">-${formatCurrency(invoice.discount)}</span></div>` : ''}
-      <div class="totals-row total"><span>Total Due</span><span class="amt">${formatCurrency(total)}</span></div>
+      <div class="totals-row total"><span>${totalLabel}</span><span class="amt">${formatCurrency(total)}</span></div>
     </div>
     ${invoice.notes ? `<div class="notes"><h3>Notes</h3><p>${escapeHtml(invoice.notes).replace(/\n/g, '<br>')}</p></div>` : ''}
     <div class="footer">${escapeHtml(company)}${settings?.companyEmail ? ` · ${escapeHtml(settings.companyEmail)}` : ''}${settings?.companyPhone ? ` · ${escapeHtml(settings.companyPhone)}` : ''}</div>

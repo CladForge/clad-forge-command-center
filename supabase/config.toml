@@ -1,0 +1,10 @@
+project_id = "qbrcqkgkzcwgnsmdyegd"
+
+# create-payment-intent is called from the public invoice page.
+# Authorization is done via share_token inside the function body, not JWT.
+[functions.create-payment-intent]
+verify_jwt = false
+
+# stripe-webhook is called by Stripe with its own signature header.
+[functions.stripe-webhook]
+verify_jwt = false
