@@ -325,8 +325,8 @@ export default function InvoiceView() {
                     <div className="pay-option__icon">💳</div>
                     <div className="pay-option__body">
                       <span className="pay-option__title">Pay Online</span>
-                      <span className="pay-option__desc">Card, ACH, or digital wallet — instant confirmation</span>
-                      <span className="pay-option__fee-note">Processing fee added at checkout</span>
+                      <span className="pay-option__desc">Card · ACH (Stripe) · Link · Cash App Pay · Apple Pay · Google Pay · Klarna · Afterpay</span>
+                      <span className="pay-option__fee-note">Processing fee varies by method — see breakdown at checkout</span>
                     </div>
                     <div className="pay-option__arrow">{initializingStripe ? '...' : '→'}</div>
                   </button>
@@ -555,7 +555,9 @@ function StripeCheckoutForm({ onMethodChange, returnUrl }) {
   return (
     <form onSubmit={handleSubmit} className="stripe-form">
       <PaymentElement
-        options={{ layout: 'tabs' }}
+        options={{
+          layout: { type: 'accordion', defaultCollapsed: false, radios: true, spacedAccordionItems: true },
+        }}
         onChange={(e) => {
           if (e?.value?.type && onMethodChange) onMethodChange(e.value.type, elements);
         }}
