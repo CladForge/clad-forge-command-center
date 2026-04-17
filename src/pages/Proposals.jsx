@@ -932,15 +932,27 @@ ${settings?.companyEmail || ''}
 ${settings?.companyPhone || ''}`;
 
   const mailBody = body.replace(/\{\{br\}\}/g, '\n').replace(/\r\n/g, '\n');
+
+  // Copy formatted body to clipboard as fallback
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = mailBody;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  } catch { /* ignore */ }
+
   const mailto = 'mailto:' + encodeURIComponent(email) +
     '?subject=' + encodeURIComponent(subject) +
     '&body=' + encodeURIComponent(mailBody);
-  const a = document.createElement('a');
-  a.href = mailto;
-  a.rel = 'noopener noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  window.location.href = mailto;
+
+  setTimeout(() => {
+    alert('📋 Formatted email body copied to clipboard.\n\nIf Proton Mail removed your line breaks, just select all the body text and paste (Ctrl+V) to replace with the properly formatted version.');
+  }, 500);
 }
 
 function printProposal(proposal, clients, settings) {

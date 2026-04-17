@@ -163,21 +163,32 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
     const subject = applyTemplate(settings?.invoiceEmailSubject || 'Invoice {{invoice_number}} — {{project_title}} | {{company_name}}');
     const body = applyTemplate(settings?.invoiceEmailBody || `Hi {{name}},\n\nPlease find your invoice at the link below:\n\n{{invoice_link}}\n\nInvoice #: {{invoice_number}}\nAmount Due: {{total_due}}\nDue Date: {{due_date}}\n\nBest regards,\n{{owner_name}}\n{{company_name}}`);
 
-    // Replace {{br}} with actual newline, normalize all to LF only (Proton Mail prefers this)
+    // Replace {{br}} with actual newline
     const mailBody = body.replace(/\{\{br\}\}/g, '\n').replace(/\r\n/g, '\n');
 
-    // Manually build the mailto URL — encodeURIComponent converts \n to %0A correctly
+    // Copy the properly formatted body to clipboard — Proton Mail mailto strips
+    // line breaks, so the user can paste this over the single-line version
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = mailBody;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    } catch { /* clipboard fallback */ }
+
+    // Open mailto
     const mailto = 'mailto:' + encodeURIComponent(recipientEmail) +
       '?subject=' + encodeURIComponent(subject) +
       '&body=' + encodeURIComponent(mailBody);
+    window.location.href = mailto;
 
-    // Use an anchor click instead of location.href — more reliable for mailto
-    const a = document.createElement('a');
-    a.href = mailto;
-    a.rel = 'noopener noreferrer';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Show toast after a brief delay so it doesn't interrupt mailto handoff
+    setTimeout(() => {
+      alert('📋 Formatted email body copied to clipboard.\n\nIf Proton Mail removed your line breaks, just select all the body text and paste (Ctrl+V) to replace with the properly formatted version.');
+    }, 500);
   }
 
   return (
