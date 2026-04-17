@@ -1,9 +1,8 @@
 export const initialClients = [
   {
     id: 'c1',
-    name: 'Levi Holder',
     company: 'Lark Solutions',
-    email: 'levi@larksolutions.com',
+    email: 'info@larksolutions.com',
     phone: '(903) 555-0142',
     industry: 'Construction',
     status: 'active',
@@ -13,9 +12,8 @@ export const initialClients = [
   },
   {
     id: 'c2',
-    name: 'Tom Dale',
     company: 'TradeLink',
-    email: 'tom@tradelink.io',
+    email: 'info@tradelink.io',
     phone: '(214) 555-0198',
     industry: 'Logistics',
     status: 'active',
@@ -25,9 +23,8 @@ export const initialClients = [
   },
   {
     id: 'c3',
-    name: 'Brandon Larkin',
     company: 'Lark Solutions',
-    email: 'brandon@larksolutions.com',
+    email: 'contact@larksolutions.com',
     phone: '(903) 555-0177',
     industry: 'Construction',
     status: 'active',
@@ -37,9 +34,8 @@ export const initialClients = [
   },
   {
     id: 'c4',
-    name: 'Rachel Simmons',
     company: 'Meridian Energy',
-    email: 'rachel@meridianenergy.com',
+    email: 'info@meridianenergy.com',
     phone: '(713) 555-0234',
     industry: 'Energy & Utilities',
     status: 'prospect',
@@ -49,9 +45,8 @@ export const initialClients = [
   },
   {
     id: 'c5',
-    name: 'Marcus Webb',
     company: 'Ironclad Manufacturing',
-    email: 'marcus@ironcladmfg.com',
+    email: 'info@ironcladmfg.com',
     phone: '(469) 555-0311',
     industry: 'Manufacturing',
     status: 'on-hold',

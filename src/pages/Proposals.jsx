@@ -951,7 +951,7 @@ function printProposal(proposal, clients, settings) {
     </style></head><body>
     <div class="header"><div><div class="company">${company}</div><h1>Proposal</h1><div class="number">${proposal.proposalNumber}</div></div>
     <div class="meta">Prepared ${proposal.createdAt?.split('T')[0]}<br>${proposal.validUntil ? `Valid until ${proposal.validUntil}` : ''}</div></div>
-    <div class="two-col"><div class="col"><h4>Prepared For</h4><p class="name">${client?.name || ''}</p><p>${client?.company || ''}</p></div>
+    <div class="two-col"><div class="col"><h4>Prepared For</h4><p class="name">${client?.company || ''}</p></div>
     <div class="col"><h4>Project</h4><p class="name">${proposal.projectTitle}</p>${proposal.timeline?.startDate ? `<p>${proposal.timeline.startDate} — ${proposal.timeline.endDate || 'TBD'}</p>` : ''}</div></div>
     ${proposal.description ? `<p class="desc">${proposal.description}</p>` : ''}
     <h3>Scope & Pricing</h3>

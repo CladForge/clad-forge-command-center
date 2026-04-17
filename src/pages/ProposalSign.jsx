@@ -212,7 +212,7 @@ export default function ProposalSign() {
         <div className="sign-info">
           <div className="sign-info-col">
             <h4>Prepared For</h4>
-            <p className="sign-client-name">{client?.name || '—'}</p>
+            <p className="sign-client-name">{client?.company || '—'}</p>
             <p>{client?.company || ''}</p>
           </div>
           <div className="sign-info-col">

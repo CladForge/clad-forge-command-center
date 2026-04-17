@@ -1449,7 +1449,7 @@
 
 /* Signatures */
 .prop-document__signatures { display: flex; gap: 40px; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border-light); }
-.prop-document__sig { flex: 1; }
+.prop-document__sig { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .prop-document__sig-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--slate-light); display: block; margin-bottom: 48px; font-weight: 600; }
 .prop-document__sig-line { border-top: 1px solid var(--ink); padding-top: 8px; font-size: 0.82rem; color: var(--slate); max-width: 240px; }
 

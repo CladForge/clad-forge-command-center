@@ -17,7 +17,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
   const industries = (settings.customIndustries || '').split(',').map(s => s.trim()).filter(Boolean);
 
   const emptyClient = {
-    name: '', company: '', email: '', phone: '',
+    company: '', email: '', phone: '',
     industry: settings.defaultIndustry || 'Construction',
     status: 'prospect', notes: '', value: 0, website: '', contacts: [],
     brandLogoUrl: '',
