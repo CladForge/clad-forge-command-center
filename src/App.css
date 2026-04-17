@@ -1275,8 +1275,8 @@
 .sign-btn--accept:hover:not(:disabled) { background: #047857; box-shadow: 0 4px 16px rgba(5, 150, 105, 0.3); }
 .sign-btn--decline { background: transparent; color: var(--danger); border: 1.5px solid var(--danger); }
 .sign-btn--decline:hover:not(:disabled) { background: var(--danger-bg); }
-.sign-btn--download { background: var(--brand); color: #fff; margin-top: 20px; }
-.sign-btn--download:hover { background: var(--brand-deep); box-shadow: 0 4px 16px rgba(180, 83, 9, 0.3); }
+.sign-btn--download { background: var(--brand); color: #fff; }
+.sign-btn--download:hover:not(:disabled) { background: var(--brand-deep); box-shadow: 0 4px 16px rgba(180, 83, 9, 0.3); }
 
 /* Footer */
 .sign-footer { text-align: center; padding-top: 24px; border-top: 1px solid var(--stone-dark); }
