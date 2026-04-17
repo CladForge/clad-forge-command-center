@@ -36,6 +36,7 @@ function formatCurrency(amount) {
 
 export default function Invoices({ clients, projects, settings, invoices, setInvoices }) {
   const [showModal, setShowModal] = useState(false);
+  const [preselectedProjectId, setPreselectedProjectId] = useState('');
   const [viewInvoice, setViewInvoice] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [search, setSearch] = useState('');
@@ -325,6 +326,7 @@ ${settings?.companyPhone || ''}`;
                     </span>
                   </div>
                   <span className="budget-row__budget">of {formatCurrency(project.budget)}</span>
+                  <button className="btn btn--primary btn--sm" onClick={() => { setPreselectedProjectId(project.id); setShowModal(true); }}>+ Invoice</button>
                 </div>
               );
             })}
@@ -355,7 +357,7 @@ ${settings?.companyPhone || ''}`;
           settings={settings}
           projectInvoiceTotals={projectInvoiceTotals}
           onSave={(invoice) => { setInvoices(prev => [invoice, ...prev]); setShowModal(false); }}
-          onClose={() => setShowModal(false)}
+          onClose={() => { setShowModal(false); setPreselectedProjectId(''); }}
         />
       )}
     </div>
@@ -366,7 +368,31 @@ ${settings?.companyPhone || ''}`;
    CREATE INVOICE MODAL
    ═══════════════════════════════════════════ */
 
-function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvoiceTotals, onSave, onClose }) {
+function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvoiceTotals, preselectedProjectId, onSave, onClose }) {
+  function buildFormForProject(projectId) {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return {};
+    const client = clients.find(c => c.id === project.clientId);
+    const invoiced = projectInvoiceTotals[projectId] || 0;
+    const remaining = project.budget - invoiced;
+    const termDays = parseInt((settings?.defaultPaymentTerms || '').replace(/\D/g, '')) || 30;
+    const due = new Date();
+    due.setDate(due.getDate() + termDays);
+    return {
+      projectId,
+      clientId: client?.id || '',
+      clientName: client?.company || '',
+      clientCompany: client?.company || '',
+      clientEmail: client?.email || '',
+      projectTitle: project.title,
+      invoiceNumber: generateInvoiceNumber(invoices, project.projectNumber),
+      dueDate: due.toISOString().split('T')[0],
+      items: remaining > 0
+        ? [{ description: `${project.title} — Development Services`, quantity: 1, rate: remaining }]
+        : [{ description: '', quantity: 1, rate: 0 }],
+    };
+  }
+
   const [form, setForm] = useState({
     projectId: '',
     clientId: '',
@@ -384,6 +410,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
     notes: '',
     paymentTerms: settings?.defaultPaymentTerms || 'Net 30',
     status: 'draft',
+    ...(preselectedProjectId ? buildFormForProject(preselectedProjectId) : {}),
   });
 
   // When project is selected, auto-populate everything
