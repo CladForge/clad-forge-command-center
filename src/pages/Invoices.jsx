@@ -729,40 +729,40 @@ function InvoiceDetail({ invoice, clients, projects, settings, onClose, onStatus
 function handleSendEmail(invoice, clients, settings) {
   const client = clients.find(c => c.id === invoice.clientId);
   const total = calcTotal(invoice.items, invoice.taxRate, invoice.discount);
-  const email = client?.email || invoice.clientEmail || '';
   const company = settings?.companyName || 'Clad Forge';
   const owner = settings?.ownerName || '';
 
-  const subject = `Invoice ${invoice.invoiceNumber} from ${company} — ${invoice.projectTitle}`;
+  // Get the contact person's email if one is selected, otherwise fall back to client email
+  let recipientEmail = invoice.clientEmail || client?.email || '';
+  let recipientName = client?.company || '';
+  if (invoice.contactPerson && client?.contacts) {
+    const contact = client.contacts.find(c => c.id === invoice.contactPerson);
+    if (contact) {
+      recipientEmail = contact.email || recipientEmail;
+      recipientName = contact.name;
+    }
+  }
 
-  const itemsList = invoice.items
-    .map((item, i) => `  ${i + 1}. ${item.description} — ${item.quantity} × ${formatCurrency(item.rate)} = ${formatCurrency(item.quantity * item.rate)}`)
-    .join('\n');
+  // Step 1: Generate and download the PDF so it's ready to attach
+  handlePrint(invoice, clients, settings);
 
-  const body = `Hi ${invoice.clientName || client?.company || ''},
+  // Step 2: Open email with pre-filled template after a brief delay
+  setTimeout(() => {
+    const subject = `Invoice ${invoice.invoiceNumber} — ${invoice.projectTitle} | ${company}`;
 
-Please find the details for Invoice ${invoice.invoiceNumber} below.
+    const body = `Hi ${recipientName},
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-INVOICE ${invoice.invoiceNumber}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+I hope this message finds you well. Please find Invoice ${invoice.invoiceNumber} attached for the following project:
 
 Project: ${invoice.projectTitle}
-Issue Date: ${invoice.issueDate}
+Invoice #: ${invoice.invoiceNumber}
+Amount Due: ${formatCurrency(total)}
 Due Date: ${invoice.dueDate || 'Upon receipt'}
 Payment Terms: ${invoice.paymentTerms || 'Net 30'}
 
-Line Items:
-${itemsList}
+A PDF copy of the invoice is attached for your records. Please don't hesitate to reach out if you have any questions.
 
-${invoice.taxRate > 0 ? `Tax (${invoice.taxRate}%): ${formatCurrency(calcSubtotal(invoice.items) * (invoice.taxRate / 100))}\n` : ''}${invoice.discount > 0 ? `Discount: -${formatCurrency(invoice.discount)}\n` : ''}
-TOTAL DUE: ${formatCurrency(total)}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${invoice.notes ? `\nNote: ${invoice.notes}\n` : ''}
-Please remit payment by ${invoice.dueDate || 'your earliest convenience'}.
-
-If you have any questions about this invoice, please don't hesitate to reach out.
+Thank you for your business!
 
 Best regards,
 ${owner}
@@ -770,8 +770,9 @@ ${company}
 ${settings?.companyEmail || ''}
 ${settings?.companyPhone || ''}`;
 
-  const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.open(mailto, '_blank');
+    const mailto = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto, '_blank');
+  }, 800);
 }
 
 /* ═══════════════════════════════════════════
