@@ -180,23 +180,7 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                 </div>
                 <div className="settings__codes">
                   <h4 className="settings__section-title" style={{ marginTop: 16 }}>Available Codes</h4>
-                  <div className="settings__codes-grid">
-                    <div className="settings__code"><code>{'{{name}}'}</code><span>First name of contact person</span></div>
-                    <div className="settings__code"><code>{'{{full_name}}'}</code><span>Full name of contact person</span></div>
-                    <div className="settings__code"><code>{'{{recipient_email}}'}</code><span>Contact person's email</span></div>
-                    <div className="settings__code"><code>{'{{invoice_number}}'}</code><span>Invoice number (e.g., INV-2026-0001-1)</span></div>
-                    <div className="settings__code"><code>{'{{invoice_link}}'}</code><span>Public link to view the invoice</span></div>
-                    <div className="settings__code"><code>{'{{project_title}}'}</code><span>Linked project name</span></div>
-                    <div className="settings__code"><code>{'{{total_due}}'}</code><span>Total amount due</span></div>
-                    <div className="settings__code"><code>{'{{due_date}}'}</code><span>Payment due date</span></div>
-                    <div className="settings__code"><code>{'{{payment_terms}}'}</code><span>Payment terms (e.g., Net 15)</span></div>
-                    <div className="settings__code"><code>{'{{issue_date}}'}</code><span>Date invoice was issued</span></div>
-                    <div className="settings__code"><code>{'{{client_company}}'}</code><span>Client's company name</span></div>
-                    <div className="settings__code"><code>{'{{company_name}}'}</code><span>Your company name</span></div>
-                    <div className="settings__code"><code>{'{{company_email}}'}</code><span>Your company email</span></div>
-                    <div className="settings__code"><code>{'{{company_phone}}'}</code><span>Your company phone</span></div>
-                    <div className="settings__code"><code>{'{{owner_name}}'}</code><span>Your name</span></div>
-                  </div>
+                  <CodeGrid copiedCode={copiedCode} onCopy={copyCode} />
                 </div>
               </div>
 
@@ -543,6 +527,40 @@ function SaveBar({ saved, onSave }) {
       <button className="btn btn--primary" onClick={onSave}>
         {saved ? '✓ Saved' : 'Save Changes'}
       </button>
+    </div>
+  );
+}
+
+const TEMPLATE_CODES = [
+  ['{{name}}', 'First name of contact person'],
+  ['{{full_name}}', 'Full name of contact person'],
+  ['{{recipient_email}}', "Contact person's email"],
+  ['{{invoice_number}}', 'Invoice number'],
+  ['{{invoice_link}}', 'Public link to view invoice'],
+  ['{{project_title}}', 'Linked project name'],
+  ['{{total_due}}', 'Total amount due'],
+  ['{{due_date}}', 'Payment due date'],
+  ['{{payment_terms}}', 'Payment terms'],
+  ['{{issue_date}}', 'Date invoice was issued'],
+  ['{{client_company}}', "Client's company name"],
+  ['{{company_name}}', 'Your company name'],
+  ['{{company_email}}', 'Your company email'],
+  ['{{company_phone}}', 'Your company phone'],
+  ['{{owner_name}}', 'Your name'],
+];
+
+function CodeGrid({ copiedCode, onCopy }) {
+  return (
+    <div className="settings__codes-grid">
+      {TEMPLATE_CODES.map(([code, desc]) => (
+        <div key={code} className={`settings__code ${copiedCode === code ? 'settings__code--copied' : ''}`}>
+          <code>{code}</code>
+          <span>{copiedCode === code ? '✓ Copied' : desc}</span>
+          <button className="settings__code-copy" onClick={() => onCopy(code)}>
+            {copiedCode === code ? '✓' : 'Copy'}
+          </button>
+        </div>
+      ))}
     </div>
   );
 }
