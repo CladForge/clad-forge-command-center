@@ -109,17 +109,10 @@ export default function InvoiceView() {
     }
   }
 
-  async function handleMethodChange(paymentMethodType, elementsInstance) {
-    if (!paymentMethodType || paymentMethodType === breakdown?.paymentMethodType) return;
-    try {
-      const data = await initOrUpdatePaymentIntent(paymentMethodType);
-      setBreakdown({ subtotal: data.subtotal, fee: data.fee, total: data.total, paymentMethodType: data.payment_method_type });
-      // Tell Stripe Elements to pull the updated PaymentIntent amount
-      if (elementsInstance?.fetchUpdates) await elementsInstance.fetchUpdates();
-    } catch (e) {
-      setStripeError(e.message);
-    }
-  }
+  // Dynamic fee updates on tab change were causing the PaymentElement to
+  // re-fetch mid-interaction and blank out its form. Now we charge the card-
+  // rate worst-case total regardless of method; the breakdown note makes this
+  // clear to the client.
 
   async function handleManualPayment() {
     if (!window.confirm(`Confirm you've initiated a bank transfer for ${fmt(calcTotal(invoice.items, invoice.taxRate, invoice.discount))}? ${company} will verify receipt and mark this invoice as paid once funds arrive.`)) return;
@@ -372,16 +365,13 @@ export default function InvoiceView() {
                       <span className="pay-breakdown__amt">{fmt(breakdown.total)}</span>
                     </div>
                     <p className="pay-breakdown__note">
-                      Fee updates live when you select a different payment method below.
+                      Shown at card rates. If you pay by ACH via Stripe the actual processor fee is lower (0.8%, capped at $5) — to avoid the processing fee entirely, back out and choose <strong>Pay by Bank Transfer</strong>.
                     </p>
                   </div>
                 )}
 
                 <Elements stripe={stripePromise} options={{ clientSecret, appearance: getStripeAppearance() }}>
-                  <StripeCheckoutForm
-                    onMethodChange={handleMethodChange}
-                    returnUrl={window.location.href}
-                  />
+                  <StripeCheckoutForm returnUrl={window.location.href} />
                 </Elements>
               </div>
             )}
@@ -526,7 +516,7 @@ function methodLabel(method) {
 
 /* ═════════ Stripe Payment Element form ═════════ */
 
-function StripeCheckoutForm({ onMethodChange, returnUrl }) {
+function StripeCheckoutForm({ returnUrl }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -555,9 +545,12 @@ function StripeCheckoutForm({ onMethodChange, returnUrl }) {
   return (
     <form onSubmit={handleSubmit} className="stripe-form">
       <PaymentElement
-        options={{ layout: 'tabs' }}
-        onChange={(e) => {
-          if (e?.value?.type && onMethodChange) onMethodChange(e.value.type, elements);
+        options={{
+          layout: 'tabs',
+          // Force Card first so Link doesn't auto-select for returning users.
+          // Stripe still shows whatever else is enabled in the dashboard.
+          paymentMethodOrder: ['card', 'us_bank_account', 'cashapp', 'apple_pay', 'google_pay', 'link', 'klarna', 'afterpay_clearpay', 'affirm'],
+          wallets: { applePay: 'auto', googlePay: 'auto' },
         }}
       />
       <button type="submit" className="sign-btn sign-btn--accept" disabled={!stripe || submitting} style={{ width: '100%' }}>
