@@ -1479,6 +1479,8 @@
 .status-pill--project-created { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
 .status-pill--paid, .status-pill--accepted { background: var(--success-bg); color: var(--success); }
 .status-pill--overdue { background: var(--danger-bg); color: var(--danger); }
+.status-pill--processing { background: var(--brand-pale); color: var(--brand); }
+.status-select--processing { background: var(--brand-pale); color: var(--brand); }
 .status-pill--cancelled { background: var(--border-light); color: var(--slate-light); }
 .status-pill--lg { padding: 5px 14px; font-size: 0.78rem; }
 

@@ -25,6 +25,7 @@ import Documents from './pages/Documents';
 import Onboarding from './pages/Onboarding';
 import OnboardingReview from './components/OnboardingReview';
 import ProposalSign from './pages/ProposalSign';
+import InvoiceView from './pages/InvoiceView';
 import './App.css';
 
 export default function App() {
@@ -105,6 +106,7 @@ export default function App() {
       <Routes>
         <Route path="/onboard" element={<Onboarding />} />
         <Route path="/sign/:token" element={<ProposalSign />} />
+        <Route path="/invoice/:token" element={<InvoiceView />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -122,11 +124,12 @@ export default function App() {
     );
   }
 
-  // Public signing page — render without sidebar/topbar even when logged in
-  if (window.location.pathname.startsWith('/sign/')) {
+  // Public pages — render without sidebar/topbar even when logged in
+  if (window.location.pathname.startsWith('/sign/') || window.location.pathname.startsWith('/invoice/')) {
     return (
       <Routes>
         <Route path="/sign/:token" element={<ProposalSign />} />
+        <Route path="/invoice/:token" element={<InvoiceView />} />
       </Routes>
     );
   }

@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { generateId } from '../data/initialData';
 
-const STATUS_OPTIONS = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
-const STATUS_LABELS = { draft: 'Draft', sent: 'Sent', paid: 'Paid', overdue: 'Overdue', cancelled: 'Cancelled' };
+const STATUS_OPTIONS = ['draft', 'sent', 'processing', 'paid', 'overdue', 'cancelled'];
+const STATUS_LABELS = { draft: 'Draft', sent: 'Sent', processing: 'Processing', paid: 'Paid', overdue: 'Overdue', cancelled: 'Cancelled' };
 
 function generateInvoiceNumber(invoices, projectNumber) {
   const year = new Date().getFullYear();
@@ -105,6 +105,58 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
       }
       return { ...inv, ...updates };
     }));
+  }
+
+  function handleSendInvoiceLink(invoice) {
+    // Generate token if needed
+    let token = invoice.shareToken;
+    if (!token) {
+      token = generateId() + generateId();
+      setInvoices(prev => prev.map(inv => inv.id === invoice.id ? { ...inv, shareToken: token, status: inv.status === 'draft' ? 'sent' : inv.status, sentDate: inv.sentDate || new Date().toISOString().split('T')[0] } : inv));
+    }
+
+    const url = `${window.location.origin}/invoice/${token}`;
+    const client = clients.find(c => c.id === invoice.clientId);
+    const total = calcTotal(invoice.items, invoice.taxRate, invoice.discount);
+
+    // Get contact person email
+    let recipientEmail = invoice.clientEmail || client?.email || '';
+    let recipientName = client?.company || '';
+    if (invoice.contactPerson && client?.contacts) {
+      const contact = client.contacts.find(c => c.id === invoice.contactPerson);
+      if (contact) {
+        recipientEmail = contact.email || recipientEmail;
+        recipientName = contact.name;
+      }
+    }
+
+    const company = settings?.companyName || 'Clad Forge';
+    const owner = settings?.ownerName || '';
+
+    const subject = `Invoice ${invoice.invoiceNumber} — ${invoice.projectTitle} | ${company}`;
+    const body = `Hi ${recipientName},
+
+I hope this message finds you well. Please find Invoice ${invoice.invoiceNumber} at the link below:
+
+${url}
+
+Project: ${invoice.projectTitle}
+Invoice #: ${invoice.invoiceNumber}
+Amount Due: ${formatCurrency(total)}
+Due Date: ${invoice.dueDate || 'Upon receipt'}
+
+You can view the full invoice, download a copy, and confirm your payment directly from the link above.
+
+Thank you for your business!
+
+Best regards,
+${owner}
+${company}
+${settings?.companyEmail || ''}
+${settings?.companyPhone || ''}`;
+
+    const mailto = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto, '_blank');
   }
 
   return (
@@ -227,7 +279,7 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
                     <td>
                       <div className="action-btns" onClick={e => e.stopPropagation()}>
                         <button className="btn btn--ghost btn--sm" onClick={() => handlePrint(inv, clients, settings)} title="Print/PDF">🖨</button>
-                        <button className="btn btn--ghost btn--sm" onClick={() => handleSendEmail(inv, clients, settings)} title="Send Email">✉</button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => handleSendInvoiceLink(inv)} title="Send Invoice Link">🔗</button>
                         <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={() => handleDelete(inv.id)} title="Delete">×</button>
                       </div>
                     </td>
@@ -290,7 +342,7 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
           onClose={() => setViewInvoice(null)}
           onStatusChange={(status) => { handleStatusChange(viewInvoice.id, status); setViewInvoice(prev => ({ ...prev, status })); }}
           onDelete={() => handleDelete(viewInvoice.id)}
-          onSendEmail={() => handleSendEmail(viewInvoice, clients, settings)}
+          onSendLink={() => handleSendInvoiceLink(viewInvoice)}
         />
       )}
 
@@ -592,7 +644,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
    INVOICE DETAIL VIEW
    ═══════════════════════════════════════════ */
 
-function InvoiceDetail({ invoice, clients, projects, settings, onClose, onStatusChange, onDelete, onSendEmail }) {
+function InvoiceDetail({ invoice, clients, projects, settings, onClose, onStatusChange, onDelete, onSendLink }) {
   const total = calcTotal(invoice.items, invoice.taxRate, invoice.discount);
   const subtotal = calcSubtotal(invoice.items);
   const taxAmount = subtotal * ((invoice.taxRate || 0) / 100);
@@ -622,18 +674,18 @@ function InvoiceDetail({ invoice, clients, projects, settings, onClose, onStatus
             )}
             <div style={{ flex: 1 }} />
             <div className="inv-detail-actions">
-              {invoice.status === 'draft' && (
-                <button className="btn btn--primary btn--sm" onClick={() => { onStatusChange('sent'); onSendEmail(); }}>
-                  ✉ Send Invoice
+              {(invoice.status === 'draft' || invoice.status === 'sent' || invoice.status === 'overdue') && (
+                <button className="btn btn--primary btn--sm" onClick={onSendLink}>
+                  🔗 {invoice.status === 'draft' ? 'Send Invoice Link' : 'Resend Link'}
                 </button>
               )}
-              {invoice.status === 'sent' && (
-                <button className="btn btn--primary btn--sm" onClick={() => { onStatusChange('sent'); onSendEmail(); }}>
-                  ✉ Resend
+              {invoice.status === 'processing' && (
+                <button className="btn btn--primary btn--sm" onClick={() => onStatusChange('paid')}>
+                  ✓ Confirm Payment Received
                 </button>
               )}
               {(invoice.status === 'sent' || invoice.status === 'overdue') && (
-                <button className="btn btn--secondary btn--sm" onClick={() => onStatusChange('paid')}>
+                <button className="btn btn--ghost btn--sm" onClick={() => onStatusChange('paid')}>
                   ✓ Mark Paid
                 </button>
               )}
@@ -730,54 +782,6 @@ function InvoiceDetail({ invoice, clients, projects, settings, onClose, onStatus
    SEND EMAIL (mailto:)
    ═══════════════════════════════════════════ */
 
-function handleSendEmail(invoice, clients, settings) {
-  const client = clients.find(c => c.id === invoice.clientId);
-  const total = calcTotal(invoice.items, invoice.taxRate, invoice.discount);
-  const company = settings?.companyName || 'Clad Forge';
-  const owner = settings?.ownerName || '';
-
-  // Get the contact person's email if one is selected, otherwise fall back to client email
-  let recipientEmail = invoice.clientEmail || client?.email || '';
-  let recipientName = client?.company || '';
-  if (invoice.contactPerson && client?.contacts) {
-    const contact = client.contacts.find(c => c.id === invoice.contactPerson);
-    if (contact) {
-      recipientEmail = contact.email || recipientEmail;
-      recipientName = contact.name;
-    }
-  }
-
-  // Step 1: Generate and download the PDF so it's ready to attach
-  handlePrint(invoice, clients, settings);
-
-  // Step 2: Open email with pre-filled template after a brief delay
-  setTimeout(() => {
-    const subject = `Invoice ${invoice.invoiceNumber} — ${invoice.projectTitle} | ${company}`;
-
-    const body = `Hi ${recipientName},
-
-I hope this message finds you well. Please find Invoice ${invoice.invoiceNumber} attached for the following project:
-
-Project: ${invoice.projectTitle}
-Invoice #: ${invoice.invoiceNumber}
-Amount Due: ${formatCurrency(total)}
-Due Date: ${invoice.dueDate || 'Upon receipt'}
-Payment Terms: ${invoice.paymentTerms || 'Net 30'}
-
-A PDF copy of the invoice is attached for your records. Please don't hesitate to reach out if you have any questions.
-
-Thank you for your business!
-
-Best regards,
-${owner}
-${company}
-${settings?.companyEmail || ''}
-${settings?.companyPhone || ''}`;
-
-    const mailto = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailto, '_blank');
-  }, 800);
-}
 
 /* ═══════════════════════════════════════════
    PRINT / PDF EXPORT
