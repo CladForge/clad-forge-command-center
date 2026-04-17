@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { generateId } from '../data/initialData';
 
 const STATUS_OPTIONS = ['draft', 'sent', 'processing', 'paid', 'overdue', 'cancelled'];
@@ -42,7 +42,8 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
   const [search, setSearch] = useState('');
 
   // Auto-detect overdue invoices
-  useMemo(() => {
+  // Auto-detect overdue invoices
+  useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     let changed = false;
     const updated = invoices.map(inv => {
