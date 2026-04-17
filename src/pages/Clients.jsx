@@ -281,7 +281,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
             <div className="cp__hero-meta">
               <span className={`status-badge status-badge--${client.status}`}>{client.status.replace('-', ' ')}</span>
               <span>{client.industry}</span>
-              {client.website && <a href={client.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)' }}>{client.website.replace(/^https?:\/\//, '')}</a>}
+              {client.website && <a href={client.website.startsWith('http') ? client.website : `https://${client.website}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)' }}>{client.website.replace(/^https?:\/\//, '')}</a>}
             </div>
             <div className="cp__hero-actions">
               {client.email && <a href={`mailto:${client.email}`} className="btn btn--sm cp__hero-btn">✉ Email</a>}
@@ -462,7 +462,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
               <div className="cp__detail-row"><span className="cp__detail-icon">🏢</span><div><span className="cp__detail-label">Company</span><span className="cp__detail-value">{client.company}</span></div></div>
               {client.email && <div className="cp__detail-row"><span className="cp__detail-icon">✉</span><div><span className="cp__detail-label">Company Email</span><span className="cp__detail-value"><a href={`mailto:${client.email}`}>{client.email}</a></span></div></div>}
               {client.phone && <div className="cp__detail-row"><span className="cp__detail-icon">📞</span><div><span className="cp__detail-label">Company Phone</span><span className="cp__detail-value">{client.phone}</span></div></div>}
-              {client.website && <div className="cp__detail-row"><span className="cp__detail-icon">🌐</span><div><span className="cp__detail-label">Website</span><span className="cp__detail-value"><a href={client.website} target="_blank" rel="noopener noreferrer">{client.website.replace(/^https?:\/\//, '')}</a></span></div></div>}
+              {client.website && <div className="cp__detail-row"><span className="cp__detail-icon">🌐</span><div><span className="cp__detail-label">Website</span><span className="cp__detail-value"><a href={client.website.startsWith('http') ? client.website : `https://${client.website}`} target="_blank" rel="noopener noreferrer">{client.website.replace(/^https?:\/\//, '')}</a></span></div></div>}
               <div className="cp__detail-row"><span className="cp__detail-icon">🏭</span><div><span className="cp__detail-label">Industry</span><span className="cp__detail-value">{client.industry}</span></div></div>
               <div className="cp__detail-row"><span className="cp__detail-icon">📅</span><div><span className="cp__detail-label">Client Since</span><span className="cp__detail-value">{client.createdAt || '—'}</span></div></div>
             </div>
