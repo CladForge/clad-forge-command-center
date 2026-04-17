@@ -795,14 +795,15 @@ function ProposalPreview({ proposal, clients, projects, settings, onBack, onEdit
                   <span className="prop-sig-cursive">{proposal.providerSignature}</span>
                   <span className="prop-sig-date">{proposal.providerSignedDate}</span>
                 </div>
+                <div className="prop-document__sig-line" />
                 <span>{proposal.providerSignature}, {settings.companyName}</span>
-                <button className="btn btn--ghost btn--sm" style={{ marginTop: 8, fontSize: '0.72rem' }} onClick={onUnsign}>Remove Signature</button>
+                <button className="btn btn--ghost btn--sm" style={{ marginTop: 4, fontSize: '0.72rem' }} onClick={onUnsign}>Remove Signature</button>
               </>
             ) : (
               <>
                 <div className="prop-document__sig-line" />
                 <span>{settings.ownerName}, {settings.companyName}</span>
-                <button className="btn btn--primary btn--sm" style={{ marginTop: 8 }} onClick={onSign}>Sign Proposal</button>
+                <button className="btn btn--primary btn--sm" style={{ marginTop: 4 }} onClick={onSign}>Sign Proposal</button>
               </>
             )}
           </div>
