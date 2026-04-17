@@ -163,7 +163,9 @@ export default function Invoices({ clients, projects, settings, invoices, setInv
     const subject = applyTemplate(settings?.invoiceEmailSubject || 'Invoice {{invoice_number}} — {{project_title}} | {{company_name}}');
     const body = applyTemplate(settings?.invoiceEmailBody || `Hi {{name}},\n\nPlease find your invoice at the link below:\n\n{{invoice_link}}\n\nInvoice #: {{invoice_number}}\nAmount Due: {{total_due}}\nDue Date: {{due_date}}\n\nBest regards,\n{{owner_name}}\n{{company_name}}`);
 
-    window.location.href = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    // Replace \n with \r\n for proper line breaks in mailto body
+    const mailBody = body.replace(/\r?\n/g, '\r\n');
+    window.location.href = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
   }
 
   return (

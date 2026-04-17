@@ -931,7 +931,8 @@ ${company}
 ${settings?.companyEmail || ''}
 ${settings?.companyPhone || ''}`;
 
-  window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const mailBody = body.replace(/\r?\n/g, '\r\n');
+  window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}`;
 }
 
 function printProposal(proposal, clients, settings) {
