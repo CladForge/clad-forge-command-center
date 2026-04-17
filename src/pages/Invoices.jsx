@@ -356,7 +356,15 @@ ${settings?.companyPhone || ''}`;
           invoices={invoices}
           settings={settings}
           projectInvoiceTotals={projectInvoiceTotals}
-          onSave={(invoice) => { setInvoices(prev => [invoice, ...prev]); setShowModal(false); }}
+          preselectedProjectId={preselectedProjectId}
+          onSave={(invoice) => { setInvoices(prev => [invoice, ...prev]); setShowModal(false); setPreselectedProjectId(''); }}
+          onSaveAndSend={(invoice) => {
+            setInvoices(prev => [invoice, ...prev]);
+            setShowModal(false);
+            setPreselectedProjectId('');
+            // Open Proton Mail with the invoice link
+            setTimeout(() => handleSendInvoiceLink(invoice), 100);
+          }}
           onClose={() => { setShowModal(false); setPreselectedProjectId(''); }}
         />
       )}
@@ -368,7 +376,7 @@ ${settings?.companyPhone || ''}`;
    CREATE INVOICE MODAL
    ═══════════════════════════════════════════ */
 
-function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvoiceTotals, preselectedProjectId, onSave, onClose }) {
+function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvoiceTotals, preselectedProjectId, onSave, onSaveAndSend, onClose }) {
   function buildFormForProject(projectId) {
     const project = projects.find(p => p.id === projectId);
     if (!project) return null;
@@ -672,7 +680,19 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
           <button className="btn btn--secondary" onClick={() => { handleSave(); }}>
             Save as Draft
           </button>
-          <button className="btn btn--primary" onClick={() => { setForm(f => ({ ...f, status: 'sent', sentDate: new Date().toISOString().split('T')[0] })); setTimeout(handleSave, 0); }}>
+          <button className="btn btn--primary" onClick={() => {
+            if (!form.projectId || !form.invoiceNumber) return;
+            const token = generateId() + generateId();
+            const invoice = {
+              ...form,
+              id: generateId(),
+              status: 'sent',
+              sentDate: new Date().toISOString().split('T')[0],
+              shareToken: token,
+              createdAt: new Date().toISOString(),
+            };
+            onSaveAndSend(invoice);
+          }}>
             Save & Send
           </button>
         </div>
