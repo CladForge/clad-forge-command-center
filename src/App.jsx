@@ -161,7 +161,7 @@ export default function App() {
             <Route path="/contractors" element={<Contractors contractors={contractors} setContractors={setContractors} projects={projects} />} />
             <Route path="/documents" element={<Documents documents={documents} setDocuments={setDocuments} clients={clients} projects={projects} />} />
             <Route path="/automations" element={<Automations automations={automations} setAutomations={setAutomations} />} />
-            <Route path="/branding" element={<BrandingGuide />} />
+            <Route path="/branding" element={<BrandingGuide settings={settings} />} />
             <Route path="/settings" element={<Settings settings={settings} setSettings={setSettings} profile={profile} onSignOut={handleSignOut} />} />
           </Routes>
         </main>

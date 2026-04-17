@@ -46,13 +46,86 @@ const typographyItems = [
   },
 ];
 
-export default function BrandingGuide() {
+export default function BrandingGuide({ settings = {} }) {
   const [copiedColor, setCopiedColor] = useState(null);
+  const [copiedFooter, setCopiedFooter] = useState(false);
+
+  const ownerName = settings.ownerName || 'Courtland Adaire';
+  const ownerTitle = settings.ownerTitle || 'Founder & Engineer';
+  const companyName = settings.companyName || 'Clad Forge';
+  const companyEmail = settings.companyEmail || 'cort@cladforge.com';
+  const companyPhone = settings.companyPhone || '+1 (800) 555-1234';
+  const companyWebsite = settings.companyWebsite || 'https://cladforge.com';
+  const websiteDisplay = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
   function copyColor(hex) {
     navigator.clipboard.writeText(hex);
     setCopiedColor(hex);
     setTimeout(() => setCopiedColor(null), 2000);
+  }
+
+  function buildFooterHTML() {
+    // Email-client-compatible HTML: inline styles + a <style> block for hover effects
+    // Most modern clients (Gmail, Apple Mail, Proton Mail, Outlook.com) support hover styles
+    return `<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;border-collapse:collapse;max-width:520px">
+  <tr><td style="padding:0">
+    <style>.cf-sig a:hover{color:#e07800!important;text-decoration:underline!important}.cf-sig .cf-bar{background:linear-gradient(90deg,#b45309,#d97706,#f59e0b,#d97706,#b45309);background-size:200% 100%;animation:cfShine 3s linear infinite}.cf-sig .cf-logo{transition:transform .3s ease}.cf-sig .cf-logo:hover{transform:scale(1.08)}@keyframes cfShine{0%{background-position:200% 0}100%{background-position:-200% 0}}</style>
+    <div class="cf-sig">
+      <div class="cf-bar" style="height:3px;background:#b45309;border-radius:2px;margin-bottom:16px"></div>
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+        <tr>
+          <td style="vertical-align:top;padding-right:20px">
+            <div class="cf-logo" style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#b45309,#d97706);display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:24px;font-weight:700;color:#ffffff;text-align:center;line-height:56px">CF</div>
+          </td>
+          <td style="vertical-align:top">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:600;color:#1f2937;letter-spacing:1px;line-height:1.2">${companyName.toUpperCase()}</div>
+            <div style="font-size:11px;color:#9ca3af;letter-spacing:2px;text-transform:uppercase;margin-top:2px">Industrial Digital Engineering</div>
+          </td>
+        </tr>
+      </table>
+      <div style="height:16px"></div>
+      <div style="font-size:14px;font-weight:600;color:#1f2937;line-height:1.3">${ownerName}</div>
+      <div style="font-size:12px;color:#6b7280;line-height:1.5">${ownerTitle}</div>
+      <div style="height:10px"></div>
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">
+        <tr>
+          <td style="padding-right:14px"><a href="mailto:${companyEmail}" style="color:#b45309;text-decoration:none;font-size:13px;font-weight:500">&#9993; ${companyEmail}</a></td>
+          <td style="padding-right:14px;color:#d1d5db">|</td>
+          <td style="padding-right:14px"><a href="tel:${companyPhone.replace(/\s/g, '')}" style="color:#b45309;text-decoration:none;font-size:13px;font-weight:500">&#9990; ${companyPhone}</a></td>
+          <td style="padding-right:14px;color:#d1d5db">|</td>
+          <td><a href="${companyWebsite}" style="color:#b45309;text-decoration:none;font-size:13px;font-weight:500">&#127760; ${websiteDisplay}</a></td>
+        </tr>
+      </table>
+      <div style="margin-top:12px;font-size:10px;color:#9ca3af;letter-spacing:1px">CUSTOM-BUILT · ENGINEERING-DRIVEN · ZERO TEMPLATES</div>
+    </div>
+  </td></tr>
+</table>`;
+  }
+
+  async function copyFooter() {
+    const html = buildFooterHTML();
+    try {
+      // Use ClipboardItem with text/html so pasting into an email preserves formatting
+      if (window.ClipboardItem && navigator.clipboard?.write) {
+        const blob = new Blob([html], { type: 'text/html' });
+        const textBlob = new Blob([html], { type: 'text/plain' });
+        await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob, 'text/plain': textBlob })]);
+      } else {
+        await navigator.clipboard.writeText(html);
+      }
+    } catch {
+      // Fallback: plain text copy
+      const ta = document.createElement('textarea');
+      ta.value = html;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopiedFooter(true);
+    setTimeout(() => setCopiedFooter(false), 2000);
   }
 
   return (
@@ -205,6 +278,49 @@ export default function BrandingGuide() {
               <button className="btn btn--secondary" style={{ pointerEvents: 'none', marginLeft: 8 }}>Secondary</button>
             </div>
             <p>Fully rounded (border-radius: 100px) buttons with glow shadows matching Superlist style</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Email Footer */}
+      <section className="branding__section">
+        <div className="branding__section-header">
+          <h3>Email Signature</h3>
+          <p>Hover over the preview to see animations. Copy the HTML and paste into your email signature settings or directly into a compose window.</p>
+        </div>
+
+        <div className="email-sig-wrap">
+          <div className="email-sig-preview">
+            <div className="email-sig">
+              <div className="email-sig__bar" />
+              <div className="email-sig__top">
+                <div className="email-sig__logo">CF</div>
+                <div>
+                  <div className="email-sig__brand">{companyName.toUpperCase()}</div>
+                  <div className="email-sig__tagline">Industrial Digital Engineering</div>
+                </div>
+              </div>
+              <div className="email-sig__person">{ownerName}</div>
+              <div className="email-sig__title">{ownerTitle}</div>
+              <div className="email-sig__contacts">
+                <a href={`mailto:${companyEmail}`} className="email-sig__link">✉ {companyEmail}</a>
+                <span className="email-sig__sep">|</span>
+                <a href={`tel:${companyPhone}`} className="email-sig__link">☎ {companyPhone}</a>
+                <span className="email-sig__sep">|</span>
+                <a href={companyWebsite} target="_blank" rel="noopener noreferrer" className="email-sig__link">🌐 {websiteDisplay}</a>
+              </div>
+              <div className="email-sig__footer-text">CUSTOM-BUILT · ENGINEERING-DRIVEN · ZERO TEMPLATES</div>
+            </div>
+          </div>
+
+          <div className="email-sig-actions">
+            <button className={`btn ${copiedFooter ? 'btn--secondary' : 'btn--primary'}`} onClick={copyFooter}>
+              {copiedFooter ? '✓ Copied — Paste into email' : '📋 Copy Email Signature'}
+            </button>
+            <p className="email-sig__hint">
+              Open Proton Mail → Settings → Identity/Signature → paste. Or paste directly at the bottom of any email you're composing.
+              The shine bar animation and link hover effects work in Gmail, Apple Mail, and Proton Mail. Some email clients may simplify animations.
+            </p>
           </div>
         </div>
       </section>
