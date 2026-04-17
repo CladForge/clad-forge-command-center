@@ -4,11 +4,14 @@ import { generateId } from '../data/initialData';
 const STATUS_OPTIONS = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
 const STATUS_LABELS = { draft: 'Draft', sent: 'Sent', paid: 'Paid', overdue: 'Overdue', cancelled: 'Cancelled' };
 
-function generateInvoiceNumber(invoices) {
+function generateInvoiceNumber(invoices, projectNumber) {
   const year = new Date().getFullYear();
-  const existing = invoices.filter(i => i.invoiceNumber?.startsWith(`INV-${year}`));
+  const projNum = projectNumber || '0000';
+  // Count existing invoices for this project to determine the milestone number
+  const prefix = `INV-${year}-${projNum}`;
+  const existing = invoices.filter(i => i.invoiceNumber?.startsWith(prefix));
   const next = existing.length + 1;
-  return `INV-${year}-${String(next).padStart(3, '0')}`;
+  return `${prefix}-${next}`;
 }
 
 function calcSubtotal(items) {
@@ -320,7 +323,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
     clientEmail: '',
     contactPerson: '',
     projectTitle: '',
-    invoiceNumber: generateInvoiceNumber(invoices),
+    invoiceNumber: '',
     items: [{ description: '', quantity: 1, rate: 0 }],
     taxRate: 0,
     discount: 0,
@@ -356,6 +359,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
       clientCompany: client?.company || '',
       clientEmail: client?.email || '',
       projectTitle: project.title,
+      invoiceNumber: generateInvoiceNumber(invoices, project.projectNumber),
       dueDate: due.toISOString().split('T')[0],
       items: remaining > 0
         ? [{ description: `${project.title} — Development Services`, quantity: 1, rate: remaining }]
