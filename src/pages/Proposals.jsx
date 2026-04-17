@@ -295,7 +295,16 @@ export default function Proposals({ clients, projects, setProjects, sows, setSOW
             providerSignedDate: '',
           } : s));
         }}
-        onSendEmail={() => sendProposalEmail(proposal, clients, settings)}
+        onSendEmail={() => {
+          // Ensure a share token exists so {{proposal_link}} resolves
+          let enriched = proposal;
+          if (!proposal.shareToken) {
+            const token = generateId() + generateId();
+            enriched = { ...proposal, shareToken: token };
+            setSOWs(prev => prev.map(s => s.id === proposal.id ? { ...s, shareToken: token } : s));
+          }
+          sendProposalEmail(enriched, clients, settings);
+        }}
         onPrint={() => printProposal(proposal, clients, settings)}
       />
     );
@@ -898,40 +907,64 @@ function getDefaultExpiry() {
 function sendProposalEmail(proposal, clients, settings) {
   const client = clients.find(c => c.id === proposal.clientId);
   const total = calcTotal(proposal.packages);
-  const email = client?.email || '';
   const company = settings?.companyName || 'Clad Forge';
 
-  const subject = `Proposal ${proposal.proposalNumber} from ${company} — ${proposal.projectTitle}`;
+  // Resolve recipient — prefer selected contact person, fall back to client default
+  let recipientEmail = client?.email || '';
+  let recipientName = client?.company || '';
+  if (proposal.contactPerson && client?.contacts) {
+    const contact = client.contacts.find(c => c.id === proposal.contactPerson);
+    if (contact) {
+      recipientEmail = contact.email || recipientEmail;
+      recipientName = contact.name;
+    }
+  }
+  const firstName = recipientName.split(' ')[0] || recipientName;
+
+  // Build public signing link — generate a share token if one isn't on the
+  // proposal yet (caller will persist it to the DB in their own wrapper)
+  const token = proposal.shareToken;
+  const proposalLink = token ? `${window.location.origin}/sign/${token}` : '';
 
   const pkgList = (proposal.packages || []).map((pkg, i) =>
     `  ${i + 1}. ${pkg.name}${pkg.optional ? ' (optional)' : ''} — ${formatCurrency(pkg.price)}`
   ).join('\n');
 
-  const body = `Hello ${client?.company || 'there'},
+  const codes = {
+    '{{name}}': firstName,
+    '{{full_name}}': recipientName,
+    '{{recipient_email}}': recipientEmail,
+    '{{proposal_number}}': proposal.proposalNumber || '',
+    '{{proposal_link}}': proposalLink,
+    '{{project_title}}': proposal.projectTitle || '',
+    '{{total_amount}}': formatCurrency(total),
+    '{{valid_until}}': proposal.validUntil || '—',
+    '{{issue_date}}': proposal.createdAt ? new Date(proposal.createdAt).toISOString().split('T')[0] : '',
+    '{{client_company}}': client?.company || '',
+    '{{packages_list}}': pkgList,
+    '{{company_name}}': company,
+    '{{company_email}}': settings?.companyEmail || '',
+    '{{company_phone}}': settings?.companyPhone || '',
+    '{{owner_name}}': settings?.ownerName || '',
+  };
 
-Thank you for the opportunity to work together. Please find our proposal for ${proposal.projectTitle} below.
+  function applyTemplate(template) {
+    let result = template || '';
+    for (const [code, value] of Object.entries(codes)) {
+      result = result.split(code).join(value);
+    }
+    return result;
+  }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PROPOSAL ${proposal.proposalNumber}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${proposal.description || ''}
-
-Packages:
-${pkgList}
-
-TOTAL INVESTMENT: ${formatCurrency(total)}
-
-${proposal.validUntil ? `This proposal is valid until ${proposal.validUntil}.\n` : ''}
-We'd love to discuss this further at your convenience. Please don't hesitate to reach out with any questions.
-
-Best regards,
-${settings?.ownerName || ''}
-${company}
-${settings?.companyEmail || ''}
-${settings?.companyPhone || ''}`;
+  const subject = applyTemplate(
+    settings?.sowEmailSubject || 'Proposal {{proposal_number}} — {{project_title}} | {{company_name}}'
+  );
+  const body = applyTemplate(
+    settings?.sowEmailBody || `Hi {{name}},\n\nPlease review and sign the proposal at the link below:\n\n{{proposal_link}}\n\nProposal #: {{proposal_number}}\nProject: {{project_title}}\nTotal Investment: {{total_amount}}\nValid Until: {{valid_until}}\n\nBest regards,\n{{owner_name}}\n{{company_name}}`
+  );
 
   const mailBody = body.replace(/\{\{br\}\}/g, '\n').replace(/\r\n/g, '\n');
+  const email = recipientEmail;
 
   // Copy formatted body to clipboard as fallback
   try {

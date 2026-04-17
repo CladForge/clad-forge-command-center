@@ -242,6 +242,21 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                   hint="Appears at the bottom of every SOW document" />
               </div>
 
+              <div className="settings__section">
+                <h4 className="settings__section-title">Email Template</h4>
+                <p style={{ fontSize: '0.78rem', color: 'var(--slate)', marginBottom: 12 }}>
+                  Customize the email sent when you share a proposal for signing. Use the codes below to auto-fill proposal data.
+                </p>
+                <div className="form-grid">
+                  <HighlightedField label="Email Subject" value={settings.sowEmailSubject} onChange={v => update('sowEmailSubject', v)} full />
+                  <HighlightedTextarea label="Email Body" value={settings.sowEmailBody} onChange={v => update('sowEmailBody', v)} rows={14} full />
+                </div>
+                <div className="settings__codes">
+                  <h4 className="settings__section-title" style={{ marginTop: 16 }}>Available Codes</h4>
+                  <CodeGrid copiedCode={copiedCode} onCopy={copyCode} codes={PROPOSAL_TEMPLATE_CODES} />
+                </div>
+              </div>
+
               <SaveBar saved={saved} onSave={showSaved} />
             </div>
           )}
@@ -603,7 +618,7 @@ function HighlightedField({ label, value, onChange, full }) {
   );
 }
 
-const TEMPLATE_CODES = [
+const INVOICE_TEMPLATE_CODES = [
   ['{{name}}', 'First name of contact person'],
   ['{{full_name}}', 'Full name of contact person'],
   ['{{recipient_email}}', "Contact person's email"],
@@ -622,10 +637,29 @@ const TEMPLATE_CODES = [
   ['{{br}}', 'Line break (new line)'],
 ];
 
-function CodeGrid({ copiedCode, onCopy }) {
+const PROPOSAL_TEMPLATE_CODES = [
+  ['{{name}}', 'First name of contact person'],
+  ['{{full_name}}', 'Full name of contact person'],
+  ['{{recipient_email}}', "Contact person's email"],
+  ['{{proposal_number}}', 'Proposal / SOW number'],
+  ['{{proposal_link}}', 'Public signing link'],
+  ['{{project_title}}', 'Project name'],
+  ['{{total_amount}}', 'Total proposal value'],
+  ['{{valid_until}}', 'Expiration date'],
+  ['{{issue_date}}', 'Proposal creation date'],
+  ['{{client_company}}', "Client's company name"],
+  ['{{packages_list}}', 'Bulleted list of packages + prices'],
+  ['{{company_name}}', 'Your company name'],
+  ['{{company_email}}', 'Your company email'],
+  ['{{company_phone}}', 'Your company phone'],
+  ['{{owner_name}}', 'Your name'],
+  ['{{br}}', 'Line break (new line)'],
+];
+
+function CodeGrid({ copiedCode, onCopy, codes = INVOICE_TEMPLATE_CODES }) {
   return (
     <div className="settings__codes-grid">
-      {TEMPLATE_CODES.map(([code, desc]) => (
+      {codes.map(([code, desc]) => (
         <div key={code} className={`settings__code ${copiedCode === code ? 'settings__code--copied' : ''}`}>
           <code>{code}</code>
           <span>{copiedCode === code ? '✓ Copied' : desc}</span>

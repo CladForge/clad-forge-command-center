@@ -208,6 +208,26 @@ Best regards,
   defaultSowTerms: 'Payment schedule: 30% upon signing, 30% at midpoint delivery, 40% upon final delivery. All work remains property of Clad Forge until final payment is received. Includes 30 days of post-delivery support.',
   defaultPaymentSchedule: '30 / 30 / 40',
 
+  sowEmailSubject: 'Proposal {{proposal_number}} — {{project_title}} | {{company_name}}',
+  sowEmailBody: `Hi {{name}},
+
+Thank you for the opportunity to put this together. Please review and sign the proposal at the link below:
+
+{{proposal_link}}
+
+Proposal #: {{proposal_number}}
+Project: {{project_title}}
+Total Investment: {{total_amount}}
+Valid Until: {{valid_until}}
+
+Happy to jump on a quick call if you have questions before signing.
+
+Best regards,
+{{owner_name}}
+{{company_name}}
+{{company_email}}
+{{company_phone}}`,
+
   // ── Time Tracking ──
   defaultHourlyRate: 150,
   timeRounding: 'none',
