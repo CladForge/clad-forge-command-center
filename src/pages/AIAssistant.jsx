@@ -11,7 +11,7 @@ function renderMarkdown(text) {
     .replace(/^## (.*$)/gm, '<h3 style="margin:10px 0 6px;color:var(--ink)">$1</h3>')
     .replace(/^# (.*$)/gm, '<h2 style="margin:12px 0 8px;color:var(--ink)">$1</h2>')
     .replace(/^- (.*$)/gm, '<div style="padding-left:12px">• $1</div>')
-    .replace(/^\d+\. (.*$)/gm, (match, p1, offset, str) => {
+    .replace(/^\d+\. (.*$)/gm, (match, p1) => {
       const num = match.match(/^(\d+)/)[1];
       return `<div style="padding-left:12px">${num}. ${p1}</div>`;
     });

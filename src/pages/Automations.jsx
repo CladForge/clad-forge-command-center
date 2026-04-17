@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { generateId } from '../data/initialData';
 
 const TRIGGER_TYPES = [

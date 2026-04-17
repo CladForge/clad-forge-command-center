@@ -9,7 +9,7 @@ const PAYMENT_METHODS = ['Bank Transfer', 'Credit Card', 'PayPal', 'Stripe', 'Ch
 function fmt(n) { return '$' + Math.abs(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
 
-export default function Finances({ clients, projects, invoices, settings: rawSettings, entries, setEntries, taxPayments, setTaxPayments }) {
+export default function Finances({ clients, projects, settings: rawSettings, entries, setEntries, taxPayments, setTaxPayments }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [tab, setTab] = useState('overview');
   const [showEntryModal, setShowEntryModal] = useState(false);

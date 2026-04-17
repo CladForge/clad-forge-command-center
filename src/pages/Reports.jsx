@@ -8,9 +8,9 @@ function calcTotal(items, taxRate = 0, discount = 0) {
   return Math.max(sub + sub * ((taxRate || 0) / 100) - (discount || 0), 0);
 }
 
-export default function Reports({ clients, projects, sows, invoices, timeEntries, settings }) {
+export default function Reports({ clients, projects, invoices, timeEntries, settings }) {
   const [period, setPeriod] = useState('yearly');
-  const s = { ...initialSettings, ...settings };
+  const _s = { ...initialSettings, ...settings };
 
   /* ── Period date range ── */
   const periodRange = useMemo(() => {

@@ -78,7 +78,7 @@ export default function OnboardingReview({ setClients, addNotification }) {
   }
 
   const pending = submissions.filter(s => s.status === 'pending');
-  const reviewed = submissions.filter(s => s.status !== 'pending');
+  const _reviewed = submissions.filter(s => s.status !== 'pending');
 
   if (loading) return null;
   if (pending.length === 0) return null;

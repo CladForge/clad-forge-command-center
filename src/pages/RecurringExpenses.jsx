@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { generateId, initialSettings } from '../data/initialData';
+import { generateId } from '../data/initialData';
 
 const FREQUENCY_OPTIONS = [
   { value: 'weekly', label: 'Weekly' },
@@ -37,8 +37,7 @@ function getAnnualEquivalent(amount, frequency) {
   return amount * (multipliers[frequency] || 12);
 }
 
-export default function RecurringExpenses({ clients, projects, expenses, setExpenses, settings: rawSettings }) {
-  const settings = { ...initialSettings, ...rawSettings };
+export default function RecurringExpenses({ clients, projects, expenses, setExpenses }) {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('active');
