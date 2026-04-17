@@ -318,7 +318,7 @@ export default function InvoiceView() {
                     <div className="pay-option__icon">💳</div>
                     <div className="pay-option__body">
                       <span className="pay-option__title">Pay Online</span>
-                      <span className="pay-option__desc">Card · Link · Cash App Pay · Apple Pay · Google Pay · Klarna · Afterpay</span>
+                      <span className="pay-option__desc">Card · ACH · Link · Cash App Pay · Apple Pay · Google Pay · Klarna · Afterpay</span>
                       <span className="pay-option__fee-note">Processing fee varies by method — see breakdown at checkout</span>
                     </div>
                     <div className="pay-option__arrow">{initializingStripe ? '...' : '→'}</div>
@@ -365,7 +365,7 @@ export default function InvoiceView() {
                       <span className="pay-breakdown__amt">{fmt(breakdown.total)}</span>
                     </div>
                     <p className="pay-breakdown__note">
-                      To avoid the processing fee entirely, back out and choose <strong>Pay by Bank Transfer</strong> instead.
+                      Shown at card rates. ACH via Stripe has a lower processor fee (0.8%, capped at $5) — to avoid processing fees entirely, back out and choose <strong>Pay by Bank Transfer</strong>.
                     </p>
                   </div>
                 )}
@@ -549,7 +549,7 @@ function StripeCheckoutForm({ returnUrl }) {
           layout: 'tabs',
           // Force Card first so Link doesn't auto-select for returning users.
           // Stripe still shows whatever else is enabled in the dashboard.
-          paymentMethodOrder: ['card', 'cashapp', 'apple_pay', 'google_pay', 'link', 'klarna', 'afterpay_clearpay', 'affirm'],
+          paymentMethodOrder: ['card', 'us_bank_account', 'cashapp', 'apple_pay', 'google_pay', 'link', 'klarna', 'afterpay_clearpay', 'affirm'],
           wallets: { applePay: 'auto', googlePay: 'auto' },
         }}
       />

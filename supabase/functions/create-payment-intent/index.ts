@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const allowedMethods = ['card', 'link', 'cashapp', 'klarna', 'afterpay_clearpay', 'affirm'];
+    const allowedMethods = ['card', 'us_bank_account', 'link', 'cashapp', 'klarna', 'afterpay_clearpay', 'affirm'];
 
     let pi;
     // Reuse existing intent when possible (user reopened the page before paying)
