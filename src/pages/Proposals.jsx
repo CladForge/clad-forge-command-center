@@ -931,7 +931,7 @@ ${company}
 ${settings?.companyEmail || ''}
 ${settings?.companyPhone || ''}`;
 
-  window.open(`https://mail.proton.me/u/0/compose?to=${encodeURIComponent(email)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+  window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 function printProposal(proposal, clients, settings) {

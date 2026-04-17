@@ -157,8 +157,7 @@ ${company}
 ${settings?.companyEmail || ''}
 ${settings?.companyPhone || ''}`;
 
-    const protonUrl = `https://mail.proton.me/u/0/compose?to=${encodeURIComponent(recipientEmail)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(protonUrl, '_blank');
+    window.location.href = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
   return (
