@@ -1536,7 +1536,7 @@
 
 /* Budget Tracker Panel */
 .budget-tracker { padding: 16px 22px; }
-.budget-row { display: grid; grid-template-columns: 1.5fr 2fr 1.5fr auto auto; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.budget-row { display: grid; grid-template-columns: 1.5fr 2fr 1.5fr auto; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
 .budget-row:last-child { border-bottom: none; }
 .budget-row__title { font-size: 0.85rem; font-weight: 600; color: var(--ink); display: block; }
 .budget-row__client { font-size: 0.75rem; color: var(--slate-light); }

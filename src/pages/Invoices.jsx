@@ -326,7 +326,6 @@ ${settings?.companyPhone || ''}`;
                       {formatCurrency(Math.max(remaining, 0))} remaining
                     </span>
                   </div>
-                  <span className="budget-row__budget">of {formatCurrency(project.budget)}</span>
                   <button className="btn btn--primary btn--sm" onClick={() => { setPreselectedProjectId(project.id); setShowModal(true); }}>+ Invoice</button>
                 </div>
               );
