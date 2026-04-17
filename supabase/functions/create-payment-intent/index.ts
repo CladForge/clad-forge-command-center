@@ -97,6 +97,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    const allowedMethods = ['card', 'link', 'cashapp', 'klarna', 'afterpay_clearpay', 'affirm'];
+
     let pi;
     // Reuse existing intent when possible (user reopened the page before paying)
     if (invoice.stripe_payment_intent_id) {
@@ -104,8 +106,19 @@ Deno.serve(async (req) => {
         pi = await stripe.paymentIntents.retrieve(invoice.stripe_payment_intent_id);
         if (['succeeded', 'canceled'].includes(pi.status)) {
           pi = null;
-        } else if (pi.amount !== amountCents) {
-          pi = await stripe.paymentIntents.update(pi.id, { amount: amountCents });
+        } else {
+          // Sync amount and payment_method_types in case the invoice was edited
+          // or the allow-list changed since the PI was first created.
+          const needsAmountUpdate = pi.amount !== amountCents;
+          const currentMethods = (pi.payment_method_types ?? []).slice().sort().join(',');
+          const targetMethods = allowedMethods.slice().sort().join(',');
+          const needsMethodsUpdate = currentMethods !== targetMethods;
+          if (needsAmountUpdate || needsMethodsUpdate) {
+            pi = await stripe.paymentIntents.update(pi.id, {
+              amount: amountCents,
+              payment_method_types: allowedMethods,
+            });
+          }
         }
       } catch {
         pi = null;
@@ -116,7 +129,11 @@ Deno.serve(async (req) => {
       pi = await stripe.paymentIntents.create({
         amount: amountCents,
         currency: 'usd',
-        automatic_payment_methods: { enabled: true },
+        // Explicit allow-list: everything except us_bank_account. Stripe ACH is
+        // excluded so clients who want to avoid processing fees use the manual
+        // Bank Transfer path instead. Each method listed here must also be
+        // enabled in Stripe Dashboard → Settings → Payment Methods to render.
+        payment_method_types: allowedMethods,
         description: `Invoice ${invoice.invoice_number}`,
         metadata: {
           invoice_id: invoice.id,
