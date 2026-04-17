@@ -96,11 +96,30 @@ export default function Pipeline({ projects, setProjects, clients, sows = [], se
       return;
     }
 
-    const total = (proposal.packages || []).reduce((s, p) => s + (p.optional && !p.included ? 0 : (p.price || 0)), 0) || proposal.budget || 0;
-    const packageNames = (proposal.packages || []).map(pkg => pkg.name).filter(Boolean);
+    const packages = (proposal.packages || []).filter(p => !p.optional || p.included);
+    const total = packages.reduce((s, p) => s + (p.price || 0), 0) || proposal.budget || 0;
+    const packageNames = packages.map(pkg => pkg.name).filter(Boolean);
     const description = [
       proposal.description,
       packageNames.length > 0 ? '\n\nPackages:\n' + packageNames.map((d, i) => `${i + 1}. ${d}`).join('\n') : '',
+    ].filter(Boolean).join('');
+
+    // Build deliverables from proposal packages and scope items
+    const deliverables = [];
+    packages.forEach(pkg => {
+      if (pkg.name) {
+        deliverables.push({ id: generateId(), text: pkg.name + (pkg.description ? ` — ${pkg.description}` : ''), done: false });
+      }
+      (pkg.items || []).forEach(item => {
+        if (item.text) {
+          deliverables.push({ id: generateId(), text: item.text, done: false });
+        }
+      });
+    });
+
+    const scopeOfWork = [
+      proposal.description,
+      proposal.terms ? `\n\nTerms:\n${proposal.terms}` : '',
     ].filter(Boolean).join('');
 
     const newProject = {
@@ -112,6 +131,8 @@ export default function Pipeline({ projects, setProjects, clients, sows = [], se
       budget: total,
       deadline: proposal.timeline?.endDate || '',
       description,
+      deliverables,
+      scopeOfWork,
       proposalId: proposal.id,
       createdAt: new Date().toISOString().split('T')[0],
     };

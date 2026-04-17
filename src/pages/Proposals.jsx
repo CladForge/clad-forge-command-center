@@ -97,10 +97,32 @@ export default function Proposals({ clients, projects, setProjects, sows, setSOW
 
   function handleCreateProject(proposal) {
     const total = calcTotal(proposal.packages) || proposal.budget || 0;
-    const deliverables = (proposal.packages || []).map(pkg => pkg.name).filter(Boolean);
+    const packages = (proposal.packages || []).filter(p => !p.optional || p.included);
+    const packageNames = packages.map(pkg => pkg.name).filter(Boolean);
     const description = [
       proposal.description,
-      deliverables.length > 0 ? '\n\nPackages:\n' + deliverables.map((d, i) => `${i + 1}. ${d}`).join('\n') : '',
+      packageNames.length > 0 ? '\n\nPackages:\n' + packageNames.map((d, i) => `${i + 1}. ${d}`).join('\n') : '',
+    ].filter(Boolean).join('');
+
+    // Build deliverables from proposal packages and their scope items
+    const deliverables = [];
+    packages.forEach(pkg => {
+      // Add the package itself as a deliverable header
+      if (pkg.name) {
+        deliverables.push({ id: generateId(), text: pkg.name + (pkg.description ? ` — ${pkg.description}` : ''), done: false });
+      }
+      // Add each scope item within the package
+      (pkg.items || []).forEach(item => {
+        if (item.text) {
+          deliverables.push({ id: generateId(), text: item.text, done: false });
+        }
+      });
+    });
+
+    // Build scope of work from proposal description + terms
+    const scopeOfWork = [
+      proposal.description,
+      proposal.terms ? `\n\nTerms:\n${proposal.terms}` : '',
     ].filter(Boolean).join('');
 
     const newProject = {
@@ -112,6 +134,8 @@ export default function Proposals({ clients, projects, setProjects, sows, setSOW
       budget: total,
       deadline: proposal.timeline?.endDate || '',
       description,
+      deliverables,
+      scopeOfWork,
       proposalId: proposal.id,
       createdAt: new Date().toISOString().split('T')[0],
     };
