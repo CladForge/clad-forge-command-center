@@ -318,6 +318,7 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
     clientName: '',
     clientCompany: '',
     clientEmail: '',
+    contactPerson: '',
     projectTitle: '',
     invoiceNumber: generateInvoiceNumber(invoices),
     items: [{ description: '', quantity: 1, rate: 0 }],
@@ -421,7 +422,10 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
           </div>
 
           {/* Auto-populated project info banner */}
-          {selectedProject && (
+          {selectedProject && (() => {
+            const selectedClient = clients.find(c => c.id === form.clientId);
+            const contacts = selectedClient?.contacts || [];
+            return (
             <div className="inv-project-info">
               <div className="inv-project-info__row">
                 <div className="inv-project-info__item">
@@ -429,8 +433,30 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
                   <span>{form.clientCompany || form.clientName}</span>
                 </div>
                 <div className="inv-project-info__item">
-                  <label>Email</label>
-                  <span>{form.clientEmail}</span>
+                  <label>Attention To</label>
+                  {contacts.length > 0 ? (
+                    <select
+                      value={form.contactPerson || ''}
+                      onChange={e => {
+                        const ct = contacts.find(c => c.id === e.target.value);
+                        setForm(f => ({
+                          ...f,
+                          contactPerson: e.target.value,
+                          clientEmail: ct?.email || selectedClient?.email || '',
+                        }));
+                      }}
+                      style={{ marginTop: 4, fontSize: '0.85rem' }}
+                    >
+                      <option value="">Company general</option>
+                      {contacts.map(ct => (
+                        <option key={ct.id} value={ct.id}>
+                          {ct.name}{ct.title ? ` — ${ct.title}` : ''}{ct.role ? ` (${ct.role})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span style={{ fontSize: '0.78rem', color: 'var(--slate-light)' }}>No contacts added to this client</span>
+                  )}
                 </div>
               </div>
               <div className="inv-project-info__row">
@@ -450,7 +476,8 @@ function CreateInvoiceModal({ clients, projects, invoices, settings, projectInvo
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Invoice Details */}
           <div className="form-grid" style={{ marginTop: 20 }}>
@@ -617,7 +644,11 @@ function InvoiceDetail({ invoice, clients, projects, settings, onClose, onStatus
             <div className="inv-detail-section">
               <h4>Bill To</h4>
               <p className="inv-detail-name">{invoice.clientName}</p>
-              <p>{invoice.clientCompany}</p>
+              {invoice.contactPerson && (() => {
+                const cl = clients.find(c => c.id === invoice.clientId);
+                const ct = (cl?.contacts || []).find(c => c.id === invoice.contactPerson);
+                return ct ? <p>Attn: {ct.name}{ct.title ? `, ${ct.title}` : ''}</p> : null;
+              })()}
               <p>{invoice.clientEmail}</p>
             </div>
             <div className="inv-detail-section">
