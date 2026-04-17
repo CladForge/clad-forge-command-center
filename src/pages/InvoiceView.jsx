@@ -33,11 +33,13 @@ export default function InvoiceView() {
 
   // Stripe state
   const [clientSecret, setClientSecret] = useState(null);
+  const [breakdown, setBreakdown] = useState(null); // { subtotal, fee, total, payment_method_type }
   const [stripeError, setStripeError] = useState('');
   const [initializingStripe, setInitializingStripe] = useState(false);
 
-  // Manual payment (wire / other off-platform method) fallback
+  // Manual payment (wire / ACH / other off-platform method) fallback
   const [markingManual, setMarkingManual] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
 
   // Load invoice, client, settings
   useEffect(() => {
@@ -74,26 +76,32 @@ export default function InvoiceView() {
     return () => { supabase.removeChannel(channel); };
   }, [invoice?.id]);
 
+  async function initOrUpdatePaymentIntent(paymentMethodType) {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-payment-intent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ invoice_token: token, payment_method_type: paymentMethodType }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Unable to initialize payment');
+    return data;
+  }
+
   async function startStripePayment() {
     if (!STRIPE_CONFIGURED) {
-      setStripeError('Online payments are not configured. Please use the bank transfer instructions below.');
+      setStripeError('Online payments are not configured. Use the manual bank transfer option.');
       return;
     }
     setInitializingStripe(true);
     setStripeError('');
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/create-payment-intent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ invoice_token: token }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Unable to initialize payment');
+      const data = await initOrUpdatePaymentIntent('card'); // default worst-case fee
       setClientSecret(data.client_secret);
+      setBreakdown({ subtotal: data.subtotal, fee: data.fee, total: data.total, paymentMethodType: data.payment_method_type });
     } catch (e) {
       setStripeError(e.message);
     } finally {
@@ -101,8 +109,20 @@ export default function InvoiceView() {
     }
   }
 
+  async function handleMethodChange(paymentMethodType, elementsInstance) {
+    if (!paymentMethodType || paymentMethodType === breakdown?.paymentMethodType) return;
+    try {
+      const data = await initOrUpdatePaymentIntent(paymentMethodType);
+      setBreakdown({ subtotal: data.subtotal, fee: data.fee, total: data.total, paymentMethodType: data.payment_method_type });
+      // Tell Stripe Elements to pull the updated PaymentIntent amount
+      if (elementsInstance?.fetchUpdates) await elementsInstance.fetchUpdates();
+    } catch (e) {
+      setStripeError(e.message);
+    }
+  }
+
   async function handleManualPayment() {
-    if (!window.confirm('Mark this invoice as paid by wire transfer or other off-platform method? Clad Forge will verify receipt and confirm on their end.')) return;
+    if (!window.confirm(`Confirm you've initiated a bank transfer for ${fmt(calcTotal(invoice.items, invoice.taxRate, invoice.discount))}? ${company} will verify receipt and mark this invoice as paid once funds arrive.`)) return;
     setMarkingManual(true);
     await supabase.from('invoices')
       .update({ status: 'processing', payment_method: 'manual' })
@@ -283,60 +303,121 @@ export default function InvoiceView() {
             <div className="pay-panel__header">
               <div>
                 <h3>Pay This Invoice</h3>
-                <p>Secure payment powered by Stripe. Cards and bank transfers accepted.</p>
+                <p>Choose your payment method. Fees are transparent — no surprises.</p>
               </div>
               <div className="pay-panel__total">
-                <span className="pay-panel__total-label">Amount Due</span>
+                <span className="pay-panel__total-label">Invoice Amount</span>
                 <span className="pay-panel__total-amount">{fmt(total)}</span>
               </div>
             </div>
 
-            {!clientSecret && STRIPE_CONFIGURED && (
-              <button
-                className="sign-btn sign-btn--accept"
-                onClick={startStripePayment}
-                disabled={initializingStripe}
-                style={{ width: '100%' }}
-              >
-                {initializingStripe ? 'Loading secure checkout...' : `Pay ${fmt(total)} Now`}
-              </button>
-            )}
-
             {stripeError && <div className="pay-panel__error">{stripeError}</div>}
 
-            {clientSecret && stripePromise && (
-              <Elements stripe={stripePromise} options={{ clientSecret, appearance: stripeAppearance }}>
-                <StripeCheckoutForm
-                  onCancel={() => setClientSecret(null)}
-                  returnUrl={window.location.href}
-                />
-              </Elements>
-            )}
-
-            {/* Manual payment fallback */}
-            {settings?.paymentInstructions && (
-              <details className="pay-panel__manual">
-                <summary>Paying by wire transfer or other method?</summary>
-                <div className="pay-panel__manual-body">
-                  <pre>{settings.paymentInstructions}</pre>
+            {/* ═══ Two-option layout: online (fee) vs manual transfer (no fee) ═══ */}
+            {!clientSecret && !manualMode && (
+              <div className="pay-options">
+                {STRIPE_CONFIGURED && (
                   <button
-                    className="sign-btn sign-btn--ghost"
-                    onClick={handleManualPayment}
-                    disabled={markingManual}
+                    className="pay-option pay-option--stripe"
+                    onClick={startStripePayment}
+                    disabled={initializingStripe}
                   >
-                    {markingManual ? 'Marking...' : 'I\'ve sent payment — mark as processing'}
+                    <div className="pay-option__icon">💳</div>
+                    <div className="pay-option__body">
+                      <span className="pay-option__title">Pay Online</span>
+                      <span className="pay-option__desc">Card, ACH, or digital wallet — instant confirmation</span>
+                      <span className="pay-option__fee-note">Processing fee added at checkout</span>
+                    </div>
+                    <div className="pay-option__arrow">{initializingStripe ? '...' : '→'}</div>
                   </button>
+                )}
+
+                {settings?.paymentInstructions && (
+                  <button
+                    className="pay-option pay-option--manual"
+                    onClick={() => setManualMode(true)}
+                  >
+                    <div className="pay-option__icon">🏦</div>
+                    <div className="pay-option__body">
+                      <span className="pay-option__title">Pay by Bank Transfer</span>
+                      <span className="pay-option__desc">Wire or ACH from your bank — settles in 1–3 business days</span>
+                      <span className="pay-option__fee-note pay-option__fee-note--free">No processing fee · You pay exactly {fmt(total)}</span>
+                    </div>
+                    <div className="pay-option__arrow">→</div>
+                  </button>
+                )}
+
+                {!STRIPE_CONFIGURED && !settings?.paymentInstructions && (
                   <p className="pay-panel__manual-note">
-                    {company} will verify receipt on their end and mark this invoice as paid once funds are confirmed.
+                    Online payments are not yet configured. Please contact {settings?.companyEmail || company} to arrange payment.
                   </p>
-                </div>
-              </details>
+                )}
+              </div>
             )}
 
-            {!STRIPE_CONFIGURED && !settings?.paymentInstructions && (
-              <p className="pay-panel__manual-note">
-                Online payments are not yet configured. Please contact {settings?.companyEmail || company} to arrange payment.
-              </p>
+            {/* ═══ Stripe checkout ═══ */}
+            {clientSecret && stripePromise && (
+              <div className="pay-stripe">
+                <button className="pay-back" onClick={() => { setClientSecret(null); setBreakdown(null); }}>
+                  ← Back to payment options
+                </button>
+
+                {breakdown && (
+                  <div className="pay-breakdown">
+                    <div className="pay-breakdown__row">
+                      <span>Invoice amount</span>
+                      <span className="pay-breakdown__amt">{fmt(breakdown.subtotal)}</span>
+                    </div>
+                    <div className="pay-breakdown__row">
+                      <span>
+                        Processing fee
+                        <span className="pay-breakdown__method">({methodLabel(breakdown.paymentMethodType)})</span>
+                      </span>
+                      <span className="pay-breakdown__amt">+{fmt(breakdown.fee)}</span>
+                    </div>
+                    <div className="pay-breakdown__row pay-breakdown__row--total">
+                      <span>You will be charged</span>
+                      <span className="pay-breakdown__amt">{fmt(breakdown.total)}</span>
+                    </div>
+                    <p className="pay-breakdown__note">
+                      Fee updates live when you select a different payment method below.
+                    </p>
+                  </div>
+                )}
+
+                <Elements stripe={stripePromise} options={{ clientSecret, appearance: stripeAppearance }}>
+                  <StripeCheckoutForm
+                    onMethodChange={handleMethodChange}
+                    returnUrl={window.location.href}
+                  />
+                </Elements>
+              </div>
+            )}
+
+            {/* ═══ Manual bank transfer instructions ═══ */}
+            {manualMode && !clientSecret && (
+              <div className="pay-manual">
+                <button className="pay-back" onClick={() => setManualMode(false)}>
+                  ← Back to payment options
+                </button>
+                <div className="pay-manual__summary">
+                  <span>Amount to transfer:</span>
+                  <strong>{fmt(total)}</strong>
+                </div>
+                <h4>Transfer Instructions</h4>
+                <pre className="pay-manual__instructions">{settings.paymentInstructions}</pre>
+                <button
+                  className="sign-btn sign-btn--accept"
+                  onClick={handleManualPayment}
+                  disabled={markingManual}
+                  style={{ width: '100%' }}
+                >
+                  {markingManual ? 'Marking as sent...' : `I've initiated the transfer — notify ${company}`}
+                </button>
+                <p className="pay-panel__manual-note">
+                  {company} will confirm receipt once funds clear and mark this invoice as paid.
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -362,15 +443,32 @@ function formatPaymentMethod(method) {
   const map = {
     card: 'credit card',
     us_bank_account: 'ACH bank transfer',
-    manual: 'wire transfer',
+    manual: 'manual bank transfer',
     link: 'Link',
+    cashapp: 'Cash App Pay',
+    klarna: 'Klarna',
+    afterpay_clearpay: 'Afterpay',
+    affirm: 'Affirm',
   };
   return map[method] || method;
 }
 
+function methodLabel(method) {
+  const map = {
+    card: 'Card · 2.9% + $0.30',
+    us_bank_account: 'ACH · 0.8%, max $5',
+    link: 'Link · 2.9% + $0.30',
+    cashapp: 'Cash App · 2.9% + $0.30',
+    klarna: 'Klarna · 5.99% + $0.30',
+    afterpay_clearpay: 'Afterpay · 5.99% + $0.30',
+    affirm: 'Affirm · 5.99% + $0.30',
+  };
+  return map[method] || 'Card rate';
+}
+
 /* ═════════ Stripe Payment Element form ═════════ */
 
-function StripeCheckoutForm({ onCancel, returnUrl }) {
+function StripeCheckoutForm({ onMethodChange, returnUrl }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -398,15 +496,15 @@ function StripeCheckoutForm({ onCancel, returnUrl }) {
 
   return (
     <form onSubmit={handleSubmit} className="stripe-form">
-      <PaymentElement options={{ layout: 'tabs' }} />
-      <div className="stripe-form__actions">
-        <button type="button" className="sign-btn sign-btn--ghost" onClick={onCancel} disabled={submitting}>
-          Back
-        </button>
-        <button type="submit" className="sign-btn sign-btn--accept" disabled={!stripe || submitting}>
-          {submitting ? 'Processing...' : 'Submit Payment'}
-        </button>
-      </div>
+      <PaymentElement
+        options={{ layout: 'tabs' }}
+        onChange={(e) => {
+          if (e?.value?.type && onMethodChange) onMethodChange(e.value.type, elements);
+        }}
+      />
+      <button type="submit" className="sign-btn sign-btn--accept" disabled={!stripe || submitting} style={{ width: '100%' }}>
+        {submitting ? 'Processing...' : 'Submit Payment'}
+      </button>
       {message && <div className="pay-panel__error">{message}</div>}
     </form>
   );

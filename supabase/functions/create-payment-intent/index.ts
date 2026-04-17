@@ -26,11 +26,43 @@ function calcTotal(items: Array<{ quantity: number; rate: number }>, taxRate = 0
   return Math.max(sub + sub * ((taxRate || 0) / 100) - (discount || 0), 0);
 }
 
+// Stripe US fee rates, 2026. Returns the grossed-up charge amount (so merchant
+// nets `subtotal` after Stripe deducts fees) and the fee amount in dollars.
+//
+// For percent+flat methods: charge = (subtotal + flat) / (1 - pct)
+// For percent+cap methods (ACH): charge = subtotal / (1 - pct), but fee capped
+function calculateSurcharge(subtotalDollars: number, method: string): { charge: number; fee: number } {
+  const rates: Record<string, { pct: number; flat?: number; cap?: number }> = {
+    card: { pct: 0.029, flat: 0.30 },
+    link: { pct: 0.029, flat: 0.30 },
+    cashapp: { pct: 0.029, flat: 0.30 },
+    us_bank_account: { pct: 0.008, cap: 5.00 },
+    klarna: { pct: 0.0599, flat: 0.30 },
+    afterpay_clearpay: { pct: 0.0599, flat: 0.30 },
+    affirm: { pct: 0.0599, flat: 0.30 },
+  };
+  const rate = rates[method] ?? rates.card;
+
+  if (rate.cap !== undefined) {
+    const noCapCharge = subtotalDollars / (1 - rate.pct);
+    const noCapFee = noCapCharge - subtotalDollars;
+    if (noCapFee > rate.cap) {
+      return { charge: round2(subtotalDollars + rate.cap), fee: rate.cap };
+    }
+    return { charge: round2(noCapCharge), fee: round2(noCapFee) };
+  }
+
+  const charge = (subtotalDollars + (rate.flat ?? 0)) / (1 - rate.pct);
+  return { charge: round2(charge), fee: round2(charge - subtotalDollars) };
+}
+
+function round2(n: number) { return Math.round(n * 100) / 100; }
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { invoice_token } = await req.json();
+    const { invoice_token, payment_method_type } = await req.json();
     if (!invoice_token) {
       return new Response(JSON.stringify({ error: 'invoice_token is required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -51,8 +83,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const total = calcTotal(invoice.items, invoice.tax_rate, invoice.discount);
-    const amountCents = Math.round(total * 100);
+    const subtotal = calcTotal(invoice.items, invoice.tax_rate, invoice.discount);
+    // Default to card (worst-case fee) before the user picks a method. When the
+    // PaymentElement change event fires we re-call this endpoint with the
+    // selected method so the charge and breakdown stay accurate.
+    const method = typeof payment_method_type === 'string' ? payment_method_type : 'card';
+    const { charge, fee } = calculateSurcharge(subtotal, method);
+    const amountCents = Math.round(charge * 100);
 
     if (amountCents < 50) {
       return new Response(JSON.stringify({ error: 'Amount must be at least $0.50' }), {
@@ -65,11 +102,9 @@ Deno.serve(async (req) => {
     if (invoice.stripe_payment_intent_id) {
       try {
         pi = await stripe.paymentIntents.retrieve(invoice.stripe_payment_intent_id);
-        // If already succeeded/canceled, create a new one
         if (['succeeded', 'canceled'].includes(pi.status)) {
           pi = null;
         } else if (pi.amount !== amountCents) {
-          // Keep amount in sync if invoice was edited
           pi = await stripe.paymentIntents.update(pi.id, { amount: amountCents });
         }
       } catch {
@@ -88,6 +123,8 @@ Deno.serve(async (req) => {
           invoice_number: invoice.invoice_number ?? '',
           invoice_token,
           client_company: invoice.client_company ?? '',
+          subtotal: String(subtotal),
+          surcharged_method: method,
         },
         receipt_email: invoice.client_email || undefined,
       });
@@ -96,7 +133,10 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       client_secret: pi.client_secret,
-      amount: amountCents,
+      subtotal: round2(subtotal),
+      fee: round2(fee),
+      total: round2(charge),
+      payment_method_type: method,
       invoice_number: invoice.invoice_number,
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
