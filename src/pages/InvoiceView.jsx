@@ -200,8 +200,17 @@ export default function InvoiceView() {
           </div>
         )}
 
-        {/* Bill To */}
+        {/* From / Bill To / Project */}
         <div className="sign-info">
+          <div className="sign-info-col">
+            <h4>From</h4>
+            <p className="sign-client-name">{company}</p>
+            {settings?.ownerName && <p>{settings.ownerName}</p>}
+            {settings?.companyAddress && <p style={{ whiteSpace: 'pre-line' }}>{settings.companyAddress}</p>}
+            {settings?.companyEmail && <p>{settings.companyEmail}</p>}
+            {settings?.companyPhone && <p>{settings.companyPhone}</p>}
+            {settings?.taxId && <p style={{ color: 'var(--slate-light)', fontSize: '0.82rem' }}>Tax ID: {settings.taxId}</p>}
+          </div>
           <div className="sign-info-col">
             <h4>Bill To</h4>
             <p className="sign-client-name">{invoice.clientCompany || invoice.clientName || client?.company || '—'}</p>
@@ -431,14 +440,13 @@ export default function InvoiceView() {
           </div>
         )}
 
-        {/* Download only available after payment is confirmed */}
-        {isPaid && (
-          <div className="sign-actions" style={{ marginTop: 24 }}>
-            <button className="sign-btn sign-btn--download" onClick={handleDownload} style={{ width: '100%' }}>
-              Download Paid Invoice (PDF)
-            </button>
-          </div>
-        )}
+        {/* Download is always available — clients often need a PDF copy
+            for their records before they can route the invoice for payment. */}
+        <div className="sign-actions" style={{ marginTop: 24 }}>
+          <button className="sign-btn sign-btn--download" onClick={handleDownload} style={{ width: '100%' }}>
+            {isPaid ? 'Download Paid Invoice (PDF)' : 'Download Invoice (PDF)'}
+          </button>
+        </div>
 
         {/* Footer */}
         <div className="sign-footer">
