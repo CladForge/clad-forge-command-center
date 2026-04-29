@@ -8,12 +8,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` — Production build (output to `dist/`)
 - `npm run preview` — Preview production build locally
 - `npm run lint` — Run ESLint across the project
+- `npx supabase db query --linked < supabase-migration.sql` — Run SQL against the linked Supabase project (for migrations). Requires `SUPABASE_ACCESS_TOKEN` in env.
 
 No test framework is configured.
 
+## Deployment
+
+GitHub `main` → Cloudflare Pages (auto-deploy). Any commit pushed to `main` deploys to production. There is no staging environment. Local edits never reach production until pushed — `git push origin HEAD:main` is the standard ship step (recent commit history shows direct-to-main is the established pattern; PRs are not currently used).
+
 ## Tech Stack
 
-React 19 (JSX, no TypeScript), Vite 8, React Router DOM 7, Supabase (PostgreSQL + Auth), ESLint 9 flat config.
+React 19 (JSX, no TypeScript), Vite 8, React Router DOM 7, Supabase (PostgreSQL + Auth + Edge Functions), Stripe (PaymentElement + webhooks via Edge Functions), Anthropic SDK (Claude API), ESLint 9 flat config.
 
 ## Architecture
 
@@ -46,7 +51,21 @@ Entities managed: clients, projects, sows, activities, settings, invoices, timeE
 
 ### Props-Down Pattern
 
-App.jsx passes data as props to every page. Pages do NOT call Supabase directly (except `OnboardingReview.jsx` which reads `onboarding_submissions` and `Onboarding.jsx` which inserts publicly). All mutations go through the setter functions from the hook.
+App.jsx passes data as props to every page. Authenticated pages do NOT call Supabase directly — all mutations go through setters from the hook so activity-logging stays consistent.
+
+**Exceptions (intentional):**
+- `Onboarding.jsx` — public insert into `onboarding_submissions`
+- `OnboardingReview.jsx` — reads `onboarding_submissions`
+- `ProposalSign.jsx` and `InvoiceView.jsx` — public token-shared pages (see "Public Share-Token Routes" below). These look up records by `share_token`, do their own direct mutations (e.g. mark invoice processing), and InvoiceView subscribes to Supabase Realtime for webhook-driven status changes.
+
+### Public Share-Token Routes
+
+Three routes render outside the auth gate and are how clients interact with the app without accounts:
+- `/onboard` — public intake form
+- `/sign/:token` — proposal acceptance/signing (looks up `sows` by `share_token`)
+- `/invoice/:token` — invoice view + Stripe payment (looks up `invoices` by `share_token`)
+
+The pattern: setter generates `share_token = generateId() + generateId()` on send, the public page queries by token, and the same token is used as the access key by the Stripe edge function. Anyone with the link is treated as the legitimate recipient — there is no additional auth.
 
 ### Client Data Model
 
@@ -64,6 +83,24 @@ Clients represent **companies**, not individuals. The `company` field is the pri
 
 `src/lib/permissions.js` exports `can(role, permission)`. Four roles with granular permissions. Currently used for client-side visibility checks — not enforced by RLS.
 
+### Supabase Edge Functions
+
+Deno functions in `supabase/functions/` (deployed separately via `supabase functions deploy`):
+- `create-payment-intent` — Looks up invoice by `share_token`, creates or reuses a Stripe PaymentIntent, calculates the surcharge based on payment method (card 2.9%+$0.30, ACH 0.8% capped at $5, BNPL 5.99%+$0.30), returns `client_secret` + breakdown to the public InvoiceView page.
+- `stripe-webhook` — Verifies Stripe signature, handles `payment_intent.succeeded` / `payment_intent.payment_failed` / `charge.refunded`, updates the invoice row. Public InvoiceView gets the change instantly via Supabase Realtime subscription.
+- `list-stripe-methods` — Returns labels for whatever payment methods are enabled in the Stripe dashboard, so the "Pay Online" button only advertises methods the client will actually see.
+
+All three use service-role auth on the Supabase side (no client JWT required) and are the secure boundary for the Stripe secret key.
+
+### Stripe Integration
+
+Frontend uses `@stripe/react-stripe-js` `<PaymentElement>`. Configuration in `src/lib/stripe.js`:
+- `stripePromise` — loaded from `VITE_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_CONFIGURED` — boolean used to gracefully fall back to manual bank transfer if Stripe isn't set up
+- `getStripeAppearance()` — reads current `data-theme` and returns appearance config so the Payment Element matches dark/light mode
+
+Bank details (manual transfer fallback) are shown in the live payment panel only — never embedded in the downloadable PDF.
+
 ### AI Integration
 
 `src/lib/aiClient.js` calls Claude API. Supports two modes:
@@ -71,6 +108,16 @@ Clients represent **companies**, not individuals. The `company` field is the pri
 - Edge Function proxy if `VITE_AI_ENDPOINT` is set (production)
 
 `src/data/aiTemplates.js` defines pre-built prompt templates. The AI Assistant page injects business context (clients, projects, invoices) into the system prompt via `buildContext()`.
+
+### Email Templates & Send Pattern
+
+Invoice and proposal emails use a shared template-code system (configurable in Settings):
+- Codes: `{{name}}`, `{{full_name}}`, `{{recipient_email}}`, `{{invoice_number}}` / `{{proposal_number}}`, `{{invoice_link}}` / `{{proposal_link}}`, `{{project_title}}`, `{{total_due}}` / `{{total_amount}}`, `{{due_date}}`, `{{valid_until}}`, `{{payment_terms}}`, `{{client_company}}`, `{{company_name}}`, `{{company_email}}`, `{{company_phone}}`, `{{owner_name}}`, `{{br}}` (literal newline)
+- Send flow: `applyTemplate()` substitutes codes → opens `mailto:` → simultaneously copies the formatted body to the clipboard. Proton Mail strips line breaks from `mailto:` body, so the user pastes (Ctrl+V) over the single-line version. The toast that explains this fires after a delay so it doesn't interrupt the mailto handoff.
+
+### Branded PDF Rendering
+
+`buildInvoiceHTML(invoice, client, settings)` is **exported** from `src/pages/Invoices.jsx` and reused by `InvoiceView.jsx` (the public page) so the printable PDF is identical from both sides. Pattern: `window.open('')` → `w.document.write(html)` → `setTimeout(() => w.print(), 500)`. Logo and brand tokens come from `src/lib/brand.js` (`CLAD_FORGE_LOGO_DATA_URI`, `BRAND`, `BRAND_FONTS_LINK`).
 
 ## Styling
 
@@ -87,3 +134,10 @@ Key conventions:
 
 - `no-unused-vars` ignores identifiers matching `^[A-Z_]` — prefix unused destructured vars with `_`
 - React Refresh plugin active — exported components must be direct function declarations (not arrow functions assigned to variables)
+
+## Codebase Conventions
+
+- **Always confirm destructive actions** — every delete must go through `window.confirm()`. Past data loss from unconfirmed deletes is the reason this rule exists.
+- **No hardcoded colors** — the app has a working light/dark theme via `data-theme` and CSS variables. Use `var(--brand)`, `var(--ink)`, `var(--slate)`, `var(--success)`, `var(--danger)` etc.; never raw hex values in JSX or `App.css` rules.
+- **Activity feed is implicit** — the `makeSetter()` factory auto-logs an entry on every insert/update/delete via the activities entity. Don't manually push to `activities` from page code; let the setter do it.
+- **Settings is a singleton** — single row with `id = 'default'`. `setSettings(updater)` upserts that row.
