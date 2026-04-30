@@ -5,17 +5,17 @@ import { CLAD_FORGE_LOGO_DATA_URI } from '../lib/brand';
 // Landing page for invited portal users. The Supabase magic-link redirect
 // arrives here with auth tokens in the URL hash. supabase-js auto-detects
 // the hash via detectSessionInUrl (default true), creates a session, then
-// this page collects the user's password to finalize their account.
+// this page collects the user's name + password to finalize their account.
 //
 // Phases:
 //   loading    — supabase-js is still processing the URL hash
-//   form       — session ready, show password form
-//   submitting — calling auth.updateUser({ password })
-//   success    — password set, brief confirmation before redirect
+//   form       — session ready, show name + password form
+//   submitting — calling auth.updateUser({ password, data: { full_name } })
+//   success    — done, brief confirmation before redirect
 //   error      — link is invalid or expired
 //
 // On success, mark client_users.accepted_at and reload so App.jsx routes
-// the now-authenticated client user to <PortalPlaceholder />.
+// the now-authenticated client user to <ClientPortal />.
 export default function AcceptInvite() {
   const [phase, setPhase] = useState('loading');
   const [email, setEmail] = useState('');
@@ -76,6 +76,11 @@ export default function AcceptInvite() {
     e.preventDefault();
     setError('');
 
+    const cleanedName = fullName.trim();
+    if (!cleanedName) {
+      setError('Please enter your full name.');
+      return;
+    }
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
@@ -87,12 +92,25 @@ export default function AcceptInvite() {
 
     setPhase('submitting');
     try {
-      const { data: updateData, error: updateErr } = await supabase.auth.updateUser({ password });
+      // Update auth: set password + store full_name in user_metadata so it
+      // survives password resets / future SDK reads of session.user.
+      const { data: updateData, error: updateErr } = await supabase.auth.updateUser({
+        password,
+        data: { full_name: cleanedName },
+      });
       if (updateErr) throw updateErr;
 
-      // Mark client_users.accepted_at so admin sees "Accepted" instead of "Pending"
       const userId = updateData?.user?.id;
       if (userId) {
+        // Also update the profiles row directly. handle_new_user() created it
+        // with full_name='User' as a fallback; replace that with what the user
+        // actually entered so it shows in the portal sidebar immediately.
+        await supabase
+          .from('profiles')
+          .update({ full_name: cleanedName })
+          .eq('id', userId);
+
+        // Mark client_users.accepted_at so admin sees "Accepted" instead of "Pending"
         await supabase
           .from('client_users')
           .update({ accepted_at: new Date().toISOString() })
@@ -101,10 +119,10 @@ export default function AcceptInvite() {
 
       setPhase('success');
       // Hard reload to / so App.jsx sees the (now persistent) session and
-      // routes the client-role user to <PortalPlaceholder />.
+      // routes the client-role user to <ClientPortal />.
       setTimeout(() => { window.location.href = '/'; }, 1400);
     } catch (err) {
-      setError(err.message || 'Could not set password. Try again.');
+      setError(err.message || 'Could not finish setup. Try again.');
       setPhase('form');
     }
   }
@@ -165,10 +183,29 @@ export default function AcceptInvite() {
         />
         <h1 className="portal-placeholder__title">Welcome to Clad Forge</h1>
         <p className="portal-placeholder__lede">
-          {email ? <>Set a password for <strong>{email}</strong> to finish setting up your portal account.</> : 'Set a password to finish setting up your portal account.'}
+          {email
+            ? <>Finish setting up your portal account for <strong>{email}</strong>.</>
+            : 'Finish setting up your portal account.'}
         </p>
 
-        <form onSubmit={handleSubmit} style={{ textAlign: 'left', marginTop: 8 }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ textAlign: 'left', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 16 }}
+        >
+          <div className="form-group">
+            <label>Full name</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              autoComplete="name"
+              required
+              autoFocus
+              disabled={phase === 'submitting'}
+              placeholder="Your full name"
+            />
+          </div>
+
           <div className="form-group">
             <label>New password</label>
             <input
@@ -178,7 +215,6 @@ export default function AcceptInvite() {
               autoComplete="new-password"
               minLength={8}
               required
-              autoFocus
               disabled={phase === 'submitting'}
               placeholder="At least 8 characters"
             />
@@ -204,9 +240,9 @@ export default function AcceptInvite() {
             type="submit"
             className="btn btn--primary"
             disabled={phase === 'submitting'}
-            style={{ width: '100%', marginTop: 16 }}
+            style={{ width: '100%' }}
           >
-            {phase === 'submitting' ? 'Setting password…' : 'Set Password & Continue'}
+            {phase === 'submitting' ? 'Finishing setup…' : 'Finish Setup & Continue'}
           </button>
         </form>
 
