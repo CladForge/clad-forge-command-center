@@ -1,3 +1,5 @@
+import { downloadProposalPDF } from '../../lib/proposalPdf';
+
 function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
@@ -10,7 +12,7 @@ const STATUS_LABELS = {
   rejected: 'Declined',
 };
 
-export default function PortalProposals({ sows }) {
+export default function PortalProposals({ sows, activeClient, settings }) {
   function openProposal(sow) {
     if (sow.shareToken) {
       window.open(`/sign/${sow.shareToken}`, '_blank', 'noopener,noreferrer');
@@ -19,8 +21,13 @@ export default function PortalProposals({ sows }) {
     }
   }
 
-  // Filter out drafts — clients shouldn't see proposals you haven't sent yet
-  const visible = sows.filter(s => s.status !== 'draft');
+  function handleDownload(sow) {
+    downloadProposalPDF(sow, activeClient, settings);
+  }
+
+  // Drafts are filtered out at the data hook level (Phase 4a) — sows passed
+  // here are guaranteed to be sent or further along.
+  const visible = sows;
 
   return (
     <div className="portal-page">
@@ -68,12 +75,21 @@ export default function PortalProposals({ sows }) {
                       {sow.budget ? fmtCurrency(sow.budget) : '—'}
                     </td>
                     <td>
-                      <button
-                        className={`btn btn--sm ${isReviewable ? 'btn--primary' : 'btn--ghost'}`}
-                        onClick={() => openProposal(sow)}
-                      >
-                        {isReviewable ? 'Review & Sign' : 'View'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => handleDownload(sow)}
+                          title="Download PDF"
+                        >
+                          PDF
+                        </button>
+                        <button
+                          className={`btn btn--sm ${isReviewable ? 'btn--primary' : 'btn--ghost'}`}
+                          onClick={() => openProposal(sow)}
+                        >
+                          {isReviewable ? 'Review & Sign' : 'View'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

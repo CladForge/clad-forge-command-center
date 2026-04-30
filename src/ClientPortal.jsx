@@ -129,10 +129,18 @@ export default function ClientPortal({ profile, onSignOut }) {
                 />
               } />
               <Route path="/portal/invoices" element={
-                <PortalInvoices invoices={data.invoices} />
+                <PortalInvoices
+                  invoices={data.invoices}
+                  activeClient={data.activeClient}
+                  settings={data.settings}
+                />
               } />
               <Route path="/portal/proposals" element={
-                <PortalProposals sows={data.sows} />
+                <PortalProposals
+                  sows={data.sows}
+                  activeClient={data.activeClient}
+                  settings={data.settings}
+                />
               } />
               <Route path="/portal/expenses" element={
                 <PortalRecurring recurringExpenses={data.recurringExpenses} />

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { buildInvoiceHTML } from '../Invoices';
 
 function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -18,7 +19,7 @@ const STATUS_LABELS = {
   cancelled: 'Cancelled',
 };
 
-export default function PortalInvoices({ invoices }) {
+export default function PortalInvoices({ invoices, activeClient, settings }) {
   const [filter, setFilter] = useState('all');
 
   const filtered = filter === 'all'
@@ -40,6 +41,14 @@ export default function PortalInvoices({ invoices }) {
     } else {
       alert('This invoice does not have a shareable link yet. Please contact your Clad Forge contact.');
     }
+  }
+
+  function handleDownload(inv) {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(buildInvoiceHTML(inv, activeClient, settings));
+    w.document.close();
+    setTimeout(() => w.print(), 500);
   }
 
   return (
@@ -103,12 +112,21 @@ export default function PortalInvoices({ invoices }) {
                       {fmtCurrency(total)}
                     </td>
                     <td>
-                      <button
-                        className={`btn btn--sm ${isPayable ? 'btn--primary' : 'btn--ghost'}`}
-                        onClick={() => openInvoice(inv)}
-                      >
-                        {isPayable ? 'View & Pay' : 'View'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => handleDownload(inv)}
+                          title="Download PDF"
+                        >
+                          PDF
+                        </button>
+                        <button
+                          className={`btn btn--sm ${isPayable ? 'btn--primary' : 'btn--ghost'}`}
+                          onClick={() => openInvoice(inv)}
+                        >
+                          {isPayable ? 'View & Pay' : 'View'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

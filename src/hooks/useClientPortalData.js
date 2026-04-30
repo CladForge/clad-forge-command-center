@@ -110,8 +110,20 @@ export function useClientPortalData(authUserId) {
 
         if (clientRes.data) setActiveClient(snakeToCamel(clientRes.data));
         setProjects((projectsRes.data || []).map(snakeToCamel));
-        setInvoices((invoicesRes.data || []).map(snakeToCamel));
-        setSOWs((sowsRes.data || []).map(snakeToCamel));
+        // Hide drafts and cancelled rows from clients — they should only see
+        // invoices/proposals the admin has actually sent. Filtering at the
+        // source keeps this consistent across every portal page (dashboard,
+        // list, project detail) without per-page filter logic.
+        setInvoices(
+          (invoicesRes.data || [])
+            .map(snakeToCamel)
+            .filter(i => i.status !== 'draft' && i.status !== 'cancelled')
+        );
+        setSOWs(
+          (sowsRes.data || [])
+            .map(snakeToCamel)
+            .filter(s => s.status !== 'draft')
+        );
         setDocuments((documentsRes.data || []).map(snakeToCamel));
         setRecurringExpenses((recurringRes.data || []).map(snakeToCamel));
         if (settingsRes.data) setSettings(snakeToCamel(settingsRes.data));
