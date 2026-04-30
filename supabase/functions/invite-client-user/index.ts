@@ -100,20 +100,37 @@ Deno.serve(async (req) => {
       invited = true;
     }
 
-    // ── 4. Upsert profile (role='client') ───────────────────────────────
-    // Don't downgrade an existing admin/user/contractor profile to 'client'.
-    // Only set role='client' on a brand-new profile row.
-    const { data: existingProfile } = await admin
-      .from('profiles').select('id, role').eq('id', authUserId).maybeSingle();
-
-    if (!existingProfile) {
-      const { error: profileInsErr } = await admin.from('profiles').insert({
-        id: authUserId,
-        role: 'client',
-        full_name: '',
-      });
-      if (profileInsErr) {
-        return json({ error: `Profile create failed: ${profileInsErr.message}` }, 500);
+    // ── 4. Set profile role='client' for newly-invited users ───────────
+    // The on_auth_user_created trigger fires immediately on auth.users insert
+    // and creates a profile with role='admin' (the default for direct signups).
+    // For portal invites, that's wrong — we need to force role='client'.
+    //
+    // Only do this when WE just created the auth user (`invited === true`).
+    // If the user already existed with their own profile (e.g. they're an
+    // admin who's also being added to a client portal), we leave their role
+    // alone — admins stay admins, even if linked to a client_users row.
+    if (invited) {
+      const { error: profileUpdateErr } = await admin
+        .from('profiles')
+        .update({ role: 'client' })
+        .eq('id', authUserId);
+      if (profileUpdateErr) {
+        return json({ error: `Profile role update failed: ${profileUpdateErr.message}` }, 500);
+      }
+    } else {
+      // Belt-and-suspenders: if somehow there's no profile row at all
+      // (trigger missing or disabled), create one with role='client'.
+      const { data: existingProfile } = await admin
+        .from('profiles').select('id').eq('id', authUserId).maybeSingle();
+      if (!existingProfile) {
+        const { error: profileInsErr } = await admin.from('profiles').insert({
+          id: authUserId,
+          role: 'client',
+          full_name: '',
+        });
+        if (profileInsErr) {
+          return json({ error: `Profile create failed: ${profileInsErr.message}` }, 500);
+        }
       }
     }
 

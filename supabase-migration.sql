@@ -315,3 +315,11 @@ DO $$ BEGIN
   CREATE POLICY "Allow all access to client_users" ON client_users FOR ALL USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Allow 'client' as a profile role. The original CHECK constraint only
+-- permitted admin/user/contractor/guest, which would block portal users
+-- from being correctly classified. Drop the old constraint and replace
+-- with one that includes 'client'.
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE profiles ADD CONSTRAINT profiles_role_check
+  CHECK (role IN ('admin','user','contractor','guest','client'));

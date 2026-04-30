@@ -91,6 +91,9 @@ export default function App() {
     await supabase.auth.signOut();
   }
 
+  // (Migration adds 'client' to profiles.role CHECK and edge function force-
+  // updates role to 'client' on invite. See supabase-migration.sql.)
+
   // The accept-invite page renders BEFORE any session/loading checks because
   // its whole job is to handle the magic-link auth handoff. supabase-js may
   // be processing the URL hash mid-render; <AcceptInvite /> manages its own
