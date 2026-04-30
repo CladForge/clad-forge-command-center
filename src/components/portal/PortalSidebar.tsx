@@ -45,19 +45,25 @@ export default function PortalSidebar({ profile, activeClient, settings, onSignO
     .toUpperCase();
 
   return (
-    <aside className="hidden md:flex w-60 shrink-0 flex-col bg-surface border-r border-border">
+    // Using arbitrary values (text-[var(--slate)] etc.) instead of Tailwind
+    // theme tokens (text-slate). Tailwind v4's default palettes (slate,
+    // stone, neutral) collide with our custom @theme tokens of the same
+    // name in unpredictable ways — arbitrary values bypass that entirely
+    // and reference our CSS variables directly. Light/dark theme switching
+    // still works because the variables themselves swap on `data-theme`.
+    <aside className="hidden md:flex w-60 shrink-0 flex-col bg-[var(--surface)] border-r border-[color:var(--border)]">
       {/* Brand */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-[color:var(--border)]">
         <img
           src={logoSrc}
           alt={companyName}
           className="w-9 h-9 shrink-0 drop-shadow-[0_2px_4px_rgba(255,140,0,0.2)]"
         />
         <div className="flex flex-col min-w-0">
-          <span className="text-[0.95rem] font-bold text-ink tracking-tight leading-tight">
+          <span className="text-[0.95rem] font-bold text-[var(--ink)] tracking-tight leading-tight">
             {companyName}
           </span>
-          <span className="text-[0.7rem] font-semibold text-brand uppercase tracking-[0.1em] mt-0.5">
+          <span className="text-[0.7rem] font-semibold text-[var(--brand)] uppercase tracking-[0.1em] mt-0.5">
             Client Portal
           </span>
         </div>
@@ -70,15 +76,12 @@ export default function PortalSidebar({ profile, activeClient, settings, onSignO
             key={item.to}
             to={item.to}
             end={item.end}
-            // NavLink's className supports a function — Tailwind classes for
-            // active vs. inactive states. Brand colors come from the @theme
-            // bridge so light/dark mode "just works" via data-theme.
             className={({ isActive }) =>
               [
                 'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[0.88rem] font-medium no-underline transition-all duration-150',
                 isActive
-                  ? 'bg-brand-pale text-brand font-semibold'
-                  : 'text-slate hover:bg-brand-wash hover:text-ink',
+                  ? 'bg-[var(--brand-pale)] text-[var(--brand)] font-semibold'
+                  : 'text-[var(--slate)] hover:bg-[var(--brand-wash)] hover:text-[var(--ink)]',
               ].join(' ')
             }
           >
@@ -91,17 +94,17 @@ export default function PortalSidebar({ profile, activeClient, settings, onSignO
       </nav>
 
       {/* Footer (user + sign out) */}
-      <div className="flex flex-col gap-3 px-3.5 pt-3.5 pb-4 border-t border-border">
+      <div className="flex flex-col gap-3 px-3.5 pt-3.5 pb-4 border-t border-[color:var(--border)]">
         <div className="flex items-center gap-2.5">
-          <div className="w-[34px] h-[34px] rounded-full shrink-0 flex items-center justify-center bg-brand-pale text-brand text-[0.9rem] font-bold">
+          <div className="w-[34px] h-[34px] rounded-full shrink-0 flex items-center justify-center bg-[var(--brand-pale)] text-[var(--brand)] text-[0.9rem] font-bold">
             {avatarLetter}
           </div>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-[0.82rem] font-semibold text-ink truncate">
+            <span className="text-[0.82rem] font-semibold text-[var(--ink)] truncate">
               {profile?.fullName || profile?.email || 'Portal User'}
             </span>
             {activeClient && (
-              <span className="text-[0.72rem] text-slate truncate">{activeClient.company}</span>
+              <span className="text-[0.72rem] text-[var(--slate)] truncate">{activeClient.company}</span>
             )}
           </div>
         </div>
