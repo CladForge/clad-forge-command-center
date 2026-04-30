@@ -18,7 +18,11 @@ GitHub `main` → Cloudflare Pages (auto-deploy). Any commit pushed to `main` de
 
 ## Tech Stack
 
-React 19 (JSX, no TypeScript), Vite 8, React Router DOM 7, Supabase (PostgreSQL + Auth + Edge Functions), Stripe (PaymentElement + webhooks via Edge Functions), Anthropic SDK (Claude API), ESLint 9 flat config.
+React 19, Vite 8, React Router DOM 7, Supabase (PostgreSQL + Auth + Edge Functions), Stripe (PaymentElement + webhooks via Edge Functions), Anthropic SDK (Claude API), ESLint 9 flat config.
+
+**TypeScript** is configured (`tsconfig.json`) and ready for use on a per-file basis. Existing `.jsx` files are unchanged and unchecked (`allowJs: true`, `checkJs: false`); any new file written as `.tsx` gets full strict type-checking. There's no migration deadline — convert files when you touch them. Run `npx tsc --noEmit` to type-check the whole codebase.
+
+**Tailwind CSS v4** is wired in via `@tailwindcss/vite`. Theme tokens in `src/index.css` (under the `@theme {}` block) are mapped to the existing CSS variables, so utility classes like `bg-brand` / `text-ink` / `border-stone-dark` automatically respect the `data-theme="dark"/"light"` switch. Use Tailwind for new components; existing CSS in `src/App.css` keeps working untouched.
 
 ## Architecture
 

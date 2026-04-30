@@ -1,6 +1,50 @@
 /* ===== CLAD FORGE — Command Center Global Styles ===== */
 /* Dark professional theme matching cladforge.com */
 
+/* Tailwind v4 — utility classes available app-wide. Existing CSS in App.css
+   keeps working untouched. Use Tailwind for any new components going forward. */
+@import "tailwindcss";
+
+/* Bridge Tailwind theme tokens to the existing CSS variables so utility
+   classes (bg-brand, text-ink, border-stone-dark, etc.) automatically
+   respect the data-theme="dark"/"light" switch instead of hard-coding
+   colors. Anything declared in @theme also generates utility classes
+   (text-{name}, bg-{name}, border-{name}). */
+@theme {
+  /* Brand */
+  --color-brand: var(--brand);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-mid: var(--brand-mid);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-pale: var(--brand-pale);
+  --color-brand-wash: var(--brand-wash);
+  --color-secondary: var(--secondary);
+
+  /* Neutrals */
+  --color-stone: var(--stone);
+  --color-stone-dark: var(--stone-dark);
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-slate-light: var(--slate-light);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+
+  /* Semantic */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  /* Typography */
+  --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radii — match existing layout vars */
+  --radius-default: 10px;
+  --radius-lg: 14px;
+}
+
 :root {
   /* Brand Colors — Orange primary, Purple secondary */
   --brand: #ff8c00;
