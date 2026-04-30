@@ -240,7 +240,7 @@ export default function AcceptInvite() {
             type="submit"
             className="btn btn--primary"
             disabled={phase === 'submitting'}
-            style={{ width: '100%' }}
+            style={{ width: '100%', textAlign: 'center' }}
           >
             {phase === 'submitting' ? 'Finishing setup…' : 'Finish Setup & Continue'}
           </button>
