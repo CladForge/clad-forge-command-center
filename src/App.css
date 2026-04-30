@@ -2744,26 +2744,10 @@ mark.code-highlight {
 
 .portal { display: flex; height: 100vh; width: 100%; flex: 1; overflow: hidden; background: var(--stone); }
 
-/* ── Sidebar ── */
-.portal-sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-.portal-sidebar__brand { padding: 22px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
-.portal-sidebar__brand-logo { width: 36px; height: 36px; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(255,140,0,0.2)); }
-.portal-sidebar__brand-text { display: flex; flex-direction: column; min-width: 0; }
-.portal-sidebar__brand-name { font-size: 0.95rem; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; line-height: 1.2; }
-.portal-sidebar__brand-sub { font-size: 0.7rem; color: var(--brand); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
-
-.portal-sidebar__nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
-.portal-sidebar__link { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; color: var(--slate); font-size: 0.88rem; font-weight: 500; text-decoration: none; transition: all 0.15s ease; }
-.portal-sidebar__link:hover { background: var(--brand-wash); color: var(--ink); }
-.portal-sidebar__link--active { background: var(--brand-pale); color: var(--brand); font-weight: 600; }
-.portal-sidebar__icon { display: flex; align-items: center; justify-content: center; width: 20px; flex-shrink: 0; }
-
-.portal-sidebar__footer { padding: 14px 14px 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
-.portal-sidebar__user { display: flex; align-items: center; gap: 10px; }
-.portal-sidebar__user-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-pale); color: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; flex-shrink: 0; }
-.portal-sidebar__user-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.portal-sidebar__user-name { font-size: 0.82rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.portal-sidebar__user-company { font-size: 0.72rem; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Sidebar styles moved to src/components/portal/PortalSidebar.tsx
+   (Tailwind utilities). Removed from this file to keep App.css from
+   ballooning. The same migration pattern applies to other components
+   as they're touched. */
 
 /* ── Main column ── */
 .portal-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
@@ -2828,7 +2812,7 @@ mark.code-highlight {
   .portal-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
-  .portal-sidebar { display: none; }
+  /* .portal-sidebar mobile-hide moved to PortalSidebar.tsx as `hidden md:flex` */
   .portal-content { padding: 20px 16px; }
   .portal-stats { grid-template-columns: 1fr; }
   .portal-projects { grid-template-columns: 1fr; padding: 12px; }

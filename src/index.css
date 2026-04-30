@@ -35,6 +35,10 @@
   --color-danger: var(--danger);
   --color-info: var(--info);
 
+  /* Borders + dividers */
+  --color-border: var(--border);
+  --color-border-light: var(--border-light);
+
   /* Typography */
   --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
   --font-body: 'Inter', -apple-system, sans-serif;
