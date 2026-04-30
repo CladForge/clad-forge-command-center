@@ -323,3 +323,279 @@ END $$;
 ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 ALTER TABLE profiles ADD CONSTRAINT profiles_role_check
   CHECK (role IN ('admin','user','contractor','guest','client'));
+
+-- ================================================================
+-- PHASE 3 — RLS HARDENING
+-- Replaces every "Allow all access" permissive policy with strict ones:
+--   * Admins (profile.role='admin') keep full read/write on everything
+--   * Portal clients (profile.role='client') see only rows for the
+--     companies they're linked to via client_users
+--   * Anonymous users get NO direct table access; the public share-token
+--     pages call RPC functions (SECURITY DEFINER) instead
+--
+-- ROLLBACK: if anything breaks, run this single block to restore the
+-- original permissive policies (note: this will RE-OPEN cross-client
+-- data exposure):
+--   DO $$ DECLARE t text; BEGIN
+--     FOR t IN SELECT unnest(ARRAY['clients','projects','sows','invoices',
+--       'time_entries','events','contractors','deals','crm_activities',
+--       'channel_partners','documents','notifications','automations',
+--       'automation_logs','activities','settings','recurring_expenses',
+--       'finance_entries','tax_payments','client_users']) LOOP
+--       EXECUTE format('DROP POLICY IF EXISTS %I_select ON %I', t, t);
+--       EXECUTE format('DROP POLICY IF EXISTS %I_insert ON %I', t, t);
+--       EXECUTE format('DROP POLICY IF EXISTS %I_update ON %I', t, t);
+--       EXECUTE format('DROP POLICY IF EXISTS %I_delete ON %I', t, t);
+--       EXECUTE format('DROP POLICY IF EXISTS %I_admin_all ON %I', t, t);
+--       EXECUTE format('CREATE POLICY %I_all_legacy ON %I FOR ALL USING (true) WITH CHECK (true)', t, t);
+--     END LOOP;
+--   END $$;
+-- ================================================================
+
+-- ── Helper functions ────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.auth_is_admin()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.auth_client_ids()
+RETURNS text[]
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(array_agg(client_id), ARRAY[]::text[])
+  FROM client_users WHERE auth_user_id = auth.uid();
+$$;
+
+GRANT EXECUTE ON FUNCTION public.auth_is_admin() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.auth_client_ids() TO anon, authenticated;
+
+-- ── Public RPCs for share-token flows ───────────────────────────────
+-- These run as SECURITY DEFINER so they bypass RLS. They replace the direct
+-- table queries that the public InvoiceView and ProposalSign pages used to
+-- make. Each function takes a share_token and only returns/modifies the
+-- single matching row.
+
+CREATE OR REPLACE FUNCTION public.get_invoice_by_token(p_token text)
+RETURNS json
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT row_to_json(i.*) FROM invoices i WHERE i.share_token = p_token LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_client_by_invoice_token(p_token text)
+RETURNS json
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT row_to_json(c.*)
+  FROM invoices i JOIN clients c ON c.id = i.client_id
+  WHERE i.share_token = p_token LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.mark_invoice_manual_processing(p_token text)
+RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE rows_updated int;
+BEGIN
+  UPDATE invoices
+  SET status = 'processing', payment_method = 'manual'
+  WHERE share_token = p_token AND status NOT IN ('paid','cancelled');
+  GET DIAGNOSTICS rows_updated = ROW_COUNT;
+  RETURN rows_updated > 0;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_sow_by_token(p_token text)
+RETURNS json
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT row_to_json(s.*) FROM sows s WHERE s.share_token = p_token LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_client_by_sow_token(p_token text)
+RETURNS json
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT row_to_json(c.*)
+  FROM sows s JOIN clients c ON c.id = s.client_id
+  WHERE s.share_token = p_token LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.accept_sow_by_token(
+  p_token text, p_signature text, p_notes text,
+  p_selections json, p_snapshot json, p_packages json
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  rows_updated int;
+  signed_date text;
+BEGIN
+  signed_date := to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD');
+  UPDATE sows
+  SET status = 'accepted',
+      client_signature = p_signature,
+      client_signed_date = signed_date,
+      client_notes = p_notes,
+      client_selections = p_selections,
+      signed_snapshot = p_snapshot,
+      accepted_date = signed_date,
+      packages = p_packages
+  WHERE share_token = p_token
+    AND status NOT IN ('accepted','declined','project-created');
+  GET DIAGNOSTICS rows_updated = ROW_COUNT;
+  RETURN rows_updated > 0;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.decline_sow_by_token(
+  p_token text, p_notes text, p_selections json
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE rows_updated int;
+BEGIN
+  UPDATE sows
+  SET status = 'declined', client_notes = p_notes, client_selections = p_selections
+  WHERE share_token = p_token
+    AND status NOT IN ('accepted','declined','project-created');
+  GET DIAGNOSTICS rows_updated = ROW_COUNT;
+  RETURN rows_updated > 0;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_invoice_by_token(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_client_by_invoice_token(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.mark_invoice_manual_processing(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_sow_by_token(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_client_by_sow_token(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.accept_sow_by_token(text,text,text,json,json,json) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.decline_sow_by_token(text,text,json) TO anon, authenticated;
+
+-- ── Drop old permissive policies + add strict ones ──────────────────
+-- Pattern A: client-scoped tables (admin: all; client: rows where their
+-- client_id matches a client_users link; anon: no direct access).
+DO $$
+DECLARE
+  scoped_tables TEXT[] := ARRAY['projects','sows','invoices','documents','recurring_expenses'];
+  t TEXT;
+BEGIN
+  FOREACH t IN ARRAY scoped_tables LOOP
+    -- Drop legacy permissive policies
+    EXECUTE format('DROP POLICY IF EXISTS "Allow all access to %s" ON %I', t, t);
+    EXECUTE format('DROP POLICY IF EXISTS %I_all_legacy ON %I', t, t);
+    -- Drop any older Phase 3 policies (so this migration is idempotent)
+    EXECUTE format('DROP POLICY IF EXISTS %I_select ON %I', t, t);
+    EXECUTE format('DROP POLICY IF EXISTS %I_insert ON %I', t, t);
+    EXECUTE format('DROP POLICY IF EXISTS %I_update ON %I', t, t);
+    EXECUTE format('DROP POLICY IF EXISTS %I_delete ON %I', t, t);
+
+    EXECUTE format('CREATE POLICY %I_select ON %I FOR SELECT TO authenticated USING (auth_is_admin() OR client_id = ANY(auth_client_ids()))', t, t);
+    EXECUTE format('CREATE POLICY %I_insert ON %I FOR INSERT TO authenticated WITH CHECK (auth_is_admin())', t, t);
+    EXECUTE format('CREATE POLICY %I_update ON %I FOR UPDATE TO authenticated USING (auth_is_admin()) WITH CHECK (auth_is_admin())', t, t);
+    EXECUTE format('CREATE POLICY %I_delete ON %I FOR DELETE TO authenticated USING (auth_is_admin())', t, t);
+  END LOOP;
+END $$;
+
+-- clients itself: same shape as scoped tables but the row's id IS the client_id
+DROP POLICY IF EXISTS "Allow all access to clients" ON clients;
+DROP POLICY IF EXISTS clients_select ON clients;
+DROP POLICY IF EXISTS clients_insert ON clients;
+DROP POLICY IF EXISTS clients_update ON clients;
+DROP POLICY IF EXISTS clients_delete ON clients;
+CREATE POLICY clients_select ON clients FOR SELECT TO authenticated
+  USING (auth_is_admin() OR id = ANY(auth_client_ids()));
+CREATE POLICY clients_insert ON clients FOR INSERT TO authenticated WITH CHECK (auth_is_admin());
+CREATE POLICY clients_update ON clients FOR UPDATE TO authenticated USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+CREATE POLICY clients_delete ON clients FOR DELETE TO authenticated USING (auth_is_admin());
+
+-- Pattern B: admin-only tables. Clients can't see ANY rows.
+DO $$
+DECLARE
+  admin_only_tables TEXT[] := ARRAY['time_entries','events','contractors','deals',
+    'crm_activities','channel_partners','automations','automation_logs',
+    'activities','finance_entries','tax_payments'];
+  t TEXT;
+BEGIN
+  FOREACH t IN ARRAY admin_only_tables LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "Allow all access to %s" ON %I', t, t);
+    EXECUTE format('DROP POLICY IF EXISTS %I_all_legacy ON %I', t, t);
+    EXECUTE format('DROP POLICY IF EXISTS %I_admin_all ON %I', t, t);
+    EXECUTE format('CREATE POLICY %I_admin_all ON %I FOR ALL TO authenticated USING (auth_is_admin()) WITH CHECK (auth_is_admin())', t, t);
+  END LOOP;
+END $$;
+
+-- settings: public SELECT (branding shown on public pages); admin-only writes
+DROP POLICY IF EXISTS "Allow read settings" ON settings;
+DROP POLICY IF EXISTS "Allow public read settings" ON settings;
+DROP POLICY IF EXISTS "Allow update settings" ON settings;
+DROP POLICY IF EXISTS settings_select ON settings;
+DROP POLICY IF EXISTS settings_update ON settings;
+DROP POLICY IF EXISTS settings_insert ON settings;
+DROP POLICY IF EXISTS settings_delete ON settings;
+CREATE POLICY settings_select ON settings FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY settings_update ON settings FOR UPDATE TO authenticated USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+CREATE POLICY settings_insert ON settings FOR INSERT TO authenticated WITH CHECK (auth_is_admin());
+
+-- notifications: admin sees all; users see their own
+DROP POLICY IF EXISTS "Allow all access to notifications" ON notifications;
+DROP POLICY IF EXISTS notifications_select ON notifications;
+DROP POLICY IF EXISTS notifications_insert ON notifications;
+DROP POLICY IF EXISTS notifications_update ON notifications;
+DROP POLICY IF EXISTS notifications_delete ON notifications;
+CREATE POLICY notifications_select ON notifications FOR SELECT TO authenticated
+  USING (auth_is_admin() OR user_id = auth.uid());
+CREATE POLICY notifications_insert ON notifications FOR INSERT TO authenticated WITH CHECK (auth_is_admin());
+CREATE POLICY notifications_update ON notifications FOR UPDATE TO authenticated
+  USING (auth_is_admin() OR user_id = auth.uid())
+  WITH CHECK (auth_is_admin() OR user_id = auth.uid());
+CREATE POLICY notifications_delete ON notifications FOR DELETE TO authenticated USING (auth_is_admin());
+
+-- profiles: anyone authenticated can read profiles (admin needs this for the
+-- "Portal Access" tab). Users update only their own profile. Inserts happen
+-- via the on_auth_user_created trigger (SECURITY DEFINER, bypasses RLS).
+DROP POLICY IF EXISTS "Allow read access to all profiles" ON profiles;
+DROP POLICY IF EXISTS "Allow users to update own profile" ON profiles;
+DROP POLICY IF EXISTS "Allow insert profiles" ON profiles;
+DROP POLICY IF EXISTS profiles_select ON profiles;
+DROP POLICY IF EXISTS profiles_insert ON profiles;
+DROP POLICY IF EXISTS profiles_update ON profiles;
+DROP POLICY IF EXISTS profiles_delete ON profiles;
+CREATE POLICY profiles_select ON profiles FOR SELECT TO authenticated USING (true);
+CREATE POLICY profiles_update ON profiles FOR UPDATE TO authenticated
+  USING (auth_is_admin() OR id = auth.uid())
+  WITH CHECK (auth_is_admin() OR id = auth.uid());
+-- INSERTs by the trigger run as SECURITY DEFINER so they don't need a policy,
+-- but allow admins to insert too in case of manual provisioning.
+CREATE POLICY profiles_insert ON profiles FOR INSERT TO authenticated WITH CHECK (auth_is_admin());
+
+-- client_users: admin sees all, users see/update their own row (so the portal
+-- can refresh last_seen_at and AcceptInvite can mark accepted_at).
+DROP POLICY IF EXISTS "Allow all access to client_users" ON client_users;
+DROP POLICY IF EXISTS client_users_select ON client_users;
+DROP POLICY IF EXISTS client_users_insert ON client_users;
+DROP POLICY IF EXISTS client_users_update ON client_users;
+DROP POLICY IF EXISTS client_users_delete ON client_users;
+CREATE POLICY client_users_select ON client_users FOR SELECT TO authenticated
+  USING (auth_is_admin() OR auth_user_id = auth.uid());
+CREATE POLICY client_users_insert ON client_users FOR INSERT TO authenticated WITH CHECK (auth_is_admin());
+CREATE POLICY client_users_update ON client_users FOR UPDATE TO authenticated
+  USING (auth_is_admin() OR auth_user_id = auth.uid())
+  WITH CHECK (auth_is_admin() OR auth_user_id = auth.uid());
+CREATE POLICY client_users_delete ON client_users FOR DELETE TO authenticated USING (auth_is_admin());
+
+-- onboarding_submissions: existing policies (public insert, authenticated read/update)
+-- already match Phase 3 intent. No change needed here.

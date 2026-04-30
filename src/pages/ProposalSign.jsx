@@ -21,19 +21,18 @@ export default function ProposalSign() {
 
   useEffect(() => {
     async function load() {
-      const { data, error: err } = await supabase
-        .from('sows')
-        .select('*')
-        .eq('share_token', token)
-        .single();
+      // RPC instead of direct SELECT — Phase 3 RLS blocks anon table reads.
+      // get_sow_by_token / get_client_by_sow_token run as SECURITY DEFINER
+      // and only return the row matching the share_token.
+      const { data: sowRow, error: err } = await supabase.rpc('get_sow_by_token', { p_token: token });
 
-      if (err || !data) {
+      if (err || !sowRow) {
         setError('This proposal link is invalid or has expired.');
         setLoading(false);
         return;
       }
 
-      const p = snakeToCamel(data);
+      const p = snakeToCamel(sowRow);
       setProposal(p);
 
       // Initialize optional package selections (all included by default)
@@ -48,14 +47,11 @@ export default function ProposalSign() {
         setSubmitted(true);
       }
 
-      // Load client info
-      if (p.clientId) {
-        const { data: c } = await supabase.from('clients').select('*').eq('id', p.clientId).single();
-        if (c) setClient(snakeToCamel(c));
-      }
-
-      // Load company settings
-      const { data: s } = await supabase.from('settings').select('*').eq('id', 'default').single();
+      const [{ data: c }, { data: s }] = await Promise.all([
+        supabase.rpc('get_client_by_sow_token', { p_token: token }),
+        supabase.from('settings').select('*').eq('id', 'default').single(),
+      ]);
+      if (c) setClient(snakeToCamel(c));
       if (s) setSettings(snakeToCamel(s));
 
       setLoading(false);
@@ -94,19 +90,15 @@ export default function ProposalSign() {
       included: p.optional ? !!selections[p.id] : true,
     }));
 
-    const { error: err } = await supabase
-      .from('sows')
-      .update({
-        status: 'accepted',
-        client_signature: signature,
-        client_signed_date: signedDate,
-        client_notes: clientNotes,
-        client_selections: selections,
-        signed_snapshot: snapshot,
-        accepted_date: signedDate,
-        packages: finalPackages,
-      })
-      .eq('share_token', token);
+    // RPC instead of direct UPDATE — anon UPDATE blocked by RLS.
+    const { error: err } = await supabase.rpc('accept_sow_by_token', {
+      p_token: token,
+      p_signature: signature,
+      p_notes: clientNotes,
+      p_selections: selections,
+      p_snapshot: snapshot,
+      p_packages: finalPackages,
+    });
 
     if (err) {
       alert('There was an error submitting. Please try again.');
@@ -124,14 +116,11 @@ export default function ProposalSign() {
     if (!window.confirm('Are you sure you want to decline this proposal?')) return;
     setSubmitting(true);
 
-    const { error: err } = await supabase
-      .from('sows')
-      .update({
-        status: 'declined',
-        client_notes: reason || 'Declined without notes',
-        client_selections: selections,
-      })
-      .eq('share_token', token);
+    const { error: err } = await supabase.rpc('decline_sow_by_token', {
+      p_token: token,
+      p_notes: reason || 'Declined without notes',
+      p_selections: selections,
+    });
 
     if (err) {
       alert('There was an error. Please try again.');

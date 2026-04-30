@@ -42,19 +42,21 @@ export default function InvoiceView() {
   const [markingManual, setMarkingManual] = useState(false);
   const [manualMode, setManualMode] = useState(false);
 
-  // Load invoice, client, settings
+  // Load invoice, client, settings.
+  // Uses Supabase RPCs (SECURITY DEFINER) to read invoice + client because
+  // Phase 3 RLS blocks direct anon SELECT on those tables. Settings stays
+  // a direct SELECT — its RLS policy explicitly allows public read so the
+  // public page can render branding.
   useEffect(() => {
     async function load() {
-      const { data, error: err } = await supabase.from('invoices').select('*').eq('share_token', token).single();
-      if (err || !data) { setError('This invoice link is invalid or has expired.'); setLoading(false); return; }
-      const inv = snakeToCamel(data);
+      const { data: invRow, error: err } = await supabase.rpc('get_invoice_by_token', { p_token: token });
+      if (err || !invRow) { setError('This invoice link is invalid or has expired.'); setLoading(false); return; }
+      const inv = snakeToCamel(invRow);
       setInvoice(inv);
 
       const [{ data: s }, { data: c }] = await Promise.all([
         supabase.from('settings').select('*').eq('id', 'default').single(),
-        inv.clientId
-          ? supabase.from('clients').select('*').eq('id', inv.clientId).single()
-          : Promise.resolve({ data: null }),
+        supabase.rpc('get_client_by_invoice_token', { p_token: token }),
       ]);
       if (s) setSettings(snakeToCamel(s));
       if (c) setClient(snakeToCamel(c));
@@ -133,9 +135,15 @@ export default function InvoiceView() {
   async function handleManualPayment() {
     if (!window.confirm(`Confirm you've initiated a bank transfer for ${fmt(calcTotal(invoice.items, invoice.taxRate, invoice.discount))}? ${company} will verify receipt and mark this invoice as paid once funds arrive.`)) return;
     setMarkingManual(true);
-    await supabase.from('invoices')
-      .update({ status: 'processing', payment_method: 'manual' })
-      .eq('share_token', token);
+    // RPC instead of direct UPDATE — anon UPDATE on invoices is blocked
+    // by Phase 3 RLS, but this SECURITY DEFINER function flips status to
+    // 'processing' for the matching share_token only.
+    const { error: rpcErr } = await supabase.rpc('mark_invoice_manual_processing', { p_token: token });
+    if (rpcErr) {
+      alert('Could not mark transfer as initiated. Please try again or contact us.');
+      setMarkingManual(false);
+      return;
+    }
     setInvoice(prev => ({ ...prev, status: 'processing', paymentMethod: 'manual' }));
     setMarkingManual(false);
   }
