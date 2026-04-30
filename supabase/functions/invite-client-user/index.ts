@@ -84,7 +84,11 @@ Deno.serve(async (req) => {
 
     let invited = false;
     if (!authUserId) {
-      const redirectTo = SITE_URL ? `${SITE_URL}/portal` : undefined;
+      // Land on /accept-invite so the user can set a password before being
+      // dropped into the portal. Without this redirect, Supabase's magic-link
+      // flow authenticates the user but leaves them with no password — they
+      // can't sign back in once the magic-link session expires.
+      const redirectTo = SITE_URL ? `${SITE_URL}/accept-invite` : undefined;
       const { data: inviteRes, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
         data: { portal: true, client_id: clientId, portal_role: portalRole },
         redirectTo,

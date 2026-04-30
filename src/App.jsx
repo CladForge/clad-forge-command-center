@@ -26,6 +26,7 @@ import Onboarding from './pages/Onboarding';
 import OnboardingReview from './components/OnboardingReview';
 import ProposalSign from './pages/ProposalSign';
 import InvoiceView from './pages/InvoiceView';
+import AcceptInvite from './pages/AcceptInvite';
 import PortalPlaceholder from './components/PortalPlaceholder';
 import './App.css';
 
@@ -88,6 +89,14 @@ export default function App() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+  }
+
+  // The accept-invite page renders BEFORE any session/loading checks because
+  // its whole job is to handle the magic-link auth handoff. supabase-js may
+  // be processing the URL hash mid-render; <AcceptInvite /> manages its own
+  // loading state and waits for the session to materialize.
+  if (window.location.pathname === '/accept-invite') {
+    return <AcceptInvite />;
   }
 
   // Loading state
