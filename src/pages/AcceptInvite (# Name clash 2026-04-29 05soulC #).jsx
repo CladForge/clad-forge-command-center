@@ -76,6 +76,11 @@ export default function AcceptInvite() {
     e.preventDefault();
     setError('');
 
+    const cleanedName = fullName.trim();
+    if (!cleanedName) {
+      setError('Please enter your full name.');
+      return;
+    }
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
@@ -87,12 +92,25 @@ export default function AcceptInvite() {
 
     setPhase('submitting');
     try {
-      const { data: updateData, error: updateErr } = await supabase.auth.updateUser({ password });
+      // Update auth: set password + store full_name in user_metadata so it
+      // survives password resets / future SDK reads of session.user.
+      const { data: updateData, error: updateErr } = await supabase.auth.updateUser({
+        password,
+        data: { full_name: cleanedName },
+      });
       if (updateErr) throw updateErr;
 
-      // Mark client_users.accepted_at so admin sees "Accepted" instead of "Pending"
       const userId = updateData?.user?.id;
       if (userId) {
+        // Also update the profiles row directly. handle_new_user() created it
+        // with full_name='User' as a fallback; replace that with what the user
+        // actually entered so it shows correctly in the portal sidebar.
+        await supabase
+          .from('profiles')
+          .update({ full_name: cleanedName })
+          .eq('id', userId);
+
+        // Mark client_users.accepted_at so admin sees "Accepted" instead of "Pending"
         await supabase
           .from('client_users')
           .update({ accepted_at: new Date().toISOString() })
@@ -101,10 +119,10 @@ export default function AcceptInvite() {
 
       setPhase('success');
       // Hard reload to / so App.jsx sees the (now persistent) session and
-      // routes the client-role user to <PortalPlaceholder />.
+      // routes the client-role user to <ClientPortal />.
       setTimeout(() => { window.location.href = '/'; }, 1400);
     } catch (err) {
-      setError(err.message || 'Could not set password. Try again.');
+      setError(err.message || 'Could not finish setup. Try again.');
       setPhase('form');
     }
   }
@@ -148,7 +166,7 @@ export default function AcceptInvite() {
             alt="Clad Forge"
             className="portal-placeholder__logo"
           />
-          <h1 className="portal-placeholder__title">All Set</h1>
+          <h1 className="portal-placeholder__title">Password Set</h1>
           <p className="portal-placeholder__lede">Logging you in…</p>
         </div>
       </div>
@@ -165,10 +183,24 @@ export default function AcceptInvite() {
         />
         <h1 className="portal-placeholder__title">Welcome to Clad Forge</h1>
         <p className="portal-placeholder__lede">
-          {email ? <>Set a password for <strong>{email}</strong> to finish setting up your portal account.</> : 'Set a password to finish setting up your portal account.'}
+          {email ? <>Finish setting up your portal account for <strong>{email}</strong>.</> : 'Finish setting up your portal account.'}
         </p>
 
         <form onSubmit={handleSubmit} style={{ textAlign: 'left', marginTop: 8 }}>
+          <div className="form-group">
+            <label>Full name</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              autoComplete="name"
+              required
+              autoFocus
+              disabled={phase === 'submitting'}
+              placeholder="Your full name"
+            />
+          </div>
+
           <div className="form-group">
             <label>New password</label>
             <input
@@ -178,7 +210,6 @@ export default function AcceptInvite() {
               autoComplete="new-password"
               minLength={8}
               required
-              autoFocus
               disabled={phase === 'submitting'}
               placeholder="At least 8 characters"
             />
@@ -206,7 +237,7 @@ export default function AcceptInvite() {
             disabled={phase === 'submitting'}
             style={{ width: '100%', marginTop: 16 }}
           >
-            {phase === 'submitting' ? 'Setting password…' : 'Set Password & Continue'}
+            {phase === 'submitting' ? 'Finishing setup…' : 'Finish Setup & Continue'}
           </button>
         </form>
 
