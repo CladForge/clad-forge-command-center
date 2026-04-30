@@ -2,12 +2,17 @@ import { NavLink } from 'react-router-dom';
 import { CLAD_FORGE_LOGO_DATA_URI } from '../../lib/brand';
 import type { Profile, Client, Settings } from '../../lib/types';
 
-// Demo migration: this file is the proof point for TypeScript + Tailwind v4
-// adoption. The previous .jsx version used ~22 custom CSS classes in
-// App.css; this version uses Tailwind utilities exclusively, which means
-// (1) no separate CSS file needed for layout, (2) the styles live next to
-// the markup that uses them, (3) the @theme tokens in index.css make
-// brand-aware utilities (bg-brand, text-ink) automatic.
+// Demo migration: TypeScript proof point. The styling continues to use
+// the existing .portal-sidebar* CSS classes in App.css; the Tailwind v4
+// portion of the migration ran into palette-name conflicts (slate, stone)
+// and cascade-layer issues that are better solved by a planned cleanup
+// pass on @theme rather than fighting them per-component.
+//
+// What this file demonstrates:
+//   - Strict-mode TypeScript on a real component
+//   - Shared Profile/Client/Settings types from src/lib/types.ts
+//   - Exhaustive icon-name union for compile-time safety on the icon switch
+//   - Existing CSS keeps working untouched
 
 type IconName = 'dashboard' | 'folder' | 'file' | 'send' | 'repeat' | 'paperclip' | 'user';
 
@@ -45,47 +50,26 @@ export default function PortalSidebar({ profile, activeClient, settings, onSignO
     .toUpperCase();
 
   return (
-    // Using arbitrary values (text-[var(--slate)] etc.) instead of Tailwind
-    // theme tokens (text-slate). Tailwind v4's default palettes (slate,
-    // stone, neutral) collide with our custom @theme tokens of the same
-    // name in unpredictable ways — arbitrary values bypass that entirely
-    // and reference our CSS variables directly. Light/dark theme switching
-    // still works because the variables themselves swap on `data-theme`.
-    <aside className="hidden md:flex w-60 shrink-0 flex-col bg-[var(--surface)] border-r border-[color:var(--border)]">
-      {/* Brand */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-[color:var(--border)]">
-        <img
-          src={logoSrc}
-          alt={companyName}
-          className="w-9 h-9 shrink-0 drop-shadow-[0_2px_4px_rgba(255,140,0,0.2)]"
-        />
-        <div className="flex flex-col min-w-0">
-          <span className="text-[0.95rem] font-bold text-[var(--ink)] tracking-tight leading-tight">
-            {companyName}
-          </span>
-          <span className="text-[0.7rem] font-semibold text-[var(--brand)] uppercase tracking-[0.1em] mt-0.5">
-            Client Portal
-          </span>
+    <aside className="portal-sidebar">
+      <div className="portal-sidebar__brand">
+        <img src={logoSrc} alt={companyName} className="portal-sidebar__brand-logo" />
+        <div className="portal-sidebar__brand-text">
+          <span className="portal-sidebar__brand-name">{companyName}</span>
+          <span className="portal-sidebar__brand-sub">Client Portal</span>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 flex flex-col gap-0.5 px-3 py-4 overflow-y-auto">
+      <nav className="portal-sidebar__nav">
         {NAV.map(item => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              [
-                'flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[0.88rem] font-medium no-underline transition-all duration-150',
-                isActive
-                  ? 'bg-[var(--brand-pale)] text-[var(--brand)] font-semibold'
-                  : 'text-[var(--slate)] hover:bg-[var(--brand-wash)] hover:text-[var(--ink)]',
-              ].join(' ')
+              `portal-sidebar__link ${isActive ? 'portal-sidebar__link--active' : ''}`
             }
           >
-            <span className="flex items-center justify-center w-5 shrink-0" aria-hidden="true">
+            <span className="portal-sidebar__icon" aria-hidden="true">
               <PortalNavIcon name={item.icon} />
             </span>
             <span>{item.label}</span>
@@ -93,25 +77,19 @@ export default function PortalSidebar({ profile, activeClient, settings, onSignO
         ))}
       </nav>
 
-      {/* Footer (user + sign out) */}
-      <div className="flex flex-col gap-3 px-3.5 pt-3.5 pb-4 border-t border-[color:var(--border)]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-[34px] h-[34px] rounded-full shrink-0 flex items-center justify-center bg-[var(--brand-pale)] text-[var(--brand)] text-[0.9rem] font-bold">
-            {avatarLetter}
-          </div>
-          <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-[0.82rem] font-semibold text-[var(--ink)] truncate">
+      <div className="portal-sidebar__footer">
+        <div className="portal-sidebar__user">
+          <div className="portal-sidebar__user-avatar">{avatarLetter}</div>
+          <div className="portal-sidebar__user-text">
+            <span className="portal-sidebar__user-name">
               {profile?.fullName || profile?.email || 'Portal User'}
             </span>
             {activeClient && (
-              <span className="text-[0.72rem] text-[var(--slate)] truncate">{activeClient.company}</span>
+              <span className="portal-sidebar__user-company">{activeClient.company}</span>
             )}
           </div>
         </div>
-        {/* Reuses the existing .btn--ghost style for visual consistency with
-            unmigrated components. Button styling is a shared design-system
-            concern — leaving as App.css until we migrate the button system. */}
-        <button className="btn btn--ghost btn--sm w-full" onClick={onSignOut}>
+        <button className="btn btn--ghost btn--sm" onClick={onSignOut} style={{ width: '100%' }}>
           Sign Out
         </button>
       </div>
