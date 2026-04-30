@@ -248,9 +248,15 @@ select {
   padding-right: 36px;
 }
 
-a {
-  color: var(--brand);
-  text-decoration: none;
+/* Default link color is wrapped in @layer base so Tailwind utility classes
+   (text-slate, text-ink, etc.) can override it on a per-element basis.
+   Without the layer, this unlayered rule wins the cascade against
+   utilities and every link renders in brand orange regardless of class. */
+@layer base {
+  a {
+    color: var(--brand);
+    text-decoration: none;
+  }
 }
 
 /* ===== LIGHT THEME OVERRIDE ===== */
