@@ -2737,3 +2737,100 @@ mark.code-highlight {
 .modal__error { background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25); color: var(--danger); padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-top: 12px; }
 .modal__success { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: var(--success); padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-top: 12px; }
 .form-hint { display: block; font-size: 0.78rem; color: var(--slate-light); margin-top: 6px; line-height: 1.5; }
+
+/* ═══════════════════════════════════════════
+   CLIENT PORTAL — Phase 2 (full UI)
+   ═══════════════════════════════════════════ */
+
+.portal { display: flex; height: 100vh; width: 100%; flex: 1; overflow: hidden; background: var(--stone); }
+
+/* ── Sidebar ── */
+.portal-sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+.portal-sidebar__brand { padding: 22px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+.portal-sidebar__brand-logo { width: 36px; height: 36px; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(255,140,0,0.2)); }
+.portal-sidebar__brand-text { display: flex; flex-direction: column; min-width: 0; }
+.portal-sidebar__brand-name { font-size: 0.95rem; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; line-height: 1.2; }
+.portal-sidebar__brand-sub { font-size: 0.7rem; color: var(--brand); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+
+.portal-sidebar__nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.portal-sidebar__link { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; color: var(--slate); font-size: 0.88rem; font-weight: 500; text-decoration: none; transition: all 0.15s ease; }
+.portal-sidebar__link:hover { background: var(--brand-wash); color: var(--ink); }
+.portal-sidebar__link--active { background: var(--brand-pale); color: var(--brand); font-weight: 600; }
+.portal-sidebar__icon { display: flex; align-items: center; justify-content: center; width: 20px; flex-shrink: 0; }
+
+.portal-sidebar__footer { padding: 14px 14px 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+.portal-sidebar__user { display: flex; align-items: center; gap: 10px; }
+.portal-sidebar__user-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-pale); color: var(--brand); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; flex-shrink: 0; }
+.portal-sidebar__user-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.portal-sidebar__user-name { font-size: 0.82rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.portal-sidebar__user-company { font-size: 0.72rem; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Main column ── */
+.portal-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+.portal-topbar { height: 60px; flex-shrink: 0; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--surface); }
+.portal-topbar__left { display: flex; align-items: center; gap: 14px; }
+.portal-topbar__company { font-size: 1rem; font-weight: 600; color: var(--ink); }
+.portal-topbar__switcher { background: var(--surface-elevated); border: 1px solid var(--border-light); padding: 8px 32px 8px 12px; border-radius: 8px; font-size: 0.88rem; color: var(--ink); cursor: pointer; max-width: 280px; }
+.portal-topbar__role { font-size: 0.7rem; font-weight: 600; padding: 4px 10px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.08em; }
+.portal-topbar__role--owner { background: var(--brand-pale); color: var(--brand); }
+.portal-topbar__role--billing { background: rgba(143,137,250,0.12); color: var(--purple); }
+.portal-topbar__role--viewer { background: var(--surface-elevated); color: var(--slate); }
+
+.portal-content { flex: 1; overflow-y: auto; padding: 28px 32px; }
+
+/* ── Page-level layout ── */
+.portal-page { max-width: 1200px; margin: 0 auto; }
+.portal-page__header { margin-bottom: 24px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.portal-page__header h1 { font-size: 1.6rem; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin-bottom: 6px; }
+.portal-page__subtitle { font-size: 0.92rem; color: var(--slate); line-height: 1.5; }
+
+.portal-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+
+.portal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.portal-grid__body { padding: 8px 0 16px; }
+
+/* ── Lists (used in Dashboard) ── */
+.portal-list { display: flex; flex-direction: column; }
+.portal-list__item { padding: 14px 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s ease; }
+.portal-list__item:last-child { border-bottom: none; }
+.portal-list__item:hover { background: var(--brand-wash); }
+.portal-list__main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.portal-list__title { font-size: 0.92rem; font-weight: 600; color: var(--ink); }
+.portal-list__sub { font-size: 0.78rem; color: var(--slate); margin-top: 2px; }
+.portal-list__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+/* ── Project cards (Projects list) ── */
+.portal-projects { padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+.portal-project-card { background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.18s ease; }
+.portal-project-card:hover { border-color: var(--brand-mid); transform: translateY(-2px); box-shadow: var(--shadow); }
+.portal-project-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+.portal-project-card__title { font-size: 1.02rem; font-weight: 600; color: var(--ink); margin-bottom: 8px; line-height: 1.3; }
+.portal-project-card__budget { text-align: right; flex-shrink: 0; }
+.portal-project-card__budget-label { display: block; font-size: 0.68rem; color: var(--slate-light); text-transform: uppercase; letter-spacing: 0.08em; }
+.portal-project-card__budget-value { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; color: var(--ink); }
+.portal-project-card__desc { font-size: 0.85rem; color: var(--slate); line-height: 1.5; margin: 8px 0 14px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.portal-project-card__progress { margin-bottom: 12px; }
+.portal-project-card__bar { height: 6px; background: var(--surface); border-radius: 100px; overflow: hidden; margin-bottom: 6px; }
+.portal-project-card__bar-fill { height: 100%; background: linear-gradient(90deg, var(--brand) 0%, var(--brand-mid) 100%); border-radius: 100px; transition: width 0.3s ease; }
+.portal-project-card__progress-text { font-size: 0.74rem; color: var(--slate); }
+.portal-project-card__footer { display: flex; gap: 14px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--slate-light); }
+
+/* ── Account page ── */
+.portal-account__dl { display: flex; flex-direction: column; }
+.portal-account__row { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.portal-account__row:last-child { border-bottom: none; }
+.portal-account__row dt { font-size: 0.78rem; color: var(--slate); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.portal-account__row dd { font-size: 0.9rem; color: var(--ink); }
+
+@media (max-width: 1024px) {
+  .portal-stats { grid-template-columns: repeat(2, 1fr); }
+  .portal-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .portal-sidebar { display: none; }
+  .portal-content { padding: 20px 16px; }
+  .portal-stats { grid-template-columns: 1fr; }
+  .portal-projects { grid-template-columns: 1fr; padding: 12px; }
+  .portal-account__row { grid-template-columns: 1fr; gap: 4px; }
+}

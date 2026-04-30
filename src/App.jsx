@@ -28,6 +28,7 @@ import ProposalSign from './pages/ProposalSign';
 import InvoiceView from './pages/InvoiceView';
 import AcceptInvite from './pages/AcceptInvite';
 import PortalPlaceholder from './components/PortalPlaceholder';
+import ClientPortal from './ClientPortal';
 import './App.css';
 
 export default function App() {
@@ -148,12 +149,23 @@ export default function App() {
     );
   }
 
-  // Client portal users: route AWAY from the admin app entirely. Phase 1
-  // shows a placeholder; Phase 2 mounts the real <ClientPortal /> here.
-  // This check lives BEFORE the admin layout renders so portal users never
-  // touch admin code paths.
+  // Client portal users: route AWAY from the admin app entirely. ClientPortal
+  // has its own routes, data hook, and layout — admins and clients never
+  // share rendered components. Falls back to <PortalPlaceholder /> if profile
+  // is still loading (rare race condition).
   if (profile?.role === 'client') {
-    return <PortalPlaceholder profile={profile} onSignOut={handleSignOut} />;
+    if (!profile?.id) {
+      return <PortalPlaceholder profile={profile} onSignOut={handleSignOut} />;
+    }
+    // Merge auth email/full_name into profile since the profiles table doesn't
+    // store email (it lives on auth.users) and a user may not have a full_name
+    // yet right after invite acceptance.
+    const enrichedProfile = {
+      ...profile,
+      email: session?.user?.email || '',
+      fullName: profile.fullName || profile.full_name || session?.user?.user_metadata?.full_name || '',
+    };
+    return <ClientPortal profile={enrichedProfile} onSignOut={handleSignOut} />;
   }
 
   return (
