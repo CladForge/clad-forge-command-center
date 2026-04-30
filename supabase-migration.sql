@@ -289,3 +289,29 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS deliverables JSONB DEFAULT '[]'::j
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS updates JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS proposal_id TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_number TEXT DEFAULT '';
+
+-- ================================================================
+-- CLIENT PORTAL — Phase 1 (foundations)
+-- Maps Supabase auth users to client companies. One client company can have
+-- many portal users (CEO, billing, project manager, etc.). Each user has a
+-- role within that company. This table is admin-managed via the invite flow.
+-- ================================================================
+CREATE TABLE IF NOT EXISTS client_users (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  auth_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  portal_role TEXT NOT NULL DEFAULT 'viewer' CHECK (portal_role IN ('owner','billing','viewer')),
+  invited_by UUID REFERENCES auth.users(id),
+  invited_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  accepted_at TIMESTAMPTZ,
+  last_seen_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(auth_user_id, client_id)
+);
+CREATE INDEX IF NOT EXISTS idx_client_users_auth_user ON client_users(auth_user_id);
+CREATE INDEX IF NOT EXISTS idx_client_users_client ON client_users(client_id);
+ALTER TABLE client_users ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  CREATE POLICY "Allow all access to client_users" ON client_users FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

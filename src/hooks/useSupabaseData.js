@@ -65,6 +65,7 @@ const TABLE_COLUMNS = {
   recurring_expenses: ['id','client_id','project_id','title','description','amount','frequency','start_date','next_due','status','category','auto_invoice','notes','created_at','created_by'],
   finance_entries: ['id','type','date','amount','category','description','client_id','project_id','invoice_id','tax_deductible','tax_category','receipt_url','payment_method','notes','year','month','created_at','created_by'],
   tax_payments: ['id','date','quarter','amount','payment_method','confirmation','notes','year','created_at','created_by'],
+  client_users: ['id','auth_user_id','client_id','portal_role','invited_by','invited_at','accepted_at','last_seen_at','created_at'],
 };
 
 // Strip fields not in the DB table before sending to Supabase
@@ -154,6 +155,7 @@ export function useSupabaseData() {
   const [recurringExpenses, setRecurringExpensesState] = useState(initialRecurringExpenses);
   const [financeEntries, setFinanceEntriesState] = useState(initialFinanceEntries);
   const [taxPayments, setTaxPaymentsState] = useState(initialTaxPayments);
+  const [clientUsers, setClientUsersState] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const connectedRef = useRef(false);
@@ -165,7 +167,7 @@ export function useSupabaseData() {
         const [
           clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
           invoicesRes, timeEntriesRes, eventsRes, contractorsRes,
-          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes,
         ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
@@ -185,6 +187,7 @@ export function useSupabaseData() {
           supabase.from('recurring_expenses').select('*').order('created_at', { ascending: false }),
           supabase.from('finance_entries').select('*').order('date', { ascending: false }),
           supabase.from('tax_payments').select('*').order('date', { ascending: false }),
+          supabase.from('client_users').select('*').order('invited_at', { ascending: false }),
         ]);
 
         if (clientsRes.error) throw clientsRes.error;
@@ -218,6 +221,7 @@ export function useSupabaseData() {
         if (recurringExpensesRes.data) setRecurringExpensesState(recurringExpensesRes.data.map(snakeToCamel));
         if (financeEntriesRes.data) setFinanceEntriesState(financeEntriesRes.data.map(snakeToCamel));
         if (taxPaymentsRes.data) setTaxPaymentsState(taxPaymentsRes.data.map(snakeToCamel));
+        if (clientUsersRes.data) setClientUsersState(clientUsersRes.data.map(snakeToCamel));
 
         connectedRef.current = true;
         setConnected(true);
@@ -492,6 +496,24 @@ export function useSupabaseData() {
     [addActivity]
   );
 
+  // CLIENT_USERS — admin-side state for the Portal Access tab. Inserts and
+  // deletes are managed via the invite-client-user / revoke-client-user edge
+  // functions (which also touch auth.users), so this setter only handles
+  // local optimistic updates and direct field updates (e.g. portal_role
+  // changes). Mutations that change auth state should use the edge functions.
+  const setClientUsers = useCallback(
+    makeSetter(setClientUsersState, 'client_users', { entityLabel: 'portal user', logActivity: false }),
+    [addActivity]
+  );
+
+  // Manually refresh the client_users list from the server (used after the
+  // invite edge function returns, since that flow inserts the row server-side).
+  const reloadClientUsers = useCallback(async () => {
+    if (!connectedRef.current) return;
+    const { data, error } = await supabase.from('client_users').select('*').order('invited_at', { ascending: false });
+    if (!error && data) setClientUsersState(data.map(snakeToCamel));
+  }, []);
+
   return {
     clients, setClients,
     projects, setProjects,
@@ -512,6 +534,7 @@ export function useSupabaseData() {
     recurringExpenses, setRecurringExpenses,
     financeEntries, setFinanceEntries,
     taxPayments, setTaxPayments,
+    clientUsers, setClientUsers, reloadClientUsers,
     loading,
     connected,
   };

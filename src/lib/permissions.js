@@ -1,5 +1,9 @@
 // RBAC Permission System
-// Roles: admin, user, contractor, guest
+// Roles: admin, user, contractor, guest, client
+//
+// 'client' is the portal role — assigned to authenticated client-portal users.
+// Phase 1 keeps this minimal (no admin-side capabilities); Phase 2 fills in
+// portal-specific permissions like canViewOwnInvoices, canPayOwnInvoices, etc.
 
 const PERMISSIONS = {
   admin: {
@@ -164,6 +168,51 @@ const PERMISSIONS = {
     canEditSettings: false,
     canManageUsers: false,
     canViewBranding: true,
+    canViewAI: false,
+  },
+  // Portal users have NO admin-app permissions. They are routed away from
+  // the admin app entirely (see App.jsx role gate). Portal-specific
+  // capabilities (view own projects, pay own invoices, etc.) are checked
+  // separately in the client portal pages once Phase 2 lands.
+  client: {
+    canViewDashboard: false,
+    canViewClients: false,
+    canCreateClient: false,
+    canEditClient: false,
+    canDeleteClient: false,
+    canViewProjects: false,
+    canCreateProject: false,
+    canEditProject: false,
+    canDeleteProject: false,
+    canViewContractors: false,
+    canCreateContractor: false,
+    canEditContractor: false,
+    canDeleteContractor: false,
+    canViewCRM: false,
+    canCreateDeal: false,
+    canEditDeal: false,
+    canDeleteDeal: false,
+    canViewInvoices: false,
+    canCreateInvoice: false,
+    canEditInvoice: false,
+    canDeleteInvoice: false,
+    canViewProposals: false,
+    canCreateProposal: false,
+    canEditProposal: false,
+    canViewDocuments: false,
+    canCreateDocument: false,
+    canDeleteDocument: false,
+    canViewReports: false,
+    canViewCalendar: false,
+    canCreateEvent: false,
+    canViewTime: false,
+    canLogTime: false,
+    canViewAutomations: false,
+    canManageAutomations: false,
+    canViewSettings: false,
+    canEditSettings: false,
+    canManageUsers: false,
+    canViewBranding: false,
     canViewAI: false,
   },
 };

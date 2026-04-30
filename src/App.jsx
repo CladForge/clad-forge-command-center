@@ -26,6 +26,7 @@ import Onboarding from './pages/Onboarding';
 import OnboardingReview from './components/OnboardingReview';
 import ProposalSign from './pages/ProposalSign';
 import InvoiceView from './pages/InvoiceView';
+import PortalPlaceholder from './components/PortalPlaceholder';
 import './App.css';
 
 export default function App() {
@@ -50,6 +51,7 @@ export default function App() {
     recurringExpenses, setRecurringExpenses,
     financeEntries, setFinanceEntries,
     taxPayments, setTaxPayments,
+    clientUsers, setClientUsers, reloadClientUsers,
     loading, connected,
   } = useSupabaseData();
 
@@ -134,6 +136,14 @@ export default function App() {
     );
   }
 
+  // Client portal users: route AWAY from the admin app entirely. Phase 1
+  // shows a placeholder; Phase 2 mounts the real <ClientPortal /> here.
+  // This check lives BEFORE the admin layout renders so portal users never
+  // touch admin code paths.
+  if (profile?.role === 'client') {
+    return <PortalPlaceholder profile={profile} onSignOut={handleSignOut} />;
+  }
+
   return (
     <div className="app">
       <Sidebar
@@ -147,7 +157,7 @@ export default function App() {
         <main className="app__content">
           <Routes>
             <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} activities={activities} settings={settings} invoices={invoices} timeEntries={timeEntries} notifications={notifications} setClients={setClients} addNotification={addNotification} />} />
-            <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} />} />
+            <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} clientUsers={clientUsers} setClientUsers={setClientUsers} reloadClientUsers={reloadClientUsers} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} sows={sows} setSOWs={setSOWs} />} />
             <Route path="/projects/:id" element={<ProjectDetail projects={projects} setProjects={setProjects} clients={clients} sows={sows} invoices={invoices} timeEntries={timeEntries} documents={documents} />} />
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} setProjects={setProjects} sows={sows} setSOWs={setSOWs} settings={settings} />} />

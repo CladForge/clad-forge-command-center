@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateId, initialSettings } from '../data/initialData';
+import InvitePortalUserModal from '../components/InvitePortalUserModal';
+import { supabase } from '../lib/supabase';
 
 const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
 
 function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
 
-export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [] }) {
+export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
   const [search, setSearch] = useState('');
@@ -76,6 +78,9 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         timeEntries={timeEntries}
         settings={settings}
         industries={industries}
+        clientUsers={clientUsers}
+        setClientUsers={setClientUsers}
+        reloadClientUsers={reloadClientUsers}
         onBack={() => setViewClientId(null)}
         onEdit={() => { openEdit(client); setViewClientId(null); }}
         onDelete={() => handleDelete(client.id)}
@@ -206,12 +211,42 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    CLIENT PROFILE PAGE
    ═══════════════════════════════════════════ */
 
-function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], onBack, onEdit, onDelete }) {
+function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, onBack, onEdit, onDelete }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
   const [editContact, setEditContact] = useState(null);
   const [contactForm, setContactForm] = useState({ name: '', title: '', email: '', phone: '', role: 'primary' });
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [revokingId, setRevokingId] = useState(null);
+
+  async function handleRevokePortalUser(cu) {
+    if (!window.confirm(
+      `Revoke portal access for this user?\n\nThey will no longer be able to sign in to ${client.company}'s portal. Their auth account is preserved (in case they belong to other clients).`
+    )) return;
+    setRevokingId(cu.id);
+    try {
+      const { error } = await supabase.from('client_users').delete().eq('id', cu.id);
+      if (error) {
+        alert('Revoke failed: ' + error.message);
+      } else if (setClientUsers) {
+        setClientUsers(prev => prev.filter(x => x.id !== cu.id));
+      }
+    } finally {
+      setRevokingId(null);
+    }
+  }
+
+  async function handleChangePortalRole(cu, newRole) {
+    const { error } = await supabase
+      .from('client_users')
+      .update({ portal_role: newRole })
+      .eq('id', cu.id);
+    if (error) { alert('Update failed: ' + error.message); return; }
+    if (setClientUsers) {
+      setClientUsers(prev => prev.map(x => x.id === cu.id ? { ...x, portalRole: newRole } : x));
+    }
+  }
 
   // Cross-linked data
   const clientProjects = projects.filter(p => p.clientId === client.id);
@@ -259,10 +294,13 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
     }));
   }
 
+  const portalUsersForClient = (clientUsers || []).filter(cu => cu.clientId === client.id);
+
   const TABS = [
     { id: 'projects', label: `Projects (${clientProjects.length})` },
     { id: 'documents', label: `Financials (${invoices.length + clientProposals.length})` },
     { id: 'people', label: `People (${contacts.length})` },
+    { id: 'portal', label: `Portal Access (${portalUsersForClient.length})` },
     { id: 'notes', label: 'Notes' },
   ];
 
@@ -508,6 +546,97 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
             </div>
           )}
         </div>
+      )}
+
+      {/* ═══ PORTAL ACCESS TAB ═══ */}
+      {tab === 'portal' && (
+        <div className="cp__content">
+          <div className="panel">
+            <div className="panel__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3>Portal Access</h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--slate)', margin: '4px 0 0 0' }}>
+                  Invite people from {client.company} to log in and view their projects, invoices, and approvals.
+                </p>
+              </div>
+              <button className="btn btn--primary" onClick={() => setShowInviteModal(true)}>
+                + Invite User
+              </button>
+            </div>
+            <div style={{ padding: portalUsersForClient.length === 0 ? 0 : '12px 22px 22px' }}>
+              {portalUsersForClient.length === 0 ? (
+                <div className="empty-state">
+                  <span className="empty-state__icon">🔐</span>
+                  <h3>No portal users yet</h3>
+                  <p>Invite the first user to give {client.company} access to their dedicated portal.</p>
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>User ID</th>
+                      <th>Role</th>
+                      <th>Invited</th>
+                      <th>Accepted</th>
+                      <th>Last Seen</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {portalUsersForClient.map(cu => (
+                      <tr key={cu.id}>
+                        <td className="data-table__mono" style={{ fontSize: '0.78rem' }}>
+                          {(cu.authUserId || '').slice(0, 8)}…
+                        </td>
+                        <td>
+                          <select
+                            value={cu.portalRole || 'viewer'}
+                            onChange={e => handleChangePortalRole(cu, e.target.value)}
+                            style={{ fontSize: '0.82rem' }}
+                          >
+                            <option value="owner">Owner</option>
+                            <option value="billing">Billing</option>
+                            <option value="viewer">Viewer</option>
+                          </select>
+                        </td>
+                        <td className="data-table__muted">
+                          {cu.invitedAt ? new Date(cu.invitedAt).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="data-table__muted">
+                          {cu.acceptedAt
+                            ? <span style={{ color: 'var(--success)' }}>{new Date(cu.acceptedAt).toLocaleDateString()}</span>
+                            : <span style={{ color: 'var(--slate-light)' }}>Pending</span>}
+                        </td>
+                        <td className="data-table__muted">
+                          {cu.lastSeenAt ? new Date(cu.lastSeenAt).toLocaleDateString() : '—'}
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn--ghost btn--sm btn--danger-hover"
+                            onClick={() => handleRevokePortalUser(cu)}
+                            disabled={revokingId === cu.id}
+                            title="Revoke access"
+                          >
+                            {revokingId === cu.id ? '...' : 'Revoke'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Portal User Modal */}
+      {showInviteModal && (
+        <InvitePortalUserModal
+          client={client}
+          onClose={() => setShowInviteModal(false)}
+          onInvited={reloadClientUsers}
+        />
       )}
 
       {/* Add/Edit Contact Modal */}

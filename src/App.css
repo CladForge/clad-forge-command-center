@@ -2708,3 +2708,30 @@ mark.code-highlight {
   .calendar-layout { grid-template-columns: 1fr; }
   .automations-stats { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════
+   CLIENT PORTAL — Phase 1
+   ═══════════════════════════════════════════ */
+
+/* Splash shown to logged-in users with role='client' before the portal exists */
+.portal-placeholder { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px; background: var(--bg); }
+.portal-placeholder__card { max-width: 520px; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 48px 40px; text-align: center; box-shadow: 0 12px 48px rgba(0,0,0,0.08); }
+.portal-placeholder__logo { width: 64px; height: 64px; margin: 0 auto 24px; display: block; filter: drop-shadow(0 2px 8px rgba(255,140,0,0.25)); }
+.portal-placeholder__title { font-size: 1.6rem; font-weight: 700; color: var(--ink); margin-bottom: 14px; letter-spacing: -0.01em; }
+.portal-placeholder__lede { font-size: 0.95rem; color: var(--slate); line-height: 1.6; margin-bottom: 18px; }
+.portal-placeholder__sub { font-size: 0.85rem; color: var(--slate-light); line-height: 1.5; margin-bottom: 28px; }
+.portal-placeholder__actions { margin-bottom: 24px; }
+.portal-placeholder__footer { padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--slate-light); }
+
+/* Role picker used in InvitePortalUserModal */
+.role-picker { display: flex; gap: 8px; margin-top: 6px; }
+.role-picker__option { flex: 1; padding: 10px 14px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; cursor: pointer; transition: all 0.15s ease; color: var(--slate); font-size: 0.85rem; font-weight: 500; }
+.role-picker__option:hover { border-color: var(--brand-mid); color: var(--ink); }
+.role-picker__option--active { background: var(--brand-pale); border-color: var(--brand); color: var(--brand); font-weight: 600; }
+.role-picker__option:disabled { opacity: 0.5; cursor: not-allowed; }
+.role-picker__name { display: block; }
+
+/* Inline modal feedback */
+.modal__error { background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25); color: var(--danger); padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-top: 12px; }
+.modal__success { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: var(--success); padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-top: 12px; }
+.form-hint { display: block; font-size: 0.78rem; color: var(--slate-light); margin-top: 6px; line-height: 1.5; }
