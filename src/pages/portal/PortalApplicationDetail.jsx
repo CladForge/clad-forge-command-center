@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AppScreenshotsSection from '../../components/AppScreenshotsSection';
 
@@ -33,6 +34,7 @@ export default function PortalApplicationDetail({
   const myScreenshots = appScreenshots.filter(s => s.applicationId === id);
   const myPins = annotationPins.filter(p => myScreenshots.some(s => s.id === p.screenshotId));
   const mySets = markupSets.filter(s => s.applicationId === id);
+  const [showMarkupsModal, setShowMarkupsModal] = useState(false);
 
   if (!app) {
     return (
@@ -169,28 +171,88 @@ export default function PortalApplicationDetail({
         </div>
       )}
 
-      {/* Screenshots + markup pins */}
+      {/* Screenshots + markup pins — opens in a fullscreen-ish modal so the
+          review surface has real estate. Same pattern as the admin side. */}
       <div className="panel" style={{ marginTop: 20 }}>
-        <div className="panel__header">
+        <div className="panel__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h3>Screenshots & Markup</h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--slate)', margin: '4px 0 0 0' }}>
-              Upload a screenshot of an issue or area you&apos;d like changed, then click on the image to drop pins with comments.
+              Upload screenshots of issues or areas you&apos;d like changed and drop pins with comments.
             </p>
           </div>
+          <button className="btn btn--primary" onClick={() => setShowMarkupsModal(true)}>
+            Open Markup Reviews
+          </button>
         </div>
-        <div style={{ padding: '16px 22px 20px' }}>
-          <AppScreenshotsSection
-            applicationId={id}
-            screenshots={myScreenshots}
-            pins={myPins}
-            markupSets={mySets}
-            currentUserId={profile?.id}
-            isAdmin={false}
-            onChange={reloadScreenshots}
-          />
+        <div style={{ padding: '16px 22px 20px', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          {(() => {
+            const totalPins = myPins.length;
+            const openPins = myPins.filter(p => p.status === 'open').length;
+            const activeSets = mySets.filter(s => s.status === 'active').length;
+            const completedSets = mySets.filter(s => s.status === 'completed').length;
+            return (
+              <>
+                <div className="markup-summary-stat">
+                  <span className="markup-summary-stat__label">Sets</span>
+                  <span className="markup-summary-stat__value">
+                    {activeSets} active{completedSets > 0 ? ` · ${completedSets} completed` : ''}
+                  </span>
+                </div>
+                <div className="markup-summary-stat">
+                  <span className="markup-summary-stat__label">Screenshots</span>
+                  <span className="markup-summary-stat__value">{myScreenshots.length}</span>
+                </div>
+                <div className="markup-summary-stat">
+                  <span className="markup-summary-stat__label">Pins</span>
+                  <span className="markup-summary-stat__value">
+                    {totalPins}
+                    {openPins > 0 && <span style={{ color: 'var(--brand)', marginLeft: 6 }}>· {openPins} open</span>}
+                  </span>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
+
+      {showMarkupsModal && (
+        <div className="modal-overlay" onClick={() => setShowMarkupsModal(false)}>
+          <div
+            className="modal modal--wide modal--markups"
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '95vw',
+              maxWidth: 1600,
+              height: '94vh',
+              maxHeight: '94vh',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div className="modal__header" style={{ flexShrink: 0 }}>
+              <div>
+                <h2>Markups — {app.name}</h2>
+                <span className="modal__subtitle">
+                  {myScreenshots.length} screenshot{myScreenshots.length !== 1 ? 's' : ''}, {myPins.length} total pin{myPins.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <button className="modal__close" onClick={() => setShowMarkupsModal(false)}>×</button>
+            </div>
+            <div className="modal__body" style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
+              <AppScreenshotsSection
+                applicationId={id}
+                screenshots={myScreenshots}
+                pins={myPins}
+                markupSets={mySets}
+                currentUserId={profile?.id}
+                isAdmin={false}
+                onChange={reloadScreenshots}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notes shown by admin to the client */}
       {app.notes && (

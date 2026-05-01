@@ -2946,6 +2946,12 @@ mark.code-highlight {
 .markup-set-card:hover .markup-set-card__delete { opacity: 1; }
 .markup-set-card__delete:hover { background: var(--danger); color: white; }
 
+/* Compact stat boxes shown on the portal app detail page next to the
+   "Open Markup Reviews" button. Each shows label + value at a glance. */
+.markup-summary-stat { display: flex; flex-direction: column; gap: 2px; min-width: 110px; }
+.markup-summary-stat__label { font-size: 0.7rem; color: var(--slate-light); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.markup-summary-stat__value { font-size: 0.95rem; color: var(--ink); font-weight: 600; }
+
 /* Markup set status pills */
 .status-pill--mset-active { background: rgba(255,140,0,0.18); color: var(--brand); }
 .status-pill--mset-completed { background: rgba(51,184,135,0.18); color: var(--success); }
