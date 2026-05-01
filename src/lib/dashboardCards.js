@@ -52,3 +52,36 @@ export function resolveCardOrder(saved) {
     .map(r => ({ id: r.id, enabled: r.defaultEnabled !== false }));
   return [...valid, ...appended];
 }
+
+// Pick a column count that balances n KPI cards across rows.
+//
+// CSS Grid fills greedily — with `repeat(6, 1fr)` and 7 items you'd get
+// rows of 6 and 1, which is ugly. Picking a smaller column count up-front
+// gives a layout like 4/3 instead. The rules:
+//
+//   * n ≤ maxCols  → one row, one column per card.
+//   * Otherwise, search [minCols .. maxCols] for the column count that:
+//       - never leaves the last row with a single lonely card,
+//       - minimizes the "imbalance" (gap between full rows and last row),
+//       - tiebreaks on larger c (more cards per row, fewer rows).
+//   * minCols = ceil(n/4) so we cap the layout at ~4 rows; cards get
+//     narrower instead of stacking endlessly when the registry grows.
+//
+// Returns an integer suitable for `grid-template-columns: repeat(c, 1fr)`.
+export function pickKpiColumns(n, maxCols = 6) {
+  if (n <= 0) return 1;
+  if (n <= maxCols) return n;
+  const minCols = Math.max(2, Math.ceil(n / 4));
+  let best = minCols;
+  let bestImbalance = Infinity;
+  for (let c = minCols; c <= maxCols; c++) {
+    const lastRow = n % c === 0 ? c : n % c;
+    if (lastRow === 1) continue; // never strand a single card alone
+    const imbalance = c - lastRow; // 0 = perfectly even rows
+    if (imbalance < bestImbalance || (imbalance === bestImbalance && c > best)) {
+      best = c;
+      bestImbalance = imbalance;
+    }
+  }
+  return best;
+}

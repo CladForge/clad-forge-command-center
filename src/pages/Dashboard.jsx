@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
-import { resolveCardOrder } from '../lib/dashboardCards';
+import { resolveCardOrder, pickKpiColumns } from '../lib/dashboardCards';
 
 export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
@@ -197,8 +197,12 @@ export default function Dashboard({ clients, projects, sows, activities, setting
         const order = resolveCardOrder(settings.dashboardKpiCards);
         const visible = order.filter(c => c.enabled !== false && cardProps[c.id]);
         if (visible.length === 0) return null;
+        // Compute a balanced column count up-front and pass it via a CSS
+        // variable. CSS auto-fit fills greedily (6/1 for 7 cards); this
+        // gives 4/3 instead. See pickKpiColumns() for the tradeoffs.
+        const cols = pickKpiColumns(visible.length);
         return (
-          <div className="dash__kpis">
+          <div className="dash__kpis" style={{ '--kpi-cols': cols }}>
             {visible.map(c => <KpiCard key={c.id} {...cardProps[c.id]} />)}
           </div>
         );

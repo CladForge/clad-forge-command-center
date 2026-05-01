@@ -898,10 +898,12 @@
 .dash__welcome-actions { display: flex; gap: 8px; }
 
 /* KPI Cards */
-/* Auto-fits cards in a row and wraps when too narrow. minmax floor keeps
-   cards readable; auto-fit lets them stretch to fill the row when only a few
-   are enabled, so toggling one off doesn't leave a gap. */
-.dash__kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+/* Column count is computed in JS (pickKpiColumns in lib/dashboardCards.js)
+   based on how many cards are visible — auto-fit packed greedily, leaving
+   ugly leftovers like 6/1 or 5/2. The fallback (5) covers the default
+   visible-count of 5; the inline style sets --kpi-cols dynamically.
+   minmax(0, 1fr) lets cells shrink instead of overflowing on narrow widths. */
+.dash__kpis { display: grid; grid-template-columns: repeat(var(--kpi-cols, 5), minmax(0, 1fr)); gap: 14px; margin-bottom: 24px; }
 
 .dash__kpi { background: var(--surface); border-radius: var(--radius-lg); padding: 18px 20px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); position: relative; overflow: hidden; cursor: pointer; transition: all 0.18s; animation: fadeInUp 0.3s var(--ease) both; }
 .dash__kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
@@ -2528,8 +2530,10 @@ mark.code-highlight {
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 1200px) {
-  /* .dash__kpis intentionally not overridden here — auto-fit + minmax(200px)
-     handles the wrap natively, and a fixed column count fights it. */
+  /* On medium / tablet widths fall back to auto-fit. JS-computed balance
+     is desktop-first; on smaller screens we let the grid wrap naturally
+     so cards stay above ~180px and don't overflow horizontally. */
+  .dash__kpis { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
   .dash__row--3 { grid-template-columns: 1fr 1fr; }
   .invoices__summary, .proposals__summary { grid-template-columns: repeat(2, 1fr); }
   .prop-builder__body { flex-direction: column; }
@@ -2545,8 +2549,9 @@ mark.code-highlight {
   .app__content { padding: 16px; }
   .topbar { padding: 0 16px; }
   .topbar__status, .topbar__clock { display: none; }
-  /* .dash__kpis: auto-fit handles wrap; minmax floor at 200px guarantees a
-     reasonable cell width on phones (will go to 1 column when too narrow). */
+  /* On phones, switch to a tighter 2-up grid; auto-fit's minmax above
+     would also work but a fixed 2-col layout is more predictable here. */
+  .dash__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dash__row, .dash__row--3 { grid-template-columns: 1fr; }
   .dash__welcome { text-align: center; }
   .dash__welcome-actions { justify-content: center; }
