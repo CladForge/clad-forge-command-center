@@ -1958,6 +1958,24 @@
 .status-pill--cancelled { background: var(--border-light); color: var(--slate-light); }
 .status-pill--lg { padding: 5px 14px; font-size: 0.78rem; }
 
+/* Client status pills — match the legacy .status-badge--* mappings so
+   pills look identical regardless of which class wrapper is used. */
+.status-pill--active   { background: var(--success-bg);  color: var(--success); }
+.status-pill--prospect { background: var(--warning-bg);  color: var(--warning); }
+.status-pill--on-hold  { background: var(--info-bg);     color: var(--info); }
+.status-pill--inactive { background: var(--border-light); color: var(--slate-light); }
+
+/* Project stage pills (used on the client profile's Projects tab and
+   anywhere else a project's stage needs to render). The "active" stage
+   maps to the same green as the client active pill so a project that's
+   "Active" reads visually the same as a client that's "Active". */
+.status-pill--stage-lead       { background: rgba(142,141,160,0.15); color: var(--slate); }
+.status-pill--stage-proposal   { background: var(--warning-bg);     color: var(--warning); }
+.status-pill--stage-active     { background: var(--success-bg);     color: var(--success); }
+.status-pill--stage-review     { background: var(--info-bg);        color: var(--info); }
+.status-pill--stage-completed  { background: var(--border-light);   color: var(--slate-light); }
+.status-pill--stage-on-hold    { background: var(--info-bg);        color: var(--info); }
+
 /* Due labels */
 .due-label { font-size: 0.75rem; color: var(--slate-light); }
 .due-label--overdue { color: var(--danger); font-weight: 600; }

@@ -10,6 +10,17 @@ const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
 
 function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
 
+// Display-safe date formatter for things like createdAt that come from
+// Postgres as ISO 8601 timestamps (e.g. "2025-09-15T00:00:00+00:00").
+// Renders as a short, readable label like "Sep 15, 2025"; falls back to
+// the raw string if it can't be parsed.
+function formatShortDate(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
@@ -151,7 +162,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
                   <h3 className="client-card__name">{client.company}</h3>
                   <p className="client-card__company">{client.industry}</p>
                 </div>
-                <span className={`status-badge status-badge--${client.status}`}>
+                <span className={`status-pill status-pill--${client.status}`}>
                   {client.status.replace('-', ' ')}
                 </span>
               </div>
@@ -419,7 +430,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
           <div className="cp__hero-info">
             <h1 className="cp__hero-name">{client.company}</h1>
             <div className="cp__hero-meta">
-              <span className={`status-badge status-badge--${client.status}`}>{client.status.replace('-', ' ')}</span>
+              <span className={`status-pill status-pill--${client.status}`}>{client.status.replace('-', ' ')}</span>
               <span>{client.industry}</span>
               {client.website && <a href={client.website.startsWith('http') ? client.website : `https://${client.website}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)' }}>{client.website.replace(/^https?:\/\//, '')}</a>}
             </div>
@@ -437,7 +448,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
           <div className="cp__stat"><span className="cp__stat-val">{activeProjects.length}</span><span className="cp__stat-lbl">Active Projects</span></div>
           <div className="cp__stat"><span className="cp__stat-val">{formatCurrency(invoiceTotal)}</span><span className="cp__stat-lbl">Invoiced</span></div>
           <div className="cp__stat"><span className="cp__stat-val">{totalHours.toFixed(1)}h</span><span className="cp__stat-lbl">Hours Logged</span></div>
-          <div className="cp__stat"><span className="cp__stat-val">{client.createdAt || '—'}</span><span className="cp__stat-lbl">Client Since</span></div>
+          <div className="cp__stat"><span className="cp__stat-val">{formatShortDate(client.createdAt)}</span><span className="cp__stat-lbl">Client Since</span></div>
         </div>
       </div>
 
@@ -475,7 +486,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                           )}
                           {project.title}
                         </h4>
-                        <span className={`status-pill status-pill--${project.stage === 'active' ? 'sent' : project.stage === 'completed' ? 'paid' : project.stage === 'on-hold' ? 'draft' : 'sent'}`}>
+                        <span className={`status-pill status-pill--stage-${project.stage}`}>
                           {project.stage}
                         </span>
                       </div>
@@ -604,7 +615,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
               {client.phone && <div className="cp__detail-row"><span className="cp__detail-icon">📞</span><div><span className="cp__detail-label">Company Phone</span><span className="cp__detail-value">{client.phone}</span></div></div>}
               {client.website && <div className="cp__detail-row"><span className="cp__detail-icon">🌐</span><div><span className="cp__detail-label">Website</span><span className="cp__detail-value"><a href={client.website.startsWith('http') ? client.website : `https://${client.website}`} target="_blank" rel="noopener noreferrer">{client.website.replace(/^https?:\/\//, '')}</a></span></div></div>}
               <div className="cp__detail-row"><span className="cp__detail-icon">🏭</span><div><span className="cp__detail-label">Industry</span><span className="cp__detail-value">{client.industry}</span></div></div>
-              <div className="cp__detail-row"><span className="cp__detail-icon">📅</span><div><span className="cp__detail-label">Client Since</span><span className="cp__detail-value">{client.createdAt || '—'}</span></div></div>
+              <div className="cp__detail-row"><span className="cp__detail-icon">📅</span><div><span className="cp__detail-label">Client Since</span><span className="cp__detail-value">{formatShortDate(client.createdAt)}</span></div></div>
             </div>
           </div>
         </div>
