@@ -58,6 +58,40 @@ export function colorFor(cardConfig) {
 // exceeds two rows of cards (4 + 4 at most).
 export const MAX_VISIBLE_KPI_CARDS = 8;
 
+// Defaults for the dashboard preferences blob. Mirrors the shape in
+// initialSettings.dashboardPreferences. Kept here so resolvePreferences()
+// can reach them without an import cycle.
+export const DEFAULT_DASHBOARD_PREFERENCES = {
+  sections: {
+    welcomeBanner:     true,
+    monthlyRevenue:    true,
+    overdueInvoices:   true,
+    pipelineValue:     true,
+    actionItems:       true,
+    appHealth:         true,
+    upcomingDeadlines: true,
+    recentActivity:    true,
+  },
+  chartMonths:       6,
+  dueSoonDays:       14,
+  staleProposalDays: 3,
+};
+
+// Merge saved prefs with defaults, one level deep on `sections`. Plain
+// shallow spread loses keys from `sections` that aren't in the saved
+// blob (which happens whenever a new section is added later); this keeps
+// every key resolved without forcing a settings migration.
+export function resolveDashboardPreferences(saved) {
+  return {
+    ...DEFAULT_DASHBOARD_PREFERENCES,
+    ...(saved || {}),
+    sections: {
+      ...DEFAULT_DASHBOARD_PREFERENCES.sections,
+      ...(saved?.sections || {}),
+    },
+  };
+}
+
 // Reconcile a saved card order with the live registry. Drops any saved IDs
 // that no longer exist in the registry, and appends any registry IDs that
 // aren't in the saved data (using the registry's defaultEnabled flag, which

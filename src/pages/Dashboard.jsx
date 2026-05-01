@@ -2,10 +2,12 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
-import { resolveCardOrder, pickKpiColumns, colorFor, MAX_VISIBLE_KPI_CARDS } from '../lib/dashboardCards';
+import { resolveCardOrder, pickKpiColumns, colorFor, MAX_VISIBLE_KPI_CARDS, resolveDashboardPreferences } from '../lib/dashboardCards';
 
 export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], annotationPins = [], appScreenshots = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
+  const prefs = resolveDashboardPreferences(settings.dashboardPreferences);
+  const sectionsOn = prefs.sections;
   const navigate = useNavigate();
 
   // ═══ COMPUTED METRICS ═══
@@ -88,12 +90,12 @@ export default function Dashboard({ clients, projects, sows, activities, setting
   // visible by clicking into individual app screenshots.
   const openMarkupPins = annotationPins.filter(p => p.status === 'open');
 
-  // Projects whose deadline is within the next 14 days OR already past, and
-  // not yet completed. Two-week window matches a typical sprint horizon for
-  // "what's about to land".
+  // Projects whose deadline is within the configured horizon OR already
+  // past, and not yet completed. Default 14 days matches a typical sprint
+  // window; configurable via Settings > Dashboard.
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const dueHorizon = new Date(todayStart);
-  dueHorizon.setDate(dueHorizon.getDate() + 14);
+  dueHorizon.setDate(dueHorizon.getDate() + prefs.dueSoonDays);
   const projectsDueSoon = projects.filter(p => {
     if (p.stage === 'completed') return false;
     if (!p.deadline) return false;
@@ -159,7 +161,7 @@ export default function Dashboard({ clients, projects, sows, activities, setting
   //   - urgent / high-priority tickets in open or in-progress state
   //   - proposals still 'sent' more than 3 days after going out
   // Each item has a uniform shape so the renderer is dumb.
-  const STALE_PROPOSAL_DAYS = 3;
+  const STALE_PROPOSAL_DAYS = prefs.staleProposalDays;
   const pinItems = annotationPins
     .filter(p => p.status === 'open')
     .map(p => {
@@ -242,10 +244,12 @@ export default function Dashboard({ clients, projects, sows, activities, setting
     .sort((a, b) => b.openTickets - a.openTickets || b.monthlyContrib - a.monthlyContrib)
     .slice(0, 6);
 
-  // Monthly revenue (last 6 months from invoices)
+  // Monthly revenue (configurable trailing window). Window length pulls
+  // from prefs.chartMonths so users can pick 3/6/12 in Settings.
+  const chartMonths = prefs.chartMonths;
   const monthlyRevenue = useMemo(() => {
     const months = [];
-    for (let i = 5; i >= 0; i--) {
+    for (let i = chartMonths - 1; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -256,7 +260,7 @@ export default function Dashboard({ clients, projects, sows, activities, setting
       months.push({ key, label, revenue });
     }
     return months;
-  }, [paidInvoices]);
+  }, [paidInvoices, chartMonths]);
 
   const maxMonthlyRev = Math.max(...monthlyRevenue.map(m => m.revenue), 1);
 
@@ -268,18 +272,20 @@ export default function Dashboard({ clients, projects, sows, activities, setting
 
   return (
     <div className="dash">
-      {/* ═══ WELCOME BANNER ═══ */}
-      <div className="dash__welcome">
-        <div className="dash__welcome-content">
-          <h2>Welcome back, {settings.ownerName?.split(' ')[0] || 'there'}!</h2>
+      {/* ═══ WELCOME BANNER (toggleable) ═══ */}
+      {sectionsOn.welcomeBanner && (
+        <div className="dash__welcome">
+          <div className="dash__welcome-content">
+            <h2>Welcome back, {settings.ownerName?.split(' ')[0] || 'there'}!</h2>
+          </div>
+          <div className="dash__welcome-actions">
+            <button className="btn btn--primary" onClick={() => navigate('/proposals')}>+ New Proposal</button>
+            <button className="btn btn--primary" onClick={() => navigate('/invoices')}>+ New Invoice</button>
+          </div>
         </div>
-        <div className="dash__welcome-actions">
-          <button className="btn btn--primary" onClick={() => navigate('/proposals')}>+ New Proposal</button>
-          <button className="btn btn--primary" onClick={() => navigate('/invoices')}>+ New Invoice</button>
-        </div>
-      </div>
+      )}
 
-      {/* ═══ PENDING ONBOARDING ═══ */}
+      {/* ═══ PENDING ONBOARDING ═══ (always shown when there are submissions) */}
       {setClients && <OnboardingReview setClients={setClients} addNotification={addNotification} />}
 
       {/* ═══ KPI CARDS ═══
@@ -334,13 +340,23 @@ export default function Dashboard({ clients, projects, sows, activities, setting
         );
       })()}
 
-      {/* ═══ CHARTS ROW 1 ═══ */}
-      <div className="dash__row">
-        {/* Monthly Revenue Bar Chart */}
-        <div className="dash__card dash__card--2">
+      {/* ═══ CHARTS ROW 1 ═══
+           Each section is independently toggleable in Settings; we collapse
+           the row entirely if both are hidden, and stretch a single visible
+           one to full-width by overriding gridTemplateColumns inline. */}
+      {(sectionsOn.monthlyRevenue || sectionsOn.overdueInvoices) && (
+        <div
+          className="dash__row"
+          style={{
+            gridTemplateColumns:
+              sectionsOn.monthlyRevenue && sectionsOn.overdueInvoices ? undefined : '1fr',
+          }}
+        >
+        {sectionsOn.monthlyRevenue && (
+          <div className="dash__card dash__card--2">
           <div className="dash__card-header">
             <h3>Monthly Revenue</h3>
-            <span className="dash__card-badge">Last 6 Months</span>
+            <span className="dash__card-badge">Last {chartMonths} Months</span>
           </div>
           <div className="dash__bar-chart">
             {monthlyRevenue.map(month => (
@@ -356,10 +372,10 @@ export default function Dashboard({ clients, projects, sows, activities, setting
               </div>
             ))}
           </div>
-        </div>
+          </div>
+        )}
 
-        {/* Overdue Invoices — replaces Invoice Status donut. Action-
-            oriented: each row navigates to /invoices so you can chase. */}
+        {sectionsOn.overdueInvoices && (
         <div className="dash__card">
           <div className="dash__card-header">
             <h3>Overdue Invoices</h3>
@@ -390,11 +406,20 @@ export default function Dashboard({ clients, projects, sows, activities, setting
             )}
           </div>
         </div>
-      </div>
+        )}
+        </div>
+      )}
 
-      {/* ═══ CHARTS ROW 2 ═══ */}
-      <div className="dash__row">
-        {/* Pipeline Value */}
+      {/* ═══ CHARTS ROW 2 ═══ — Pipeline + Action Items, same toggle scheme */}
+      {(sectionsOn.pipelineValue || sectionsOn.actionItems) && (
+        <div
+          className="dash__row"
+          style={{
+            gridTemplateColumns:
+              sectionsOn.pipelineValue && sectionsOn.actionItems ? undefined : '1fr',
+          }}
+        >
+        {sectionsOn.pipelineValue && (
         <div className="dash__card">
           <div className="dash__card-header">
             <h3>Pipeline Value</h3>
@@ -417,10 +442,9 @@ export default function Dashboard({ clients, projects, sows, activities, setting
           </div>
         </div>
 
-        {/* Action Items — unified queue of stuff waiting on the admin.
-            Pulls from open markup pins, urgent tickets, and stale (3+ day)
-            pending proposals. Sorted by age desc so the oldest things
-            surface first. Replaces the Top Clients vanity ranking. */}
+        )}
+
+        {sectionsOn.actionItems && (
         <div className="dash__card">
           <div className="dash__card-header">
             <h3>Action Items</h3>
@@ -451,14 +475,26 @@ export default function Dashboard({ clients, projects, sows, activities, setting
             )}
           </div>
         </div>
-      </div>
+        )}
+        </div>
+      )}
 
-      {/* ═══ ROW 3 ═══ */}
-      <div className="dash__row dash__row--3">
-        {/* Application Health — replaces the By Industry vanity chart.
-            One row per application: name, status pill, MRR contribution
-            (own monthly cost + linked recurring expenses), and open ticket
-            count. Sorted by open tickets desc so problem children surface. */}
+      {/* ═══ ROW 3 ═══ — App Health / Upcoming Deadlines / Recent Activity.
+           Up to 3 cells; we count visibles and stretch grid columns to
+           match so a single visible card spans the whole row. */}
+      {(() => {
+        const cells = [
+          sectionsOn.appHealth,
+          sectionsOn.upcomingDeadlines,
+          sectionsOn.recentActivity,
+        ].filter(Boolean).length;
+        if (cells === 0) return null;
+        return (
+        <div
+          className="dash__row dash__row--3"
+          style={{ gridTemplateColumns: `repeat(${cells}, 1fr)` }}
+        >
+        {sectionsOn.appHealth && (
         <div className="dash__card">
           <div className="dash__card-header">
             <h3>Application Health</h3>
@@ -495,8 +531,9 @@ export default function Dashboard({ clients, projects, sows, activities, setting
             )}
           </div>
         </div>
+        )}
 
-        {/* Upcoming Deadlines */}
+        {sectionsOn.upcomingDeadlines && (
         <div className="dash__card">
           <div className="dash__card-header">
             <h3>Upcoming Deadlines</h3>
@@ -528,8 +565,9 @@ export default function Dashboard({ clients, projects, sows, activities, setting
             {upcomingDeadlines.length === 0 && <div className="dash__chart-empty">No upcoming deadlines</div>}
           </div>
         </div>
+        )}
 
-        {/* Recent Activity */}
+        {sectionsOn.recentActivity && (
         <div className="dash__card">
           <div className="dash__card-header">
             <h3>Recent Activity</h3>
@@ -547,7 +585,10 @@ export default function Dashboard({ clients, projects, sows, activities, setting
             {activities.length === 0 && <div className="dash__chart-empty">No activity yet</div>}
           </div>
         </div>
-      </div>
+        )}
+        </div>
+        );
+      })()}
     </div>
   );
 }

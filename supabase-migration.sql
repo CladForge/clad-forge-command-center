@@ -1009,3 +1009,10 @@ CREATE INDEX IF NOT EXISTS idx_app_screenshots_set ON app_screenshots(set_id);
 -- Format: [{ "id": "totalRevenue", "enabled": true }, ...]
 -- The app falls back to defaults (all cards, default order) if NULL or empty.
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS dashboard_kpi_cards JSONB;
+
+-- ============= PHASE 6b: Dashboard preferences =============
+-- Bag of dashboard customization knobs (section visibility, time
+-- horizons, chart range). One JSONB so we can grow the shape without
+-- another migration each time. Defaults applied client-side from
+-- initialSettings.dashboardPreferences.
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS dashboard_preferences JSONB;

@@ -2376,6 +2376,15 @@
   margin-bottom: 14px;
 }
 
+/* Lead-in paragraph under a section title; explains what the toggles
+   below do without crowding the title itself. */
+.settings__section-hint {
+  font-size: 0.82rem;
+  color: var(--slate);
+  margin: -8px 0 14px;
+  line-height: 1.5;
+}
+
 /* Hints */
 .settings__hint { font-size: 0.75rem; color: var(--slate-light); margin-top: 4px; display: block; }
 
@@ -2619,6 +2628,26 @@ mark.code-highlight {
   color: var(--ink);
   font-weight: 600;
   font-family: var(--font-mono);
+}
+/* "Show N more cards" / "Hide unselected" button at the bottom of the
+   picker. Dashed border keeps the affordance visible without competing
+   with the regular card rows. */
+.dash-pref-list__expand {
+  margin-top: 4px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--slate);
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.dash-pref-list__expand:hover {
+  background: var(--brand-pale);
+  color: var(--brand);
+  border-color: var(--brand);
 }
 /* Locked toggle: cap reached, can't enable any more. We dim it and shift
    the cursor to "not-allowed" so the disabled state is obvious without

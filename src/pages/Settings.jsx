@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { initialSettings } from '../data/initialData';
-import { KPI_CARD_DEFS, resolveCardOrder, colorFor, MAX_VISIBLE_KPI_CARDS } from '../lib/dashboardCards';
+import { KPI_CARD_DEFS, resolveCardOrder, colorFor, MAX_VISIBLE_KPI_CARDS, resolveDashboardPreferences } from '../lib/dashboardCards';
 
 const TABS = [
   { id: 'company', label: 'Company', icon: '🏢' },
@@ -359,12 +359,24 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
           )}
 
           {/* ═══ DASHBOARD ═══ */}
-          {activeTab === 'dashboard' && (
+          {activeTab === 'dashboard' && (() => {
+            const prefs = resolveDashboardPreferences(settings.dashboardPreferences);
+            // updatePref / updateSection helpers shave the boilerplate of
+            // "merge into the existing prefs object" off each input handler.
+            const updatePref = (key, value) =>
+              update('dashboardPreferences', { ...prefs, [key]: value });
+            const updateSection = (key, value) =>
+              update('dashboardPreferences', {
+                ...prefs,
+                sections: { ...prefs.sections, [key]: value },
+              });
+            return (
             <div className="settings__panel">
               <SettingsHeader
                 title="Dashboard"
-                description="Show, hide, and reorder the KPI cards on your home dashboard. Cards stretch to fill the row and wrap to a new row if there are too many."
+                description={`Customize what shows on your home dashboard. Pick up to ${MAX_VISIBLE_KPI_CARDS} KPI cards, toggle sections on and off, and tune the metric horizons.`}
               />
+
               <div className="settings__section">
                 <h4 className="settings__section-title">KPI Cards</h4>
                 <DashboardCardPicker
@@ -372,9 +384,110 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                   onChange={next => update('dashboardKpiCards', next)}
                 />
               </div>
+
+              <div className="settings__section">
+                <h4 className="settings__section-title">Sections</h4>
+                <p className="settings__section-hint">
+                  Hide sections you don&apos;t need. When both halves of a row are hidden the row collapses entirely; when only one half is hidden the other stretches to full width.
+                </p>
+                <ToggleField
+                  label="Welcome banner"
+                  description="The greeting and shortcut buttons at the very top."
+                  value={prefs.sections.welcomeBanner}
+                  onChange={v => updateSection('welcomeBanner', v)}
+                />
+                <ToggleField
+                  label="Monthly Revenue chart"
+                  description="Bar chart of paid invoice revenue over the trailing window."
+                  value={prefs.sections.monthlyRevenue}
+                  onChange={v => updateSection('monthlyRevenue', v)}
+                />
+                <ToggleField
+                  label="Overdue Invoices list"
+                  description="Worklist of overdue invoices with days late."
+                  value={prefs.sections.overdueInvoices}
+                  onChange={v => updateSection('overdueInvoices', v)}
+                />
+                <ToggleField
+                  label="Pipeline Value chart"
+                  description="Project budget broken down by pipeline stage."
+                  value={prefs.sections.pipelineValue}
+                  onChange={v => updateSection('pipelineValue', v)}
+                />
+                <ToggleField
+                  label="Action Items list"
+                  description="Things waiting on you: open markup pins, urgent tickets, stale proposals."
+                  value={prefs.sections.actionItems}
+                  onChange={v => updateSection('actionItems', v)}
+                />
+                <ToggleField
+                  label="Application Health table"
+                  description="Per-app status, MRR contribution, and open ticket count."
+                  value={prefs.sections.appHealth}
+                  onChange={v => updateSection('appHealth', v)}
+                />
+                <ToggleField
+                  label="Upcoming Deadlines list"
+                  description="Projects with deadlines coming up, sorted by soonest first."
+                  value={prefs.sections.upcomingDeadlines}
+                  onChange={v => updateSection('upcomingDeadlines', v)}
+                />
+                <ToggleField
+                  label="Recent Activity feed"
+                  description="Audit trail of changes across the system."
+                  value={prefs.sections.recentActivity}
+                  onChange={v => updateSection('recentActivity', v)}
+                />
+              </div>
+
+              <div className="settings__section">
+                <h4 className="settings__section-title">Time Horizons</h4>
+                <p className="settings__section-hint">
+                  Tune the time windows used by the dashboard&apos;s charts and lists. Adjust to match how you think about your business cadence.
+                </p>
+                <div className="form-grid">
+                  <SelectField
+                    label="Revenue chart range"
+                    value={String(prefs.chartMonths)}
+                    onChange={v => updatePref('chartMonths', Number(v))}
+                    options={[
+                      { value: '3',  label: 'Last 3 months' },
+                      { value: '6',  label: 'Last 6 months' },
+                      { value: '12', label: 'Last 12 months' },
+                    ]}
+                    hint="How far back the Monthly Revenue bar chart looks."
+                  />
+                  <SelectField
+                    label="Due Soon horizon"
+                    value={String(prefs.dueSoonDays)}
+                    onChange={v => updatePref('dueSoonDays', Number(v))}
+                    options={[
+                      { value: '7',  label: '7 days' },
+                      { value: '14', label: '14 days' },
+                      { value: '21', label: '21 days' },
+                      { value: '30', label: '30 days' },
+                    ]}
+                    hint="Window used by the Projects Due Soon KPI card."
+                  />
+                  <SelectField
+                    label="Stale proposal threshold"
+                    value={String(prefs.staleProposalDays)}
+                    onChange={v => updatePref('staleProposalDays', Number(v))}
+                    options={[
+                      { value: '1', label: '1 day' },
+                      { value: '3', label: '3 days' },
+                      { value: '5', label: '5 days' },
+                      { value: '7', label: '7 days' },
+                    ]}
+                    hint="A proposal must be sent for at least this long to surface in Action Items."
+                  />
+                </div>
+              </div>
+
               <SaveBar saved={saved} onSave={showSaved} />
             </div>
-          )}
+            );
+          })()}
 
           {/* ═══ APPEARANCE ═══ */}
           {activeTab === 'appearance' && (
@@ -643,7 +756,18 @@ function DashboardCardPicker({ value, onChange }) {
   }
 
   const enabledCount = value.filter(c => c.enabled !== false).length;
+  const disabledCount = value.length - enabledCount;
   const atMax = enabledCount >= MAX_VISIBLE_KPI_CARDS;
+
+  // Default to a focused view: only show cards the user has enabled. The
+  // unselected pool is hidden behind a toggle to avoid the long scroll
+  // through 14 options when most users only want a handful enabled.
+  const [showDisabled, setShowDisabled] = useState(false);
+  // Reordering is index-based against the full `value` array, so we keep
+  // that map intact. The renderer just filters which rows are *shown*.
+  const visibleRows = showDisabled
+    ? value
+    : value.filter(c => c.enabled !== false);
 
   return (
     <div className="dash-pref-list">
@@ -651,8 +775,11 @@ function DashboardCardPicker({ value, onChange }) {
         <strong>{enabledCount}</strong> of {MAX_VISIBLE_KPI_CARDS} shown
         {atMax && ' — turn one off to enable another'}
       </p>
-      {value.map((card, i) => {
+      {visibleRows.map(card => {
         const enabled = card.enabled !== false;
+        // i is the position in the full value array — matters for drag
+        // semantics and the toggle/color/reset actions.
+        const i = value.indexOf(card);
         return (
           <DashboardCardRow
             key={card.id}
@@ -673,6 +800,17 @@ function DashboardCardPicker({ value, onChange }) {
           />
         );
       })}
+      {disabledCount > 0 && (
+        <button
+          type="button"
+          className="dash-pref-list__expand"
+          onClick={() => setShowDisabled(s => !s)}
+        >
+          {showDisabled
+            ? 'Hide unselected cards'
+            : `+ Show ${disabledCount} more card option${disabledCount === 1 ? '' : 's'}`}
+        </button>
+      )}
     </div>
   );
 }

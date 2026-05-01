@@ -264,6 +264,29 @@ Best regards,
     { id: 'activeProjects', enabled: true },
     { id: 'proposals',      enabled: true },
   ],
+
+  // ── Dashboard preferences ──
+  // Customization knobs for the dashboard beyond KPI card visibility.
+  // sections     — toggle each chart/list block on or off
+  // chartMonths  — time window for the Monthly Revenue bar chart
+  // dueSoonDays  — horizon for the "Projects Due Soon" KPI card
+  // staleProposalDays — minimum age for a 'sent' proposal to surface in
+  //                Action Items
+  dashboardPreferences: {
+    sections: {
+      welcomeBanner:     true,
+      monthlyRevenue:    true,
+      overdueInvoices:   true,
+      pipelineValue:     true,
+      actionItems:       true,
+      appHealth:         true,
+      upcomingDeadlines: true,
+      recentActivity:    true,
+    },
+    chartMonths:       6,   // 3 | 6 | 12
+    dueSoonDays:       14,  // 7 | 14 | 21 | 30
+    staleProposalDays: 3,   // 1 | 3 | 5 | 7
+  },
 };
 
 export const initialInvoices = [];
