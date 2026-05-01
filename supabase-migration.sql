@@ -714,3 +714,57 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.client_decide_milestone(text, text, text) TO authenticated;
+
+-- ================================================================
+-- PHASE 4e — APPLICATIONS
+-- New top-level entity: a "living" deliverable owned by a client. A
+-- project BUILDS an application; an application is what gets MAINTAINED
+-- post-launch. Hosting, support, monitoring, tickets, and (later) markup
+-- all hang off an application rather than a project.
+--
+-- For MVP: admin defines apps, sets type/status/URL/cost. Client sees them
+-- read-only with billing summary, status, and notes. Settings live in a
+-- generic metadata JSONB so we can surface specific categories later
+-- without schema changes.
+-- ================================================================
+CREATE TABLE IF NOT EXISTS applications (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  url TEXT DEFAULT '',
+  type TEXT DEFAULT 'website'
+    CHECK (type IN ('website','web-app','mobile-app','api','other')),
+  status TEXT DEFAULT 'planning'
+    CHECK (status IN ('planning','in-development','staging','live','maintenance','archived')),
+  launched_at TEXT DEFAULT '',
+  monthly_cost NUMERIC DEFAULT 0,
+  notes TEXT DEFAULT '',
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_applications_client ON applications(client_id);
+CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
+ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
+
+-- RLS: admin: all; client: SELECT scoped to their client_id; writes admin only
+DROP POLICY IF EXISTS applications_select ON applications;
+DROP POLICY IF EXISTS applications_insert ON applications;
+DROP POLICY IF EXISTS applications_update ON applications;
+DROP POLICY IF EXISTS applications_delete ON applications;
+CREATE POLICY applications_select ON applications FOR SELECT TO authenticated
+  USING (auth_is_admin() OR client_id = ANY(auth_client_ids()));
+CREATE POLICY applications_insert ON applications FOR INSERT TO authenticated
+  WITH CHECK (auth_is_admin());
+CREATE POLICY applications_update ON applications FOR UPDATE TO authenticated
+  USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+CREATE POLICY applications_delete ON applications FOR DELETE TO authenticated
+  USING (auth_is_admin());
+
+-- Optional link from a recurring expense to an application — lets the portal
+-- roll up "monthly cost for this app" without a separate join table.
+ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS application_id TEXT
+  REFERENCES applications(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_recurring_expenses_application
+  ON recurring_expenses(application_id);

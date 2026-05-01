@@ -2847,6 +2847,14 @@ mark.code-highlight {
 .status-pill--ms-approved { background: rgba(51,184,135,0.18); color: var(--success); }
 .status-pill--ms-changes_requested { background: rgba(255,59,38,0.18); color: var(--danger); }
 
+/* Application status pills */
+.status-pill--app-planning { background: rgba(142,141,160,0.15); color: var(--slate); }
+.status-pill--app-in-development { background: rgba(143,137,250,0.18); color: var(--purple); }
+.status-pill--app-staging { background: rgba(255,171,64,0.18); color: var(--warning); }
+.status-pill--app-live { background: rgba(51,184,135,0.18); color: var(--success); }
+.status-pill--app-maintenance { background: rgba(59,130,246,0.18); color: var(--info); }
+.status-pill--app-archived { background: rgba(142,141,160,0.1); color: var(--slate-light); }
+
 @media (max-width: 1024px) {
   .portal-stats { grid-template-columns: repeat(2, 1fr); }
   .portal-grid { grid-template-columns: 1fr; }

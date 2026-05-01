@@ -34,6 +34,7 @@ export function useClientPortalData(authUserId) {
   const [documents, setDocuments] = useState([]);
   const [recurringExpenses, setRecurringExpenses] = useState([]);
   const [milestones, setMilestones] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -97,7 +98,7 @@ export function useClientPortalData(authUserId) {
     async function loadAll() {
       setLoading(true);
       try {
-        const [clientRes, projectsRes, invoicesRes, sowsRes, documentsRes, recurringRes, settingsRes] = await Promise.all([
+        const [clientRes, projectsRes, invoicesRes, sowsRes, documentsRes, recurringRes, settingsRes, applicationsRes] = await Promise.all([
           supabase.from('clients').select('*').eq('id', activeClientId).single(),
           supabase.from('projects').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('invoices').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
@@ -105,6 +106,7 @@ export function useClientPortalData(authUserId) {
           supabase.from('documents').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('recurring_expenses').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('settings').select('*').eq('id', 'default').single(),
+          supabase.from('applications').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
         ]);
 
         if (cancelled) return;
@@ -129,6 +131,13 @@ export function useClientPortalData(authUserId) {
         setDocuments((documentsRes.data || []).map(snakeToCamel));
         setRecurringExpenses((recurringRes.data || []).map(snakeToCamel));
         if (settingsRes.data) setSettings(snakeToCamel(settingsRes.data));
+        // Hide archived applications from clients (admin can see them all
+        // via the admin app; clients only care about active ones).
+        setApplications(
+          (applicationsRes.data || [])
+            .map(snakeToCamel)
+            .filter(a => a.status !== 'archived')
+        );
 
         // Milestones: scoped to the active client's projects. Hide draft
         // milestones — they're admin-only working state, not for client eyes.
@@ -199,6 +208,7 @@ export function useClientPortalData(authUserId) {
     recurringExpenses,
     milestones,
     reloadMilestones,
+    applications,
     settings,
     loading,
     error,

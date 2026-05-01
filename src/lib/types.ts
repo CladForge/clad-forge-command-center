@@ -94,3 +94,23 @@ export interface ProjectMilestone {
   createdAt?: string;
   createdBy?: string;
 }
+
+/** A living deliverable owned by a client. Built by projects, maintained over
+ *  time. Service tickets and screenshot annotations (future) attach to apps. */
+export interface Application {
+  id: string;
+  clientId: string;
+  name: string;
+  description?: string;
+  url?: string;
+  type: 'website' | 'web-app' | 'mobile-app' | 'api' | 'other';
+  status: 'planning' | 'in-development' | 'staging' | 'live' | 'maintenance' | 'archived';
+  launchedAt?: string;
+  monthlyCost?: number;
+  notes?: string;
+  /** Free-form per-app config — domain info, runbook notes, feature flags, etc.
+   *  Specific categories will be split into typed fields as use cases firm up. */
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
+  createdBy?: string;
+}

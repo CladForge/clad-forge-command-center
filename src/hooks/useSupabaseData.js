@@ -62,11 +62,12 @@ const TABLE_COLUMNS = {
   documents: ['id','name','type','client_id','project_id','file_url','file_size','notes','status','created_at','created_by'],
   notifications: ['id','text','type','entity_type','entity_id','read','user_id','created_at'],
   automations: ['id','name','description','trigger_type','trigger_config','actions','status','run_count','last_run_at','created_at','created_by'],
-  recurring_expenses: ['id','client_id','project_id','title','description','amount','frequency','start_date','next_due','status','category','auto_invoice','notes','created_at','created_by'],
+  recurring_expenses: ['id','client_id','project_id','application_id','title','description','amount','frequency','start_date','next_due','status','category','auto_invoice','notes','created_at','created_by'],
   finance_entries: ['id','type','date','amount','category','description','client_id','project_id','invoice_id','tax_deductible','tax_category','receipt_url','payment_method','notes','year','month','created_at','created_by'],
   tax_payments: ['id','date','quarter','amount','payment_method','confirmation','notes','year','created_at','created_by'],
   client_users: ['id','auth_user_id','client_id','portal_role','invited_by','invited_at','accepted_at','last_seen_at','created_at'],
   project_milestones: ['id','project_id','title','description','target_date','status','client_comment','decided_by','decided_at','position','created_at','created_by'],
+  applications: ['id','client_id','name','description','url','type','status','launched_at','monthly_cost','notes','metadata','created_at','created_by'],
 };
 
 // Strip fields not in the DB table before sending to Supabase
@@ -158,6 +159,7 @@ export function useSupabaseData() {
   const [taxPayments, setTaxPaymentsState] = useState(initialTaxPayments);
   const [clientUsers, setClientUsersState] = useState([]);
   const [milestones, setMilestonesState] = useState([]);
+  const [applications, setApplicationsState] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const connectedRef = useRef(false);
@@ -169,7 +171,7 @@ export function useSupabaseData() {
         const [
           clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
           invoicesRes, timeEntriesRes, eventsRes, contractorsRes,
-          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, milestonesRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, milestonesRes, applicationsRes,
         ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
@@ -191,6 +193,7 @@ export function useSupabaseData() {
           supabase.from('tax_payments').select('*').order('date', { ascending: false }),
           supabase.from('client_users').select('*').order('invited_at', { ascending: false }),
           supabase.from('project_milestones').select('*').order('position', { ascending: true }),
+          supabase.from('applications').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (clientsRes.error) throw clientsRes.error;
@@ -226,6 +229,7 @@ export function useSupabaseData() {
         if (taxPaymentsRes.data) setTaxPaymentsState(taxPaymentsRes.data.map(snakeToCamel));
         if (clientUsersRes.data) setClientUsersState(clientUsersRes.data.map(snakeToCamel));
         if (milestonesRes.data) setMilestonesState(milestonesRes.data.map(snakeToCamel));
+        if (applicationsRes.data) setApplicationsState(applicationsRes.data.map(snakeToCamel));
 
         connectedRef.current = true;
         setConnected(true);
@@ -508,6 +512,13 @@ export function useSupabaseData() {
     [addActivity]
   );
 
+  // APPLICATIONS — living deliverables owned by clients. Admin manages,
+  // client views read-only.
+  const setApplications = useCallback(
+    makeSetter(setApplicationsState, 'applications', { labelField: 'name', entityLabel: 'application', icon: 'box' }),
+    [addActivity]
+  );
+
   // CLIENT_USERS — admin-side state for the Portal Access tab. Inserts and
   // deletes are managed via the invite-client-user / revoke-client-user edge
   // functions (which also touch auth.users), so this setter only handles
@@ -548,6 +559,7 @@ export function useSupabaseData() {
     taxPayments, setTaxPayments,
     clientUsers, setClientUsers, reloadClientUsers,
     milestones, setMilestones,
+    applications, setApplications,
     loading,
     connected,
   };

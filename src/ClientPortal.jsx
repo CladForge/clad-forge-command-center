@@ -11,6 +11,8 @@ import PortalProposals from './pages/portal/PortalProposals';
 import PortalRecurring from './pages/portal/PortalRecurring';
 import PortalDocuments from './pages/portal/PortalDocuments';
 import PortalAccount from './pages/portal/PortalAccount';
+import PortalApplications from './pages/portal/PortalApplications';
+import PortalApplicationDetail from './pages/portal/PortalApplicationDetail';
 import { CLAD_FORGE_LOGO_DATA_URI } from './lib/brand';
 
 // Top-level component for the client portal. Mounted by App.jsx when the
@@ -116,6 +118,7 @@ export default function ClientPortal({ profile, onSignOut }) {
                   projects={data.projects}
                   invoices={data.invoices}
                   sows={data.sows}
+                  applications={data.applications}
                 />
               } />
               <Route path="/portal/projects" element={
@@ -142,6 +145,19 @@ export default function ClientPortal({ profile, onSignOut }) {
                   sows={data.sows}
                   activeClient={data.activeClient}
                   settings={data.settings}
+                />
+              } />
+              <Route path="/portal/applications" element={
+                <PortalApplications
+                  applications={data.applications}
+                  recurringExpenses={data.recurringExpenses}
+                />
+              } />
+              <Route path="/portal/applications/:id" element={
+                <PortalApplicationDetail
+                  applications={data.applications}
+                  recurringExpenses={data.recurringExpenses}
+                  invoices={data.invoices}
                 />
               } />
               <Route path="/portal/expenses" element={

@@ -8,7 +8,7 @@ const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
 
 function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
 
-export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers }) {
+export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
   const [search, setSearch] = useState('');
@@ -81,6 +81,8 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         clientUsers={clientUsers}
         setClientUsers={setClientUsers}
         reloadClientUsers={reloadClientUsers}
+        applications={applications}
+        setApplications={setApplications}
         onBack={() => setViewClientId(null)}
         onEdit={() => { openEdit(client); setViewClientId(null); }}
         onDelete={() => handleDelete(client.id)}
@@ -211,7 +213,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    CLIENT PROFILE PAGE
    ═══════════════════════════════════════════ */
 
-function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, onBack, onEdit, onDelete }) {
+function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, onBack, onEdit, onDelete }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
@@ -295,14 +297,69 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
   }
 
   const portalUsersForClient = (clientUsers || []).filter(cu => cu.clientId === client.id);
+  const clientApplications = (applications || []).filter(a => a.clientId === client.id);
 
   const TABS = [
     { id: 'projects', label: `Projects (${clientProjects.length})` },
+    { id: 'applications', label: `Applications (${clientApplications.length})` },
     { id: 'documents', label: `Financials (${invoices.length + clientProposals.length})` },
     { id: 'people', label: `People (${contacts.length})` },
     { id: 'portal', label: `Portal Access (${portalUsersForClient.length})` },
     { id: 'notes', label: 'Notes' },
   ];
+
+  // Application modal state
+  const [showAppModal, setShowAppModal] = useState(false);
+  const [editingApp, setEditingApp] = useState(null);
+  const emptyApp = {
+    name: '', description: '', url: '', type: 'website',
+    status: 'planning', launchedAt: '', monthlyCost: 0, notes: '',
+  };
+  const [appForm, setAppForm] = useState(emptyApp);
+
+  function openAppCreate() {
+    setEditingApp(null);
+    setAppForm(emptyApp);
+    setShowAppModal(true);
+  }
+  function openAppEdit(app) {
+    setEditingApp(app);
+    setAppForm({
+      name: app.name || '',
+      description: app.description || '',
+      url: app.url || '',
+      type: app.type || 'website',
+      status: app.status || 'planning',
+      launchedAt: app.launchedAt || '',
+      monthlyCost: app.monthlyCost || 0,
+      notes: app.notes || '',
+    });
+    setShowAppModal(true);
+  }
+  function saveApp() {
+    if (!appForm.name.trim() || !setApplications) return;
+    if (editingApp) {
+      setApplications(prev => prev.map(a => a.id === editingApp.id ? { ...a, ...appForm } : a));
+    } else {
+      setApplications(prev => [
+        ...prev,
+        {
+          ...appForm,
+          id: generateId(),
+          clientId: client.id,
+          createdAt: new Date().toISOString(),
+          metadata: {},
+        },
+      ]);
+    }
+    setShowAppModal(false);
+    setEditingApp(null);
+  }
+  function deleteApp(appId) {
+    const a = clientApplications.find(x => x.id === appId);
+    if (!window.confirm(`Delete application "${a?.name || ''}"? This cannot be undone — and any recurring expenses linked to it will be unlinked (not deleted).`)) return;
+    setApplications(prev => prev.filter(x => x.id !== appId));
+  }
 
   return (
     <div className="cp">
@@ -548,6 +605,75 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
         </div>
       )}
 
+      {/* ═══ APPLICATIONS TAB ═══ */}
+      {tab === 'applications' && (
+        <div className="cp__content">
+          <div className="panel">
+            <div className="panel__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3>Applications</h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--slate)', margin: '4px 0 0 0' }}>
+                  Live products and sites you maintain for {client.company}. Visible to the client in their portal.
+                </p>
+              </div>
+              <button className="btn btn--primary" onClick={openAppCreate}>+ Application</button>
+            </div>
+            <div style={{ padding: clientApplications.length === 0 ? 0 : '12px 22px 22px' }}>
+              {clientApplications.length === 0 ? (
+                <div className="empty-state">
+                  <span className="empty-state__icon">📦</span>
+                  <h3>No applications yet</h3>
+                  <p>Add the first application this client owns. They&apos;ll see it in their portal.</p>
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>URL</th>
+                      <th style={{ textAlign: 'right' }}>Monthly</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientApplications.map(app => (
+                      <tr key={app.id}>
+                        <td>
+                          <span className="data-table__bold">{app.name}</span>
+                          {app.description && <span className="data-table__sub">{app.description}</span>}
+                        </td>
+                        <td className="data-table__muted">{app.type}</td>
+                        <td>
+                          <span className={`status-pill status-pill--app-${app.status}`}>{app.status}</span>
+                        </td>
+                        <td>
+                          {app.url ? (
+                            <a href={app.url.startsWith('http') ? app.url : `https://${app.url}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)' }}>
+                              {app.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
+                            </a>
+                          ) : <span className="data-table__muted">—</span>}
+                        </td>
+                        <td className="data-table__mono" style={{ textAlign: 'right' }}>
+                          {app.monthlyCost > 0 ? formatCurrency(app.monthlyCost) : '—'}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                            <button className="btn btn--ghost btn--sm" onClick={() => openAppEdit(app)}>Edit</button>
+                            <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={() => deleteApp(app.id)}>×</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ PORTAL ACCESS TAB ═══ */}
       {tab === 'portal' && (
         <div className="cp__content">
@@ -637,6 +763,107 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
           onClose={() => setShowInviteModal(false)}
           onInvited={reloadClientUsers}
         />
+      )}
+
+      {/* Application Add/Edit Modal */}
+      {showAppModal && (
+        <div className="modal-overlay" onClick={() => setShowAppModal(false)}>
+          <div className="modal modal--wide" onClick={e => e.stopPropagation()}>
+            <div className="modal__header">
+              <h2>{editingApp ? 'Edit Application' : 'New Application'}</h2>
+              <button className="modal__close" onClick={() => setShowAppModal(false)}>×</button>
+            </div>
+            <div className="modal__body">
+              <div className="form-grid">
+                <div className="form-group form-group--full">
+                  <label>Name *</label>
+                  <input
+                    type="text"
+                    value={appForm.name}
+                    onChange={e => setAppForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="e.g. Marketing Site, Internal CRM, Customer Portal"
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Description</label>
+                  <textarea
+                    value={appForm.description}
+                    onChange={e => setAppForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="What does this application do? Visible to the client."
+                    rows={2}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Type</label>
+                  <select value={appForm.type} onChange={e => setAppForm(f => ({ ...f, type: e.target.value }))}>
+                    <option value="website">Website</option>
+                    <option value="web-app">Web App</option>
+                    <option value="mobile-app">Mobile App</option>
+                    <option value="api">API</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select value={appForm.status} onChange={e => setAppForm(f => ({ ...f, status: e.target.value }))}>
+                    <option value="planning">Planning</option>
+                    <option value="in-development">In Development</option>
+                    <option value="staging">Staging</option>
+                    <option value="live">Live</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Live URL</label>
+                  <input
+                    type="text"
+                    value={appForm.url}
+                    onChange={e => setAppForm(f => ({ ...f, url: e.target.value }))}
+                    placeholder="https://example.com"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Launched (date)</label>
+                  <input
+                    type="date"
+                    value={appForm.launchedAt}
+                    onChange={e => setAppForm(f => ({ ...f, launchedAt: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Monthly cost (base)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={appForm.monthlyCost}
+                    onChange={e => setAppForm(f => ({ ...f, monthlyCost: Number(e.target.value) || 0 }))}
+                  />
+                  <span className="form-hint">
+                    Recurring expenses linked to this app are added on top.
+                  </span>
+                </div>
+                <div className="form-group form-group--full">
+                  <label>Notes</label>
+                  <textarea
+                    value={appForm.notes}
+                    onChange={e => setAppForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="Internal notes, runbook, deployment info — also visible to client."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="modal__footer">
+              <button className="btn btn--ghost" onClick={() => setShowAppModal(false)}>Cancel</button>
+              <button className="btn btn--primary" onClick={saveApp} disabled={!appForm.name.trim()}>
+                {editingApp ? 'Save Changes' : 'Create Application'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Add/Edit Contact Modal */}

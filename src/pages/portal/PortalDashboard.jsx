@@ -9,11 +9,12 @@ function calcInvoiceTotal(items, taxRate = 0, discount = 0) {
   return Math.max(sub + sub * ((taxRate || 0) / 100) - (discount || 0), 0);
 }
 
-export default function PortalDashboard({ activeClient, projects, invoices, sows }) {
+export default function PortalDashboard({ activeClient, projects, invoices, sows, applications = [] }) {
   const navigate = useNavigate();
 
   const activeProjects = projects.filter(p => ['lead', 'proposal', 'active', 'review'].includes(p.stage));
   const completedProjects = projects.filter(p => p.stage === 'completed');
+  const liveApplications = applications.filter(a => a.status === 'live' || a.status === 'maintenance');
 
   const outstanding = invoices
     .filter(i => i.status === 'sent' || i.status === 'overdue')
@@ -46,6 +47,18 @@ export default function PortalDashboard({ activeClient, projects, invoices, sows
             {completedProjects.length > 0 ? `${completedProjects.length} completed` : 'No completed yet'}
           </span>
         </div>
+        {applications.length > 0 && (
+          <div className="stat-card" onClick={() => navigate('/portal/applications')} style={{ cursor: 'pointer' }}>
+            <div className="stat-card__accent" style={{ background: 'var(--secondary)' }} />
+            <span className="stat-card__label">Applications</span>
+            <span className="stat-card__value">{liveApplications.length}</span>
+            <span className="stat-card__sub">
+              {applications.length === liveApplications.length
+                ? 'all live'
+                : `${applications.length - liveApplications.length} in dev/staging`}
+            </span>
+          </div>
+        )}
         <div className="stat-card">
           <div className="stat-card__accent" style={{ background: 'var(--warning)' }} />
           <span className="stat-card__label">Outstanding</span>
