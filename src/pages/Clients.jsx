@@ -418,10 +418,22 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
 
   return (
     <div className="cp">
+      {/* Back button sits above the hero card with breathing room. Used
+          to live absolute-positioned in the corner of .cp__hero-top
+          where it overlapped the avatar — pulled it out so the spacing
+          matches every other detail page (ProjectDetail, Proposals,
+          Contractors, etc. all use the same pattern). */}
+      <button
+        className="btn btn--ghost btn--sm"
+        onClick={onBack}
+        style={{ marginBottom: 12 }}
+      >
+        ← Back to clients
+      </button>
+
       {/* Profile Hero */}
       <div className="cp__hero">
         <div className="cp__hero-top">
-          <button className="cp__back" onClick={onBack}>← Back</button>
           <div className="cp__hero-avatar" style={{ overflow: 'hidden' }}>
             {client.brandLogoUrl
               ? <img src={client.brandLogoUrl} alt={client.company} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit', display: 'block' }} />

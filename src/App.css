@@ -1211,8 +1211,10 @@
   position: relative;
 }
 
-.cp__back { position: absolute; top: 16px; left: 20px; font-size: 0.78rem; color: rgba(255,255,255,0.5); background: none; border: none; cursor: pointer; font-family: var(--font-body); }
-.cp__back:hover { color: #fff; }
+/* .cp__back used to be an absolute-positioned link overlapping the
+   hero corner. Removed — the back button now sits above the hero as
+   a standard .btn .btn--ghost, matching ProjectDetail / Proposals /
+   Contractors. */
 
 .cp__hero-avatar { width: 80px; height: 80px; border-radius: 18px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 600; color: rgba(255,255,255,0.8); flex-shrink: 0; }
 
