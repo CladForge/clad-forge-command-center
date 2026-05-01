@@ -2932,7 +2932,6 @@ mark.code-highlight {
 
 .markup-set-card { padding: 16px 18px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; display: flex; flex-direction: column; gap: 8px; text-align: left; }
 .markup-set-card:hover { border-color: var(--brand-mid); transform: translateY(-1px); box-shadow: var(--shadow); }
-.markup-set-card--unfiled { border-style: dashed; opacity: 0.85; }
 .markup-set-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .markup-set-card__name { font-size: 1rem; font-weight: 600; color: var(--ink); }
 .markup-set-card__desc { font-size: 0.85rem; color: var(--slate); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

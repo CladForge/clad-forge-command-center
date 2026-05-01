@@ -23,9 +23,11 @@ export default function AppScreenshotsSection({
   onChange,
 }) {
   const [activeSetId, setActiveSetId] = useState(null);
-  // Special token for the "Unfiled" pseudo-set (screenshots with set_id=null)
-  const UNFILED = '__unfiled__';
-  const isUnfiledMode = activeSetId === UNFILED;
+
+  // Only consider screenshots that belong to a real markup set. Screenshots
+  // with set_id=null are treated as legacy/orphan and not surfaced anywhere
+  // in the UI — admins can clean them up with:
+  //   DELETE FROM app_screenshots WHERE set_id IS NULL;
 
   // ── List mode ────────────────────────────────────────────────────────
   if (!activeSetId) {
@@ -39,16 +41,13 @@ export default function AppScreenshotsSection({
         isAdmin={isAdmin}
         onChange={onChange}
         onOpenSet={setActiveSetId}
-        unfiledToken={UNFILED}
       />
     );
   }
 
   // ── Workspace mode ──────────────────────────────────────────────────
-  const activeSet = isUnfiledMode ? null : markupSets.find(s => s.id === activeSetId);
-  const setScreenshots = isUnfiledMode
-    ? screenshots.filter(s => !s.setId)
-    : screenshots.filter(s => s.setId === activeSetId);
+  const activeSet = markupSets.find(s => s.id === activeSetId);
+  const setScreenshots = screenshots.filter(s => s.setId === activeSetId);
   const ssIds = setScreenshots.map(s => s.id);
   const setPins = pins.filter(p => ssIds.includes(p.screenshotId));
 
@@ -72,11 +71,9 @@ export default function AppScreenshotsSection({
 
 function SetList({
   applicationId, screenshots, pins, markupSets, currentUserId, isAdmin,
-  onChange, onOpenSet, unfiledToken,
+  onChange, onOpenSet,
 }) {
   const [showNewModal, setShowNewModal] = useState(false);
-
-  const unfiledScreenshots = screenshots.filter(s => !s.setId);
 
   // Group sets by status for visual ordering: active first, then completed
   const activeSets = markupSets.filter(s => s.status === 'active');
@@ -84,17 +81,6 @@ function SetList({
 
   function pinCountsForSet(setId) {
     const ssIds = screenshots.filter(s => s.setId === setId).map(s => s.id);
-    const set = pins.filter(p => ssIds.includes(p.screenshotId));
-    return {
-      total: set.length,
-      open: set.filter(p => p.status === 'open').length,
-      resolved: set.filter(p => p.status === 'resolved').length,
-      screenshotCount: ssIds.length,
-    };
-  }
-
-  function pinCountsForUnfiled() {
-    const ssIds = unfiledScreenshots.map(s => s.id);
     const set = pins.filter(p => ssIds.includes(p.screenshotId));
     return {
       total: set.length,
@@ -117,7 +103,7 @@ function SetList({
         </button>
       </div>
 
-      {markupSets.length === 0 && unfiledScreenshots.length === 0 ? (
+      {markupSets.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state__icon">📦</span>
           <h3>No markup sets yet</h3>
@@ -159,27 +145,6 @@ function SetList({
                     onChange={onChange}
                   />
                 ))}
-              </div>
-            </div>
-          )}
-
-          {unfiledScreenshots.length > 0 && (
-            <div className="markup-sets-list__group">
-              <h4 className="markup-sets-list__group-title">Unfiled</h4>
-              <div className="markup-sets-grid">
-                <button
-                  className="markup-set-card markup-set-card--unfiled"
-                  onClick={() => onOpenSet(unfiledToken)}
-                >
-                  <div className="markup-set-card__top">
-                    <span className="markup-set-card__name">Unfiled screenshots</span>
-                    <span className="status-pill status-pill--mset-archived">Legacy</span>
-                  </div>
-                  <p className="markup-set-card__sub">
-                    {unfiledScreenshots.length} screenshot{unfiledScreenshots.length !== 1 ? 's' : ''} not in a set
-                  </p>
-                  <SetCardCounts counts={pinCountsForUnfiled()} />
-                </button>
               </div>
             </div>
           )}
