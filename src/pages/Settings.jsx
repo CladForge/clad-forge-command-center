@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { initialSettings } from '../data/initialData';
-import { KPI_CARD_DEFS, resolveCardOrder, colorFor } from '../lib/dashboardCards';
+import { KPI_CARD_DEFS, resolveCardOrder, colorFor, MAX_VISIBLE_KPI_CARDS } from '../lib/dashboardCards';
 
 const TABS = [
   { id: 'company', label: 'Company', icon: '🏢' },
@@ -584,8 +584,18 @@ function DashboardCardPicker({ value, onChange }) {
     onChange(next);
   }
 
+  // Refuse to enable a card when the visible-count cap is already met. The
+  // row UI also marks unreachable toggles as disabled so users see why
+  // nothing happens, but this guard is defensive in case anything else
+  // calls toggle (e.g. keyboard or tests).
   function toggle(index) {
-    const next = value.map((c, i) => i === index ? { ...c, enabled: !(c.enabled !== false) } : c);
+    const target = value[index];
+    const wasEnabled = target?.enabled !== false;
+    if (!wasEnabled) {
+      const enabledCount = value.filter(c => c.enabled !== false).length;
+      if (enabledCount >= MAX_VISIBLE_KPI_CARDS) return;
+    }
+    const next = value.map((c, i) => i === index ? { ...c, enabled: !wasEnabled } : c);
     onChange(next);
   }
 
@@ -632,24 +642,37 @@ function DashboardCardPicker({ value, onChange }) {
     setDropIndex(null);
   }
 
+  const enabledCount = value.filter(c => c.enabled !== false).length;
+  const atMax = enabledCount >= MAX_VISIBLE_KPI_CARDS;
+
   return (
     <div className="dash-pref-list">
-      {value.map((card, i) => (
-        <DashboardCardRow
-          key={card.id}
-          card={card}
-          index={i}
-          dragIndex={dragIndex}
-          dropIndex={dropIndex}
-          onToggle={() => toggle(i)}
-          onSetColor={hex => setColor(i, hex)}
-          onResetColor={() => resetColor(i)}
-          onDragStart={e => handleDragStart(e, i)}
-          onDragOver={e => handleDragOver(e, i)}
-          onDrop={e => handleDrop(e, i)}
-          onDragEnd={handleDragEnd}
-        />
-      ))}
+      <p className="dash-pref-list__counter">
+        <strong>{enabledCount}</strong> of {MAX_VISIBLE_KPI_CARDS} shown
+        {atMax && ' — turn one off to enable another'}
+      </p>
+      {value.map((card, i) => {
+        const enabled = card.enabled !== false;
+        return (
+          <DashboardCardRow
+            key={card.id}
+            card={card}
+            index={i}
+            // Lock toggles that are off when the cap is already met. Toggles
+            // that are on stay enabled (so users can always turn one off).
+            toggleLocked={!enabled && atMax}
+            dragIndex={dragIndex}
+            dropIndex={dropIndex}
+            onToggle={() => toggle(i)}
+            onSetColor={hex => setColor(i, hex)}
+            onResetColor={() => resetColor(i)}
+            onDragStart={e => handleDragStart(e, i)}
+            onDragOver={e => handleDragOver(e, i)}
+            onDrop={e => handleDrop(e, i)}
+            onDragEnd={handleDragEnd}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -660,7 +683,7 @@ function DashboardCardPicker({ value, onChange }) {
 // typed text parses to a valid hex (#RGB or #RRGGBB, with or without the
 // leading #). Invalid input shows a red border and reverts on blur.
 function DashboardCardRow({
-  card, index, dragIndex, dropIndex,
+  card, index, dragIndex, dropIndex, toggleLocked = false,
   onToggle, onSetColor, onResetColor,
   onDragStart, onDragOver, onDrop, onDragEnd,
 }) {
@@ -750,12 +773,14 @@ function DashboardCardRow({
         </button>
       )}
       <button
-        className={`settings__toggle ${enabled ? 'settings__toggle--on' : ''}`}
+        className={`settings__toggle ${enabled ? 'settings__toggle--on' : ''} ${toggleLocked ? 'settings__toggle--locked' : ''}`}
         onClick={onToggle}
         onMouseDown={e => e.stopPropagation()}
+        disabled={toggleLocked}
         role="switch"
         aria-checked={enabled}
         aria-label={`${enabled ? 'Hide' : 'Show'} ${def?.label}`}
+        title={toggleLocked ? 'Maximum cards already shown — turn one off first' : undefined}
       >
         <span className="settings__toggle-thumb" />
       </button>

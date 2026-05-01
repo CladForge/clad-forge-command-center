@@ -2548,6 +2548,23 @@ mark.code-highlight {
    in the middle, show/hide toggle on the right. Native HTML5 drag-and-drop;
    the row itself is the draggable, the handle is just a visual cue. */
 .dash-pref-list { display: flex; flex-direction: column; gap: 8px; }
+.dash-pref-list__counter {
+  font-size: 0.78rem;
+  color: var(--slate);
+  margin: 0 0 4px;
+}
+.dash-pref-list__counter strong {
+  color: var(--ink);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+/* Locked toggle: cap reached, can't enable any more. We dim it and shift
+   the cursor to "not-allowed" so the disabled state is obvious without
+   hiding the row entirely. */
+.settings__toggle--locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .dash-pref-row {
   display: flex;
   align-items: center;

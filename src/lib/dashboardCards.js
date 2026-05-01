@@ -49,6 +49,11 @@ export function colorFor(cardConfig) {
   return cardConfig?.color || def?.defaultColor || '#ff8c00';
 }
 
+// Max number of cards visible on the dashboard at once. Combined with
+// pickKpiColumns capping at 2 rows, this means the dashboard never
+// exceeds two rows of cards (4 + 4 at most).
+export const MAX_VISIBLE_KPI_CARDS = 8;
+
 // Reconcile a saved card order with the live registry. Drops any saved IDs
 // that no longer exist in the registry, and appends any registry IDs that
 // aren't in the saved data (using the registry's defaultEnabled flag, which
@@ -75,14 +80,16 @@ export function resolveCardOrder(saved) {
 //       - never leaves the last row with a single lonely card,
 //       - minimizes the "imbalance" (gap between full rows and last row),
 //       - tiebreaks on larger c (more cards per row, fewer rows).
-//   * minCols = ceil(n/4) so we cap the layout at ~4 rows; cards get
-//     narrower instead of stacking endlessly when the registry grows.
+//   * minCols = ceil(n/2) so the dashboard never exceeds two rows. With
+//     MAX_VISIBLE_KPI_CARDS = 8 enforced upstream this gives at most a
+//     4 / 4 layout; raising the visible cap would put more pressure on
+//     this floor.
 //
 // Returns an integer suitable for `grid-template-columns: repeat(c, 1fr)`.
 export function pickKpiColumns(n, maxCols = 6) {
   if (n <= 0) return 1;
   if (n <= maxCols) return n;
-  const minCols = Math.max(2, Math.ceil(n / 4));
+  const minCols = Math.max(2, Math.ceil(n / 2));
   let best = minCols;
   let bestImbalance = Infinity;
   for (let c = minCols; c <= maxCols; c++) {

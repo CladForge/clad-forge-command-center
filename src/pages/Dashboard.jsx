@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
-import { resolveCardOrder, pickKpiColumns, colorFor } from '../lib/dashboardCards';
+import { resolveCardOrder, pickKpiColumns, colorFor, MAX_VISIBLE_KPI_CARDS } from '../lib/dashboardCards';
 
 export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
@@ -195,7 +195,12 @@ export default function Dashboard({ clients, projects, sows, activities, setting
           monthlyRecurring:  { label: 'Monthly Recurring',  value: formatCurrency(monthlyRecurring), sub: `${activeRecurring.length} active`, onClick: () => navigate('/recurring') },
         };
         const order = resolveCardOrder(settings.dashboardKpiCards);
-        const visible = order.filter(c => c.enabled !== false && cardProps[c.id]);
+        // Defensive cap — if older saved settings have more than the max
+        // enabled, only render the first MAX_VISIBLE_KPI_CARDS. Settings UI
+        // also enforces this on toggle, but the data could pre-date the cap.
+        const visible = order
+          .filter(c => c.enabled !== false && cardProps[c.id])
+          .slice(0, MAX_VISIBLE_KPI_CARDS);
         if (visible.length === 0) return null;
         // Compute a balanced column count up-front and pass it via a CSS
         // variable. CSS auto-fit fills greedily (6/1 for 7 cards); this
