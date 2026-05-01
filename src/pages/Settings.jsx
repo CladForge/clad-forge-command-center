@@ -10,12 +10,13 @@ const TABS = [
   { id: 'pipeline', label: 'Pipeline', icon: '📊' },
   { id: 'clients', label: 'Clients', icon: '👥' },
   { id: 'dashboard', label: 'Dashboard', icon: '🎛' },
+  { id: 'activity', label: 'Activity', icon: '🕒' },
   { id: 'appearance', label: 'Appearance', icon: '🎨' },
   { id: 'notifications', label: 'Notifications', icon: '🔔' },
   { id: 'data', label: 'Data', icon: '💾' },
 ];
 
-export default function Settings({ settings: rawSettings, setSettings, profile, onSignOut }) {
+export default function Settings({ settings: rawSettings, setSettings, profile, onSignOut, activities = [] }) {
   // Merge with defaults so newly-added fields always exist
   const settings = { ...initialSettings, ...rawSettings };
 
@@ -432,12 +433,8 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
                   value={prefs.sections.upcomingDeadlines}
                   onChange={v => updateSection('upcomingDeadlines', v)}
                 />
-                <ToggleField
-                  label="Recent Activity feed"
-                  description="Audit trail of changes across the system."
-                  value={prefs.sections.recentActivity}
-                  onChange={v => updateSection('recentActivity', v)}
-                />
+                {/* Recent Activity moved out of the dashboard and into its
+                    own Settings tab — toggle is no longer relevant. */}
               </div>
 
               <div className="settings__section">
@@ -488,6 +485,43 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
             </div>
             );
           })()}
+
+          {/* ═══ ACTIVITY ═══
+               Full-length audit trail of changes across the system. Used
+               to live as a card on the dashboard but now has its own tab
+               so the dashboard can stay focused on action-oriented data.
+               Activity entries are auto-logged by makeSetter() in
+               useSupabaseData.js — see the Props-Down Pattern docs. */}
+          {activeTab === 'activity' && (
+            <div className="settings__panel">
+              <SettingsHeader
+                title="Activity"
+                description="Recent changes across the system. Every client added, project updated, invoice paid, ticket comment posted, etc., shows up here in reverse-chronological order."
+              />
+              <div className="settings__section">
+                <h4 className="settings__section-title">
+                  Recent Activity {activities.length > 0 && <span style={{ color: 'var(--slate-light)', fontWeight: 400, marginLeft: 8 }}>· {activities.length} entries</span>}
+                </h4>
+                <div className="settings-activity">
+                  {activities.length === 0 ? (
+                    <div className="dash__chart-empty">No activity yet — make some changes and watch this fill up.</div>
+                  ) : (
+                    activities.map((act, i) => (
+                      <div key={act.id || i} className="settings-activity__row">
+                        <span className={`dash__act-dot dash__act-dot--${act.type}`} />
+                        <div className="settings-activity__content">
+                          <span className="settings-activity__msg">{act.message}</span>
+                          <span className="settings-activity__time">
+                            {act.time || (act.createdAt ? new Date(act.createdAt).toLocaleString() : '')}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ═══ APPEARANCE ═══ */}
           {activeTab === 'appearance' && (

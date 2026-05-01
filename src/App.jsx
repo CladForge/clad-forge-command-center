@@ -187,7 +187,7 @@ export default function App() {
         <TopBar settings={settings} connected={connected} profile={profile} notifications={notifications} setNotifications={setNotifications} />
         <main className="app__content">
           <Routes>
-            <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} activities={activities} settings={settings} invoices={invoices} tickets={tickets} applications={applications} recurringExpenses={recurringExpenses} annotationPins={annotationPins} appScreenshots={appScreenshots} notifications={notifications} setClients={setClients} addNotification={addNotification} />} />
+            <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} settings={settings} invoices={invoices} tickets={tickets} applications={applications} recurringExpenses={recurringExpenses} annotationPins={annotationPins} appScreenshots={appScreenshots} notifications={notifications} setClients={setClients} addNotification={addNotification} />} />
             <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} clientUsers={clientUsers} setClientUsers={setClientUsers} reloadClientUsers={reloadClientUsers} profiles={profiles} reloadProfiles={reloadProfiles} applications={applications} setApplications={setApplications} appScreenshots={appScreenshots} annotationPins={annotationPins} markupSets={markupSets} reloadAdminScreenshots={reloadAdminScreenshots} profile={profile} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} sows={sows} setSOWs={setSOWs} />} />
             <Route path="/projects/:id" element={<ProjectDetail projects={projects} setProjects={setProjects} clients={clients} sows={sows} invoices={invoices} timeEntries={timeEntries} documents={documents} milestones={milestones} setMilestones={setMilestones} />} />
@@ -204,7 +204,7 @@ export default function App() {
             <Route path="/documents" element={<Documents documents={documents} setDocuments={setDocuments} clients={clients} projects={projects} />} />
             <Route path="/automations" element={<Automations automations={automations} setAutomations={setAutomations} />} />
             <Route path="/branding" element={<BrandingGuide settings={settings} />} />
-            <Route path="/settings" element={<Settings settings={settings} setSettings={setSettings} profile={profile} onSignOut={handleSignOut} />} />
+            <Route path="/settings" element={<Settings settings={settings} setSettings={setSettings} profile={profile} onSignOut={handleSignOut} activities={activities} />} />
           </Routes>
         </main>
       </div>

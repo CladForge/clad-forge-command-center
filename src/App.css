@@ -2393,6 +2393,43 @@
   line-height: 1.5;
 }
 
+/* Settings > Activity tab — long-form list version of the old dashboard
+   activity feed. Slightly larger row spacing than the dashboard variant
+   since this is the dedicated view, not a glance card. */
+.settings-activity {
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.settings-activity__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-activity__row:last-child { border-bottom: none; }
+.settings-activity__row .dash__act-dot { margin-top: 7px; }
+.settings-activity__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.settings-activity__msg {
+  font-size: 0.88rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.settings-activity__time {
+  font-size: 0.74rem;
+  color: var(--slate-light);
+  font-family: var(--font-mono);
+}
+
 /* Hints */
 .settings__hint { font-size: 0.75rem; color: var(--slate-light); margin-top: 4px; display: block; }
 

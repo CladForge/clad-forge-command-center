@@ -4,7 +4,7 @@ import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
 import { resolveCardOrder, pickKpiColumns, colorFor, MAX_VISIBLE_KPI_CARDS, resolveDashboardPreferences } from '../lib/dashboardCards';
 
-export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], annotationPins = [], appScreenshots = [], setClients, addNotification }) {
+export default function Dashboard({ clients, projects, sows, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], annotationPins = [], appScreenshots = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
   const prefs = resolveDashboardPreferences(settings.dashboardPreferences);
   const sectionsOn = prefs.sections;
@@ -437,20 +437,53 @@ export default function Dashboard({ clients, projects, sows, activities, setting
         </div>
       )}
 
-      {/* ═══ ROW 3 — App Health / Deadlines / Activity / Action Items ═══
-           Up to 4 cells. Count visibles and pick the matching cols-N
-           class so the grid template columns adapt cleanly while still
-           letting media queries override on tablet/phone widths. */}
+      {/* ═══ ROW 3 — Action Items / Application Health / Upcoming Deadlines ═══
+           Order is intentional: Action Items first because that's the
+           "what should I do today" surface; App Health second for
+           portfolio status; Deadlines last as a forward-looking list.
+           Recent Activity moved to Settings > Activity. */}
       {(() => {
         const cells = [
+          sectionsOn.actionItems,
           sectionsOn.appHealth,
           sectionsOn.upcomingDeadlines,
-          sectionsOn.recentActivity,
-          sectionsOn.actionItems,
         ].filter(Boolean).length;
         if (cells === 0) return null;
         return (
         <div className={`dash__row dash__row--cols-${cells}`}>
+        {sectionsOn.actionItems && (
+        <div className="dash__card">
+          <div className="dash__card-header">
+            <h3>Action Items</h3>
+            <span className="dash__card-badge">{actionItems.length}</span>
+          </div>
+          <div className="dash__actions-list">
+            {actionItems.length === 0 ? (
+              <div className="dash__chart-empty">Nothing waiting on you — nice work</div>
+            ) : (
+              actionItems.map(item => (
+                <div
+                  key={item.id}
+                  className={`dash__action-row dash__action-row--${item.type}`}
+                  onClick={item.onClick}
+                >
+                  <span className={`dash__action-tag dash__action-tag--${item.type}`}>
+                    {item.type === 'pin'      && 'Markup'}
+                    {item.type === 'ticket'   && (item.priority === 'urgent' ? 'Urgent' : 'High')}
+                    {item.type === 'proposal' && 'Proposal'}
+                  </span>
+                  <div className="dash__action-info">
+                    <span className="dash__action-title">{item.title}</span>
+                    {item.sub && <span className="dash__action-sub">{item.sub}</span>}
+                  </div>
+                  <span className="dash__action-age">{item.ageDays}d</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        )}
+
         {sectionsOn.appHealth && (
         <div className="dash__card">
           <div className="dash__card-header">
@@ -520,59 +553,6 @@ export default function Dashboard({ clients, projects, sows, activities, setting
               );
             })}
             {upcomingDeadlines.length === 0 && <div className="dash__chart-empty">No upcoming deadlines</div>}
-          </div>
-        </div>
-        )}
-
-        {sectionsOn.recentActivity && (
-        <div className="dash__card">
-          <div className="dash__card-header">
-            <h3>Recent Activity</h3>
-          </div>
-          <div className="dash__activity">
-            {activities.slice(0, 8).map((act, i) => (
-              <div key={act.id || i} className="dash__act-row">
-                <span className={`dash__act-dot dash__act-dot--${act.type}`} />
-                <div className="dash__act-content">
-                  <span className="dash__act-msg">{act.message}</span>
-                  <span className="dash__act-time">{act.time || ''}</span>
-                </div>
-              </div>
-            ))}
-            {activities.length === 0 && <div className="dash__chart-empty">No activity yet</div>}
-          </div>
-        </div>
-        )}
-
-        {sectionsOn.actionItems && (
-        <div className="dash__card">
-          <div className="dash__card-header">
-            <h3>Action Items</h3>
-            <span className="dash__card-badge">{actionItems.length}</span>
-          </div>
-          <div className="dash__actions-list">
-            {actionItems.length === 0 ? (
-              <div className="dash__chart-empty">Nothing waiting on you — nice work</div>
-            ) : (
-              actionItems.map(item => (
-                <div
-                  key={item.id}
-                  className={`dash__action-row dash__action-row--${item.type}`}
-                  onClick={item.onClick}
-                >
-                  <span className={`dash__action-tag dash__action-tag--${item.type}`}>
-                    {item.type === 'pin'      && 'Markup'}
-                    {item.type === 'ticket'   && (item.priority === 'urgent' ? 'Urgent' : 'High')}
-                    {item.type === 'proposal' && 'Proposal'}
-                  </span>
-                  <div className="dash__action-info">
-                    <span className="dash__action-title">{item.title}</span>
-                    {item.sub && <span className="dash__action-sub">{item.sub}</span>}
-                  </div>
-                  <span className="dash__action-age">{item.ageDays}d</span>
-                </div>
-              ))
-            )}
           </div>
         </div>
         )}
