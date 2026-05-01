@@ -704,15 +704,25 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                     const total = annotationPins.filter(p => ssIds.includes(p.screenshotId)).length;
                     const openCount = annotationPins.filter(p => ssIds.includes(p.screenshotId) && p.status === 'open').length;
                     // Count of currently-billing items so the "Billing"
-                    // button can show a quick badge on the card.
-                    const billingActiveCount = recurringExpenses.filter(
-                      e => e.applicationId === app.id && e.status === 'active'
-                    ).length;
+                    // button can show a quick badge on the card. Also
+                    // compute the active monthly-equivalent so AppCard
+                    // can display "$X/mo" sourced from recurring_expenses
+                    // instead of the legacy app.monthlyCost field.
+                    const appExpenses = recurringExpenses.filter(e => e.applicationId === app.id);
+                    const billingActiveCount = appExpenses.filter(e => e.status === 'active').length;
+                    const activeMonthlyCost = appExpenses
+                      .filter(e => e.status === 'active')
+                      .reduce((sum, e) => {
+                        if (e.frequency === 'monthly')   return sum + (e.amount || 0);
+                        if (e.frequency === 'quarterly') return sum + (e.amount || 0) / 3;
+                        if (e.frequency === 'yearly')    return sum + (e.amount || 0) / 12;
+                        return sum;
+                      }, 0);
                     return (
                       <AppCard
                         key={app.id}
                         app={app}
-                        monthlyCost={app.monthlyCost}
+                        monthlyCost={activeMonthlyCost || app.monthlyCost || 0}
                         onEdit={() => openAppEdit(app)}
                         onDelete={() => deleteApp(app.id)}
                         onMarkups={() => setMarkupsAppId(app.id)}
@@ -1035,19 +1045,12 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                     onChange={e => setAppForm(f => ({ ...f, launchedAt: e.target.value }))}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Monthly cost (base)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={appForm.monthlyCost}
-                    onChange={e => setAppForm(f => ({ ...f, monthlyCost: Number(e.target.value) || 0 }))}
-                  />
-                  <span className="form-hint">
-                    Recurring expenses linked to this app are added on top.
-                  </span>
-                </div>
+                {/* Monthly cost field intentionally removed — recurring
+                    fees for this app are now configured per-category
+                    (Hosting / Maintenance / Database / Other) via the
+                    "Billing" button on the app card. Existing rows with
+                    a non-zero monthlyCost still display; just won't be
+                    edited here anymore. */}
                 <div className="form-group form-group--full">
                   <label>Notes</label>
                   <textarea
