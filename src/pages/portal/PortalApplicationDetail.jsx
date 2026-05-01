@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AppScreenshotsSection from '../../components/AppScreenshotsSection';
+import AppBillingManager from '../../components/AppBillingManager';
 
 function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -103,58 +104,52 @@ export default function PortalApplicationDetail({
         </div>
       )}
 
-      {/* Billing summary */}
+      {/* Billing breakdown — categorized hosting/maintenance/database/
+          other rollup. Shared with the admin Billing modal so the
+          client and admin see the exact same data, just without the
+          Start/Pause/Edit affordances on the client side. */}
       <div className="panel" style={{ marginTop: 20 }}>
-        <div className="panel__header"><h3>Billing</h3></div>
+        <div className="panel__header">
+          <h3>Billing</h3>
+          {(monthlyTotal > 0) && (
+            <span className="data-table__mono" style={{ fontSize: '0.92rem', color: 'var(--slate)' }}>
+              {fmtCurrency(monthlyTotal)}/mo · {fmtCurrency(yearlyTotal)}/yr
+            </span>
+          )}
+        </div>
         <div style={{ padding: '16px 22px' }}>
-          {(monthlyTotal > 0 || tiedExpenses.length > 0) ? (
-            <>
-              <div style={{ display: 'flex', gap: 32, marginBottom: 16 }}>
-                <div>
-                  <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--slate-light)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                    Monthly
-                  </span>
-                  <span className="data-table__mono" style={{ fontSize: '1.4rem', fontWeight: 600 }}>
-                    {fmtCurrency(monthlyTotal)}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--slate-light)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                    Annual estimate
-                  </span>
-                  <span className="data-table__mono" style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--slate)' }}>
-                    {fmtCurrency(yearlyTotal)}
-                  </span>
-                </div>
-              </div>
-              {tiedExpenses.length > 0 && (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Expense</th>
-                      <th>Frequency</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: 'right' }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tiedExpenses.map(e => (
-                      <tr key={e.id}>
-                        <td>{e.title}</td>
-                        <td className="data-table__muted">{e.frequency}</td>
-                        <td><span className={`status-pill status-pill--${e.status}`}>{e.status}</span></td>
-                        <td className="data-table__mono" style={{ textAlign: 'right' }}>{fmtCurrency(e.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </>
-          ) : (
+          {tiedExpenses.length === 0 ? (
             <p style={{ fontSize: '0.88rem', color: 'var(--slate)' }}>
               No recurring billing configured for this application yet.
             </p>
+          ) : (
+            <AppBillingManager
+              application={app}
+              recurringExpenses={tiedExpenses}
+            />
           )}
+        </div>
+      </div>
+
+      {/* Auto-pay banner — Phase 2 stub. Sets expectations honestly:
+          the bank-link UI is coming and ACH withdrawals will run on
+          each item's next-due date. For now the admin handles invoice
+          generation manually. */}
+      <div
+        className="panel"
+        style={{ marginTop: 20, borderColor: 'var(--brand-pale)' }}
+      >
+        <div style={{ padding: '16px 22px' }}>
+          <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: 6, color: 'var(--brand)' }}>
+            Bank auto-pay — coming soon
+          </h4>
+          <p style={{ fontSize: '0.85rem', color: 'var(--slate)', lineHeight: 1.5, margin: 0 }}>
+            We&apos;re wiring up secure bank connections so each active item above
+            can be withdrawn automatically on its next-due date. You&apos;ll be
+            able to link your account, sign an ACH authorization, and review
+            every charge afterward — all from your account page. Until then
+            you&apos;ll receive invoices the usual way.
+          </p>
         </div>
       </div>
 

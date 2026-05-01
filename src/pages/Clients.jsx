@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { generateId, initialSettings } from '../data/initialData';
 import InvitePortalUserModal from '../components/InvitePortalUserModal';
 import AppCard from '../components/AppCard';
+import AppBillingManager from '../components/AppBillingManager';
 import AppScreenshotsSection from '../components/AppScreenshotsSection';
 import { supabase } from '../lib/supabase';
 
@@ -21,7 +22,7 @@ function formatShortDate(value) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile }) {
+export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], recurringExpenses = [], setRecurringExpenses, reloadAdminScreenshots, profile }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
   const [search, setSearch] = useState('');
@@ -101,6 +102,8 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         appScreenshots={appScreenshots}
         annotationPins={annotationPins}
         markupSets={markupSets}
+        recurringExpenses={recurringExpenses}
+        setRecurringExpenses={setRecurringExpenses}
         reloadAdminScreenshots={reloadAdminScreenshots}
         profile={profile}
         onBack={() => setViewClientId(null)}
@@ -249,7 +252,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    CLIENT PROFILE PAGE
    ═══════════════════════════════════════════ */
 
-function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
+function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], recurringExpenses = [], setRecurringExpenses, reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
@@ -411,7 +414,9 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
 
   // Markups modal — opened from each app card
   const [markupsAppId, setMarkupsAppId] = useState(null);
+  const [billingAppId, setBillingAppId] = useState(null);
   const markupsApp = markupsAppId ? clientApplications.find(a => a.id === markupsAppId) : null;
+  const billingApp = billingAppId ? clientApplications.find(a => a.id === billingAppId) : null;
   const markupsScreenshots = markupsApp ? appScreenshots.filter(s => s.applicationId === markupsApp.id) : [];
   const markupsPins = markupsApp ? annotationPins.filter(p => markupsScreenshots.some(s => s.id === p.screenshotId)) : [];
   const markupsSetsForApp = markupsApp ? markupSets.filter(s => s.applicationId === markupsApp.id) : [];
@@ -698,6 +703,11 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                     const ssIds = appScreenshots.filter(s => s.applicationId === app.id).map(s => s.id);
                     const total = annotationPins.filter(p => ssIds.includes(p.screenshotId)).length;
                     const openCount = annotationPins.filter(p => ssIds.includes(p.screenshotId) && p.status === 'open').length;
+                    // Count of currently-billing items so the "Billing"
+                    // button can show a quick badge on the card.
+                    const billingActiveCount = recurringExpenses.filter(
+                      e => e.applicationId === app.id && e.status === 'active'
+                    ).length;
                     return (
                       <AppCard
                         key={app.id}
@@ -706,8 +716,10 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                         onEdit={() => openAppEdit(app)}
                         onDelete={() => deleteApp(app.id)}
                         onMarkups={() => setMarkupsAppId(app.id)}
+                        onBilling={() => setBillingAppId(app.id)}
                         markupCount={total}
                         openMarkupCount={openCount}
+                        billingActiveCount={billingActiveCount}
                         adminMode
                       />
                     );
@@ -877,6 +889,39 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                 currentUserId={profile?.id}
                 isAdmin={true}
                 onChange={reloadAdminScreenshots}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Billing modal — categorized hosting/maintenance/database fees
+          per application, with Start/Pause control on each row. The
+          actual recurring_expenses CRUD goes through setRecurringExpenses
+          (props down from App.jsx → useSupabaseData) so activity logs
+          and the makeSetter() pipeline pick it up automatically. */}
+      {billingApp && (
+        <div className="modal-overlay" onClick={() => setBillingAppId(null)}>
+          <div
+            className="modal modal--wide"
+            onClick={e => e.stopPropagation()}
+            style={{ width: '90vw', maxWidth: 920 }}
+          >
+            <div className="modal__header">
+              <div>
+                <h2>Billing — {billingApp.name}</h2>
+                <span className="modal__subtitle">
+                  Hosting, maintenance, database, and other recurring fees for this application.
+                </span>
+              </div>
+              <button className="modal__close" onClick={() => setBillingAppId(null)}>×</button>
+            </div>
+            <div className="modal__body" style={{ overflow: 'auto' }}>
+              <AppBillingManager
+                application={billingApp}
+                recurringExpenses={recurringExpenses}
+                setRecurringExpenses={setRecurringExpenses}
+                adminMode
               />
             </div>
           </div>

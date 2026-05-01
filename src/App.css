@@ -4206,6 +4206,140 @@ mark.code-highlight {
 .app-thumb-upload__placeholder-sub { font-size: 0.72rem; }
 .app-thumb-upload__controls { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding-top: 4px; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   APP BILLING MANAGER — categorized hosting/maintenance/database fees
+   per application. Used by both the admin (full edit affordances) and
+   the client portal (read-only summary). The category blocks visually
+   reuse the dashboard's panel feel; rows are flex layouts with the
+   Start/Pause + Edit + Remove cluster on the right.
+   ═══════════════════════════════════════════════════════════════════ */
+.app-billing { display: flex; flex-direction: column; gap: 16px; }
+.app-billing__cat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 12px;
+}
+.app-billing__cat-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.app-billing__cat-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+.app-billing__cat-hint {
+  font-size: 0.76rem;
+  color: var(--slate-light);
+  margin: 2px 0 0;
+}
+.app-billing__empty {
+  font-size: 0.82rem;
+  color: var(--slate-light);
+  font-style: italic;
+  padding: 6px 0 2px;
+}
+.app-billing__items { display: flex; flex-direction: column; gap: 6px; }
+
+.app-billing__row {
+  display: flex; align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  flex-wrap: wrap;
+}
+.app-billing__row--active {
+  border-color: var(--success);
+  box-shadow: inset 3px 0 0 0 var(--success);
+}
+.app-billing__row-info {
+  flex: 1;
+  min-width: 180px;
+  display: flex; flex-direction: column;
+  gap: 2px;
+}
+.app-billing__row-title {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+.app-billing__row-desc {
+  font-size: 0.76rem;
+  color: var(--slate-light);
+}
+.app-billing__row-amount {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.app-billing__row-next {
+  font-size: 0.74rem;
+  color: var(--success);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+.app-billing__row-actions {
+  display: flex; align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.status-pill--paused { background: rgba(142,141,160,0.15); color: var(--slate); }
+
+/* Totals at the bottom of the manager. */
+.app-billing__totals {
+  display: flex; flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: var(--brand-pale);
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 140, 0, 0.18);
+}
+.app-billing__total-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+.app-billing__total-row--muted .app-billing__total-label,
+.app-billing__total-row--muted .app-billing__total-value {
+  font-size: 0.78rem;
+  color: var(--slate-light);
+}
+.app-billing__total-label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.app-billing__total-value {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.app-billing__total-value--brand { color: var(--brand); }
+
+/* Phase 2 placeholder note shown to admins. */
+.app-billing__future {
+  margin-top: 4px;
+  padding: 12px 14px;
+  background: var(--brand-wash);
+  border: 1px dashed var(--brand-mid);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  color: var(--slate);
+  line-height: 1.55;
+}
+.app-billing__future strong { color: var(--brand); }
+
 @media (max-width: 1024px) {
   .portal-stats { grid-template-columns: repeat(2, 1fr); }
   .portal-grid { grid-template-columns: 1fr; }

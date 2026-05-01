@@ -39,6 +39,44 @@ export default function PortalAccount({ profile, activeClient, settings, members
         </div>
       </div>
 
+      {/* Payment Methods — Phase 2 stub. The eventual flow:
+            1. "Connect bank account" button kicks off Stripe Financial
+               Connections (or a SetupIntent + manual micro-deposits flow)
+               via a new edge function.
+            2. Client confirms via Stripe Elements; the resulting
+               us_bank_account payment method is saved to their Stripe
+               customer.
+            3. Client signs an ACH authorization mandate (legal
+               requirement under NACHA rules).
+            4. A scheduled cron walks recurring_expenses on each
+               next_due date, generates an invoice, and immediately
+               charges the saved payment method via PaymentIntent
+               (off_session).
+          For now we surface the affordance so the client knows it's
+          coming and the admin handles billing the usual way. */}
+      <div className="panel" style={{ marginBottom: 20 }}>
+        <div className="panel__header">
+          <h3>Payment Methods</h3>
+          <span className="status-pill status-pill--draft">Coming soon</span>
+        </div>
+        <div style={{ padding: '20px 22px' }}>
+          <p style={{ fontSize: '0.92rem', color: 'var(--slate)', lineHeight: 1.6, marginBottom: 12 }}>
+            We&apos;re building a secure way to connect your bank account so
+            recurring fees on your applications can be withdrawn
+            automatically on each item&apos;s due date. You&apos;ll review the
+            connection, sign an ACH authorization, and see every charge
+            in your invoices list.
+          </p>
+          <button className="btn btn--ghost" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+            Connect bank account (coming soon)
+          </button>
+          <p style={{ fontSize: '0.78rem', color: 'var(--slate-light)', marginTop: 10 }}>
+            Until then, your Clad Forge representative will continue to send
+            invoices the usual way for any active billing items.
+          </p>
+        </div>
+      </div>
+
       <div className="panel" style={{ marginBottom: 20 }}>
         <div className="panel__header"><h3>Need Help?</h3></div>
         <div style={{ padding: '20px 22px', fontSize: '0.92rem', lineHeight: 1.6, color: 'var(--slate)' }}>

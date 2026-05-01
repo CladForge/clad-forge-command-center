@@ -31,7 +31,7 @@ function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-export default function AppCard({ app, monthlyCost, onClick, onEdit, onDelete, onMarkups, markupCount = 0, openMarkupCount = 0, adminMode = false }) {
+export default function AppCard({ app, monthlyCost, onClick, onEdit, onDelete, onMarkups, onBilling, markupCount = 0, openMarkupCount = 0, billingActiveCount = 0, adminMode = false }) {
   const liveUrl = app.url
     ? (app.url.startsWith('http') ? app.url : `https://${app.url}`)
     : null;
@@ -98,8 +98,17 @@ export default function AppCard({ app, monthlyCost, onClick, onEdit, onDelete, o
           )}
         </div>
 
-        {adminMode && (onEdit || onDelete || onMarkups) && (
+        {adminMode && (onEdit || onDelete || onMarkups || onBilling) && (
           <div className="app-card__actions" data-card-stop>
+            {onBilling && (
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={onBilling}
+                title="Manage hosting / maintenance / database fees"
+              >
+                Billing{billingActiveCount > 0 ? ` (${billingActiveCount} active)` : ''}
+              </button>
+            )}
             {onMarkups && (
               <button
                 className="btn btn--ghost btn--sm"

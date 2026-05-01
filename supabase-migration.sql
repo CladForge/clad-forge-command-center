@@ -1024,3 +1024,16 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS dashboard_preferences JSONB;
 -- The actual fetching happens client-side; CORS-restricted feeds may
 -- need a proxy edge function in a follow-up.
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS external_calendars JSONB;
+-- ============= PHASE 8: Per-application billing categories =============
+-- Adds a `category` field on recurring_expenses so an application's
+-- monthly fees can be broken down into hosting / maintenance / database
+-- / other and surfaced as structured buckets on the admin Billing
+-- modal and the client portal application detail. No CHECK constraint
+-- yet — admins may introduce additional categories via the UI.
+ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS category TEXT;
+
+-- Backfill: existing app-linked rows default to 'other' so they appear
+-- in the new UI as "Other" rather than vanishing.
+UPDATE recurring_expenses SET category = 'other'
+WHERE category IS NULL AND application_id IS NOT NULL;
+
