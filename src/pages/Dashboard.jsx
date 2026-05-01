@@ -4,7 +4,7 @@ import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
 import { resolveCardOrder, pickKpiColumns, colorFor, MAX_VISIBLE_KPI_CARDS } from '../lib/dashboardCards';
 
-export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], setClients, addNotification }) {
+export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], annotationPins = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
   const navigate = useNavigate();
 
@@ -14,7 +14,6 @@ export default function Dashboard({ clients, projects, sows, activities, setting
   const prospects = clients.filter(c => c.status === 'prospect').length;
   const activeProjects = projects.filter(p => p.stage === 'active').length;
   const totalProjectBudget = projects.reduce((s, p) => s + (p.budget || 0), 0);
-  const avgProjectBudget = projects.length > 0 ? totalProjectBudget / projects.length : 0;
   // "Pipeline value" = budgets of projects that haven't reached completion.
   // Uses everything except 'completed' to capture both active and review work.
   const pipelineValue = projects
@@ -66,6 +65,9 @@ export default function Dashboard({ clients, projects, sows, activities, setting
   // Open tickets = anything pre-resolved. Counted across all clients since
   // this is the admin dashboard.
   const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress' || t.status === 'in-progress');
+  // Subset of open tickets that are urgent or high priority — what should
+  // get touched today, separate from the broader queue size.
+  const urgentTickets = openTickets.filter(t => t.priority === 'urgent' || t.priority === 'high');
 
   // Live applications = currently running deliverables. Includes 'live' and
   // 'maintenance' since both represent apps in production.
@@ -80,6 +82,31 @@ export default function Dashboard({ clients, projects, sows, activities, setting
     if (e.frequency === 'yearly')  return s + (e.amount || 0) / 12;
     return s;
   }, 0);
+
+  // Open markup pins across every application — represents client feedback
+  // waiting on an admin response. Surfaced here because it's otherwise only
+  // visible by clicking into individual app screenshots.
+  const openMarkupPins = annotationPins.filter(p => p.status === 'open');
+
+  // Projects whose deadline is within the next 14 days OR already past, and
+  // not yet completed. Two-week window matches a typical sprint horizon for
+  // "what's about to land".
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dueHorizon = new Date(todayStart);
+  dueHorizon.setDate(dueHorizon.getDate() + 14);
+  const projectsDueSoon = projects.filter(p => {
+    if (p.stage === 'completed') return false;
+    if (!p.deadline) return false;
+    const due = new Date(p.deadline);
+    return due <= dueHorizon;
+  });
+  const projectsOverdue = projectsDueSoon.filter(p => new Date(p.deadline) < todayStart);
+
+  // Net new clients this month — pulls from createdAt so it counts whoever
+  // landed in the system this calendar month (not just status changes).
+  const newClientsThisMonth = clients.filter(c =>
+    (c.createdAt || '').startsWith(monthKey)
+  );
 
   // ═══ CHART DATA ═══
 
@@ -185,14 +212,16 @@ export default function Dashboard({ clients, projects, sows, activities, setting
           overdue:           { label: 'Overdue',            value: overdueInvoices.length, sub: formatCurrency(totalOverdue), onClick: () => navigate('/invoices') },
           pendingProposals:  { label: 'Pending Proposals',  value: pendingProposals.length, sub: `${formatCurrency(pendingValue)} pending`, onClick: () => navigate('/proposals') },
           acceptedProposals: { label: 'Accepted Proposals', value: acceptedProposals.length, sub: `${formatCurrency(acceptedValue)} won`, onClick: () => navigate('/proposals') },
-          winRate:           { label: 'Win Rate',           value: `${winRate}%`, sub: decidedProposals.length === 0 ? 'no decisions yet' : `${acceptedProposals.length} of ${decidedProposals.length} decided`, onClick: () => navigate('/proposals') },
-          pipelineValue:     { label: 'Pipeline Value',     value: formatCurrency(pipelineValue), sub: `${projects.filter(p => p.stage !== 'completed').length} open projects`, onClick: () => navigate('/pipeline') },
-          totalClients:      { label: 'Total Clients',      value: clients.length, sub: `${activeClients} active · ${prospects} prospects`, onClick: () => navigate('/clients') },
-          avgProjectBudget:  { label: 'Avg Project Budget', value: formatCurrency(avgProjectBudget), sub: `${projects.length} projects`, onClick: () => navigate('/pipeline') },
-          avgDaysToPay:      { label: 'Avg Days to Pay',    value: avgDaysToPay, sub: paidWithDates.length === 0 ? 'no paid invoices yet' : `across ${paidWithDates.length} paid`, onClick: () => navigate('/invoices') },
-          openTickets:       { label: 'Open Tickets',       value: openTickets.length, sub: `${tickets.length} total`, onClick: () => navigate('/tickets') },
-          liveApplications:  { label: 'Live Apps',          value: liveApplications.length, sub: `${applications.length} total`, onClick: () => navigate('/clients') },
-          monthlyRecurring:  { label: 'Monthly Recurring',  value: formatCurrency(monthlyRecurring), sub: `${activeRecurring.length} active`, onClick: () => navigate('/recurring') },
+          winRate:             { label: 'Win Rate',           value: `${winRate}%`, sub: decidedProposals.length === 0 ? 'no decisions yet' : `${acceptedProposals.length} of ${decidedProposals.length} decided`, onClick: () => navigate('/proposals') },
+          pipelineValue:       { label: 'Pipeline Value',     value: formatCurrency(pipelineValue), sub: `${projects.filter(p => p.stage !== 'completed').length} open projects`, onClick: () => navigate('/pipeline') },
+          projectsDueSoon:     { label: 'Projects Due Soon',  value: projectsDueSoon.length, sub: projectsOverdue.length > 0 ? `${projectsOverdue.length} overdue` : 'next 14 days', onClick: () => navigate('/pipeline') },
+          newClientsThisMonth: { label: 'New Clients (Month)',value: newClientsThisMonth.length, sub: clients.length === 0 ? 'no clients yet' : `${clients.length} all-time`, onClick: () => navigate('/clients') },
+          avgDaysToPay:        { label: 'Avg Days to Pay',    value: avgDaysToPay, sub: paidWithDates.length === 0 ? 'no paid invoices yet' : `across ${paidWithDates.length} paid`, onClick: () => navigate('/invoices') },
+          openTickets:         { label: 'Open Tickets',       value: openTickets.length, sub: `${tickets.length} total`, onClick: () => navigate('/tickets') },
+          urgentTickets:       { label: 'Urgent Tickets',     value: urgentTickets.length, sub: urgentTickets.length === 0 ? 'all clear' : 'high or urgent priority', onClick: () => navigate('/tickets') },
+          openMarkupPins:      { label: 'Open Markup Pins',   value: openMarkupPins.length, sub: openMarkupPins.length === 0 ? 'caught up' : 'awaiting your response', onClick: () => navigate('/clients') },
+          liveApplications:    { label: 'Live Apps',          value: liveApplications.length, sub: `${applications.length} total`, onClick: () => navigate('/clients') },
+          monthlyRecurring:    { label: 'Monthly Recurring',  value: formatCurrency(monthlyRecurring), sub: `${activeRecurring.length} active`, onClick: () => navigate('/recurring') },
         };
         const order = resolveCardOrder(settings.dashboardKpiCards);
         // Defensive cap — if older saved settings have more than the max

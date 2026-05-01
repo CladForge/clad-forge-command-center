@@ -28,18 +28,22 @@ export const KPI_CARD_DEFS = [
   { id: 'proposals',      label: 'Proposals',          defaultColor: '#a855f7' }, // purple
 
   // ── Optional cards (off by default — toggle on in Settings) ────────
-  { id: 'thisMonthRevenue', label: 'Revenue This Month',  defaultEnabled: false, defaultColor: '#10b981' },
-  { id: 'overdue',          label: 'Overdue Invoices',    defaultEnabled: false, defaultColor: '#ef4444' }, // red
-  { id: 'pendingProposals', label: 'Pending Proposals',   defaultEnabled: false, defaultColor: '#f59e0b' },
-  { id: 'acceptedProposals',label: 'Accepted Proposals',  defaultEnabled: false, defaultColor: '#10b981' },
-  { id: 'winRate',          label: 'Proposal Win Rate',   defaultEnabled: false, defaultColor: '#ff8c00' },
-  { id: 'pipelineValue',    label: 'Pipeline Value',      defaultEnabled: false, defaultColor: '#3b82f6' },
-  { id: 'totalClients',     label: 'Total Clients',       defaultEnabled: false, defaultColor: '#ff8c00' },
-  { id: 'avgProjectBudget', label: 'Avg Project Budget',  defaultEnabled: false, defaultColor: '#3b82f6' },
-  { id: 'avgDaysToPay',     label: 'Avg Days to Pay',     defaultEnabled: false, defaultColor: '#10b981' },
-  { id: 'openTickets',      label: 'Open Support Tickets', defaultEnabled: false, defaultColor: '#f59e0b' },
-  { id: 'liveApplications', label: 'Live Applications',   defaultEnabled: false, defaultColor: '#a855f7' },
-  { id: 'monthlyRecurring', label: 'Monthly Recurring',   defaultEnabled: false, defaultColor: '#14b8a6' }, // teal
+  // Action-oriented: each card answers "is there anything I need to do?"
+  // rather than just reporting a static count.
+  { id: 'thisMonthRevenue',    label: 'Revenue This Month',    defaultEnabled: false, defaultColor: '#10b981' },
+  { id: 'overdue',             label: 'Overdue Invoices',      defaultEnabled: false, defaultColor: '#ef4444' },
+  { id: 'pendingProposals',    label: 'Pending Proposals',     defaultEnabled: false, defaultColor: '#f59e0b' },
+  { id: 'acceptedProposals',   label: 'Accepted Proposals',    defaultEnabled: false, defaultColor: '#10b981' },
+  { id: 'winRate',             label: 'Proposal Win Rate',     defaultEnabled: false, defaultColor: '#ff8c00' },
+  { id: 'pipelineValue',       label: 'Pipeline Value',        defaultEnabled: false, defaultColor: '#3b82f6' },
+  { id: 'projectsDueSoon',     label: 'Projects Due Soon',     defaultEnabled: false, defaultColor: '#f59e0b' },
+  { id: 'newClientsThisMonth', label: 'New Clients (Month)',   defaultEnabled: false, defaultColor: '#10b981' },
+  { id: 'avgDaysToPay',        label: 'Avg Days to Pay',       defaultEnabled: false, defaultColor: '#10b981' },
+  { id: 'openTickets',         label: 'Open Tickets',          defaultEnabled: false, defaultColor: '#f59e0b' },
+  { id: 'urgentTickets',       label: 'Urgent Tickets',        defaultEnabled: false, defaultColor: '#ef4444' },
+  { id: 'openMarkupPins',      label: 'Open Markup Pins',      defaultEnabled: false, defaultColor: '#ff8c00' },
+  { id: 'liveApplications',    label: 'Live Applications',     defaultEnabled: false, defaultColor: '#a855f7' },
+  { id: 'monthlyRecurring',    label: 'Monthly Recurring',     defaultEnabled: false, defaultColor: '#14b8a6' },
 ];
 
 // Look up the effective color for a given card config: a saved override
