@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { initialSettings } from '../data/initialData';
 import { CLAD_FORGE_LOGO_DATA_URI } from '../lib/brand';
+import { isBillingActive } from '../lib/billing';
 
 // ── Formatting ───────────────────────────────────────────────────────
 function fmtCompact(n) {
@@ -184,7 +185,7 @@ export default function Reports({
   const totalApps = applications.length || 1;
 
   const appsByMrr = applications.map(app => {
-    const linked = recurringExpenses.filter(e => e.applicationId === app.id && e.status === 'active');
+    const linked = recurringExpenses.filter(e => e.applicationId === app.id && isBillingActive(e));
     const mrr = (app.monthlyCost || 0) + linked.reduce((sum, e) => {
       if (e.frequency === 'monthly') return sum + (e.amount || 0);
       if (e.frequency === 'yearly')  return sum + (e.amount || 0) / 12;
@@ -215,7 +216,7 @@ export default function Reports({
   );
 
   // Recurring expenses summary
-  const activeRecurring = recurringExpenses.filter(e => e.status === 'active');
+  const activeRecurring = recurringExpenses.filter(isBillingActive);
   const monthlyExpense = activeRecurring.reduce((sum, e) => {
     if (e.frequency === 'monthly') return sum + (e.amount || 0);
     if (e.frequency === 'yearly')  return sum + (e.amount || 0) / 12;

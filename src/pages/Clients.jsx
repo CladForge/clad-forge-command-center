@@ -5,6 +5,7 @@ import InvitePortalUserModal from '../components/InvitePortalUserModal';
 import AppCard from '../components/AppCard';
 import AppBillingManager from '../components/AppBillingManager';
 import AppScreenshotsSection from '../components/AppScreenshotsSection';
+import { isBillingActive, monthlyEquivalent } from '../lib/billing';
 import { supabase } from '../lib/supabase';
 
 const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
@@ -709,15 +710,13 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                     // can display "$X/mo" sourced from recurring_expenses
                     // instead of the legacy app.monthlyCost field.
                     const appExpenses = recurringExpenses.filter(e => e.applicationId === app.id);
-                    const billingActiveCount = appExpenses.filter(e => e.status === 'active').length;
+                    // isBillingActive treats paused-with-passed-startDate
+                    // rows as active too, so the badge and footer stay
+                    // accurate even if the admin never clicked Start.
+                    const billingActiveCount = appExpenses.filter(isBillingActive).length;
                     const activeMonthlyCost = appExpenses
-                      .filter(e => e.status === 'active')
-                      .reduce((sum, e) => {
-                        if (e.frequency === 'monthly')   return sum + (e.amount || 0);
-                        if (e.frequency === 'quarterly') return sum + (e.amount || 0) / 3;
-                        if (e.frequency === 'yearly')    return sum + (e.amount || 0) / 12;
-                        return sum;
-                      }, 0);
+                      .filter(isBillingActive)
+                      .reduce((sum, e) => sum + monthlyEquivalent(e.amount, e.frequency), 0);
                     return (
                       <AppCard
                         key={app.id}

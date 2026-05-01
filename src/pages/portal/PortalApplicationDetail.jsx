@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AppScreenshotsSection from '../../components/AppScreenshotsSection';
 import AppBillingManager from '../../components/AppBillingManager';
+import { isBillingActive, monthlyEquivalent } from '../../lib/billing';
 
 function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -52,12 +53,12 @@ export default function PortalApplicationDetail({
   }
 
   const tiedExpenses = recurringExpenses.filter(e => e.applicationId === app.id);
+  // Sum monthly-equivalent across ALL active items (any frequency).
+  // monthlyTotal is the per-month cost; yearlyTotal is just *12.
   const monthlyTotal = (app.monthlyCost || 0) + tiedExpenses
-    .filter(e => e.status === 'active' && e.frequency === 'monthly')
-    .reduce((s, e) => s + (e.amount || 0), 0);
-  const yearlyTotal = monthlyTotal * 12 + tiedExpenses
-    .filter(e => e.status === 'active' && e.frequency === 'yearly')
-    .reduce((s, e) => s + (e.amount || 0), 0);
+    .filter(isBillingActive)
+    .reduce((s, e) => s + monthlyEquivalent(e.amount, e.frequency), 0);
+  const yearlyTotal = monthlyTotal * 12;
 
   return (
     <div className="portal-page">

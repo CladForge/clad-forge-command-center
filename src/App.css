@@ -4294,6 +4294,14 @@ mark.code-highlight {
 }
 
 .status-pill--paused { background: rgba(142,141,160,0.15); color: var(--slate); }
+/* Scheduled pill — for billing items configured with a future start
+   date that haven't auto-activated yet. Brand-tinted to suggest
+   "primed and waiting". */
+.status-pill--scheduled { background: var(--brand-pale); color: var(--brand); }
+.app-billing__row--scheduled {
+  border-color: var(--brand-mid);
+  box-shadow: inset 3px 0 0 0 var(--brand-mid);
+}
 
 /* Totals at the bottom of the manager. */
 .app-billing__totals {

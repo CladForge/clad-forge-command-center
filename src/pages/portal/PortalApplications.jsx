@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import AppCard from '../../components/AppCard';
+import { isBillingActive, monthlyEquivalent } from '../../lib/billing';
 
 function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -8,12 +9,15 @@ function fmtCurrency(n) {
 export default function PortalApplications({ applications, recurringExpenses }) {
   const navigate = useNavigate();
 
+  // Sum monthly-equivalent across ALL frequencies (not just monthly)
+  // and across the effective-active set so auto-started items roll in.
+  // The legacy a.monthlyCost is no longer added — categorized billing
+  // is the canonical source.
   const totalMonthly = applications.reduce((s, a) => {
-    const direct = a.monthlyCost || 0;
     const tied = recurringExpenses
-      .filter(e => e.applicationId === a.id && e.status === 'active' && e.frequency === 'monthly')
-      .reduce((sum, e) => sum + (e.amount || 0), 0);
-    return s + direct + tied;
+      .filter(e => e.applicationId === a.id && isBillingActive(e))
+      .reduce((sum, e) => sum + monthlyEquivalent(e.amount, e.frequency), 0);
+    return s + tied + (a.monthlyCost || 0);
   }, 0);
 
   return (
@@ -57,8 +61,8 @@ export default function PortalApplications({ applications, recurringExpenses }) 
             {applications.map(app => {
               const tiedExpenses = recurringExpenses.filter(e => e.applicationId === app.id);
               const monthlyTotal = (app.monthlyCost || 0) + tiedExpenses
-                .filter(e => e.status === 'active' && e.frequency === 'monthly')
-                .reduce((s, e) => s + (e.amount || 0), 0);
+                .filter(isBillingActive)
+                .reduce((s, e) => s + monthlyEquivalent(e.amount, e.frequency), 0);
               return (
                 <AppCard
                   key={app.id}

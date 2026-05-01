@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
 import { resolveCardOrder, pickKpiColumns, colorFor, MAX_VISIBLE_KPI_CARDS, resolveDashboardPreferences } from '../lib/dashboardCards';
+import { isBillingActive } from '../lib/billing';
 
 export default function Dashboard({ clients, projects, sows, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], annotationPins = [], appScreenshots = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
@@ -78,7 +79,9 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
   // Monthly recurring revenue: active monthly expenses + 1/12 of yearly ones.
   // (Yearly amortization keeps the number meaningful even if your contract
   // mix shifts toward annual billing.)
-  const activeRecurring = recurringExpenses.filter(e => e.status === 'active');
+  // isBillingActive picks up both explicitly-active rows and paused
+  // rows whose startDate has arrived (auto-start). See lib/billing.js.
+  const activeRecurring = recurringExpenses.filter(isBillingActive);
   const monthlyRecurring = activeRecurring.reduce((s, e) => {
     if (e.frequency === 'monthly') return s + (e.amount || 0);
     if (e.frequency === 'yearly')  return s + (e.amount || 0) / 12;
@@ -227,7 +230,7 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
   const appHealth = applications
     .map(app => {
       const linkedExpenses = recurringExpenses.filter(e =>
-        e.applicationId === app.id && e.status === 'active'
+        e.applicationId === app.id && isBillingActive(e)
       );
       const monthlyContrib = (app.monthlyCost || 0) + linkedExpenses.reduce((s, e) => {
         if (e.frequency === 'monthly') return s + (e.amount || 0);

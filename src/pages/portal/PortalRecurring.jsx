@@ -1,10 +1,14 @@
+import { isBillingActive } from '../../lib/billing';
+
 function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export default function PortalRecurring({ recurringExpenses }) {
-  const active = recurringExpenses.filter(e => e.status === 'active');
-  const paused = recurringExpenses.filter(e => e.status !== 'active');
+  // isBillingActive treats auto-started rows (paused with past startDate)
+  // as active so the portal totals match what the admin sees.
+  const active = recurringExpenses.filter(isBillingActive);
+  const paused = recurringExpenses.filter(e => !isBillingActive(e));
   const monthlyTotal = active.reduce((s, e) => {
     const amount = e.amount || 0;
     if (e.frequency === 'monthly') return s + amount;

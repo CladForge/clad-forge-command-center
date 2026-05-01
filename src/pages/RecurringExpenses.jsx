@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { generateId } from '../data/initialData';
+import { isBillingActive } from '../lib/billing';
 
 const FREQUENCY_OPTIONS = [
   { value: 'weekly', label: 'Weekly' },
@@ -59,7 +60,8 @@ export default function RecurringExpenses({ clients, projects, expenses, setExpe
   });
 
   // Metrics
-  const activeExpenses = expenses.filter(e => e.status === 'active');
+  // isBillingActive includes paused-with-passed-startDate auto-starts.
+  const activeExpenses = expenses.filter(isBillingActive);
   const monthlyTotal = activeExpenses.reduce((s, e) => s + getMonthlyEquivalent(e.amount || 0, e.frequency), 0);
   const annualTotal = activeExpenses.reduce((s, e) => s + getAnnualEquivalent(e.amount || 0, e.frequency), 0);
 

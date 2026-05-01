@@ -1,5 +1,12 @@
 import { useState } from 'react';
 import { generateId } from '../data/initialData';
+import {
+  todayISO,
+  effectiveBillingState,
+  isBillingActive,
+  monthlyEquivalent,
+  effectiveNextDue,
+} from '../lib/billing';
 
 // ─────────────────────────────────────────────────────────────────────
 // AppBillingManager — categorized billing breakdown for one application.
@@ -40,25 +47,10 @@ function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// MRR-equivalent for display: monthly rate, with quarterly /3 and
-// yearly /12. Used both for per-row "$X/mo equiv" labels and the
-// overall total at the bottom of the manager.
-function monthlyEquivalent(amount, frequency) {
-  if (!amount) return 0;
-  if (frequency === 'monthly')   return amount;
-  if (frequency === 'quarterly') return amount / 3;
-  if (frequency === 'yearly')    return amount / 12;
-  return amount;
-}
-
-// today's YYYY-MM-DD in local time.
-function todayISO() {
-  const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-}
-
-// Add `frequency`-worth of time to a YYYY-MM-DD date, return YYYY-MM-DD.
-// Used to roll forward `nextDue` when an admin starts a billing item.
+// Add one frequency-cycle to a YYYY-MM-DD start date and return
+// YYYY-MM-DD. Used when the admin clicks Start to bake in the first
+// nextDue. (Auto-started items don't write back; effectiveNextDue
+// from lib/billing computes their next-due on the fly.)
 function rollNextDue(startDateStr, frequency) {
   const base = startDateStr ? new Date(startDateStr + 'T00:00:00') : new Date();
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -84,26 +76,40 @@ export default function AppBillingManager({
     items: appExpenses.filter(e => (e.category || 'other') === cat.id),
   }));
 
-  // Total active MRR (for the summary row at the bottom).
+  // Total active MRR (for the summary row at the bottom). Uses the
+  // effective state — auto-started items count toward the total even
+  // though their DB row is still status='paused'.
   const totalActiveMRR = appExpenses
-    .filter(e => e.status === 'active')
+    .filter(isBillingActive)
     .reduce((sum, e) => sum + monthlyEquivalent(e.amount, e.frequency), 0);
   const totalConfigured = appExpenses
+    .filter(e => e.status !== 'cancelled')
     .reduce((sum, e) => sum + monthlyEquivalent(e.amount, e.frequency), 0);
 
   // ── Mutations (admin only) ───────────────────────────────────────
+  // Start / Pause logic with three branches:
+  //   1. Currently effectively-active → user wants to pause. Clear
+  //      startDate so an auto-started row doesn't immediately
+  //      re-activate from the past startDate on next render.
+  //   2. Scheduled (future startDate) and user clicks Start now →
+  //      override the future date with today, activate immediately.
+  //   3. Truly paused (no startDate) → activate with startDate=today.
   function handleStartPause(expense) {
     if (!adminMode || !setRecurringExpenses) return;
-    const becomingActive = expense.status !== 'active';
+    const eff = effectiveBillingState(expense);
     setRecurringExpenses(prev => prev.map(e => {
       if (e.id !== expense.id) return e;
+      if (eff.active) {
+        // Pause — clear startDate so auto-start logic doesn't re-fire
+        return { ...e, status: 'paused', startDate: '' };
+      }
+      // Start (or "start now" override on a scheduled row)
+      const newStart = eff.scheduled ? todayISO() : (e.startDate || todayISO());
       return {
         ...e,
-        status: becomingActive ? 'active' : 'paused',
-        startDate: becomingActive && !e.startDate ? todayISO() : e.startDate,
-        nextDue: becomingActive
-          ? rollNextDue(e.startDate || todayISO(), e.frequency)
-          : e.nextDue,
+        status: 'active',
+        startDate: newStart,
+        nextDue: rollNextDue(newStart, e.frequency),
       };
     }));
   }
@@ -178,11 +184,14 @@ export default function AppBillingManager({
           affordance on the application detail. */}
       {adminMode && (
         <div className="app-billing__future">
-          <strong>Auto-pay setup:</strong> Each active item is billed manually for
-          now. ACH auto-withdrawal from the client&apos;s bank account is the
-          Phase 2 build — clients will link a bank in the portal, sign an ACH
-          authorization, and a scheduled job will charge the saved method on
-          each item&apos;s next-due date.
+          <strong>How starting works:</strong> Set a start date and the item begins
+          billing on its own when that date arrives — no need to come back and
+          click Start. Click <em>Start</em> to begin immediately, or <em>Pause</em>
+          to halt an active item. <br />
+          <strong>Auto-pay:</strong> Active items are invoiced manually for now.
+          ACH auto-withdrawal from the client&apos;s bank account is the Phase 2
+          build — see Settings &rarr; Calendars and the portal Account page
+          for the placeholder UI.
         </div>
       )}
 
@@ -241,9 +250,39 @@ function CategoryBlock({ category, items, adminMode, onAdd, onEdit, onStartPause
 }
 
 function BillingRow({ expense, adminMode, onEdit, onStartPause, onDelete }) {
-  const isActive = expense.status === 'active';
+  const eff = effectiveBillingState(expense);
+  const nextDue = effectiveNextDue(expense);
+
+  // Pill text reflects the effective state, with a hint when the row
+  // auto-started from a passed startDate (so admins can tell "this
+  // started on its own" vs "I clicked Start manually").
+  let pillLabel, pillModifier;
+  if (eff.active) {
+    pillLabel = eff.autoStarted ? 'Active (auto)' : 'Active';
+    pillModifier = 'active';
+  } else if (eff.scheduled) {
+    pillLabel = `Scheduled — ${expense.startDate}`;
+    pillModifier = 'scheduled';
+  } else if (expense.status === 'cancelled') {
+    pillLabel = 'Cancelled';
+    pillModifier = 'cancelled';
+  } else {
+    pillLabel = 'Paused';
+    pillModifier = 'paused';
+  }
+
+  // Button label changes meaning per state:
+  //   Active     → Pause
+  //   Scheduled  → Start now (override the future date)
+  //   Paused     → Start
+  //   Cancelled  → button disabled
+  let actionLabel, actionVariant;
+  if (eff.active) { actionLabel = 'Pause'; actionVariant = 'btn--ghost'; }
+  else if (eff.scheduled) { actionLabel = 'Start now'; actionVariant = 'btn--primary'; }
+  else { actionLabel = 'Start'; actionVariant = 'btn--primary'; }
+
   return (
-    <div className={`app-billing__row ${isActive ? 'app-billing__row--active' : ''}`}>
+    <div className={`app-billing__row ${eff.active ? 'app-billing__row--active' : ''} ${eff.scheduled ? 'app-billing__row--scheduled' : ''}`}>
       <div className="app-billing__row-info">
         <span className="app-billing__row-title">{expense.title}</span>
         {expense.description && (
@@ -253,20 +292,19 @@ function BillingRow({ expense, adminMode, onEdit, onStartPause, onDelete }) {
       <span className="app-billing__row-amount">
         {fmtCurrency(expense.amount)}/{expense.frequency === 'monthly' ? 'mo' : expense.frequency === 'quarterly' ? 'qtr' : 'yr'}
       </span>
-      <span className={`status-pill status-pill--${isActive ? 'active' : 'paused'}`}>
-        {isActive ? 'Active' : (expense.status === 'cancelled' ? 'Cancelled' : 'Paused')}
-      </span>
-      {isActive && expense.nextDue && (
-        <span className="app-billing__row-next">Next: {expense.nextDue}</span>
+      <span className={`status-pill status-pill--${pillModifier}`}>{pillLabel}</span>
+      {eff.active && nextDue && (
+        <span className="app-billing__row-next">Next: {nextDue}</span>
       )}
       {adminMode && (
         <div className="app-billing__row-actions">
           <button
-            className={`btn ${isActive ? 'btn--ghost' : 'btn--primary'} btn--sm`}
+            className={`btn ${actionVariant} btn--sm`}
             onClick={onStartPause}
             disabled={expense.status === 'cancelled'}
+            title={eff.scheduled ? 'Override the scheduled date and start billing today' : undefined}
           >
-            {isActive ? 'Pause' : 'Start'}
+            {actionLabel}
           </button>
           <button className="btn btn--ghost btn--sm" onClick={onEdit}>Edit</button>
           <button
