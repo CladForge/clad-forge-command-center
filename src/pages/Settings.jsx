@@ -10,6 +10,7 @@ const TABS = [
   { id: 'pipeline', label: 'Pipeline', icon: '📊' },
   { id: 'clients', label: 'Clients', icon: '👥' },
   { id: 'dashboard', label: 'Dashboard', icon: '🎛' },
+  { id: 'calendars', label: 'Calendars', icon: '📅' },
   { id: 'activity', label: 'Activity', icon: '🕒' },
   { id: 'appearance', label: 'Appearance', icon: '🎨' },
   { id: 'notifications', label: 'Notifications', icon: '🔔' },
@@ -485,6 +486,26 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
             </div>
             );
           })()}
+
+          {/* ═══ CALENDARS ═══
+               Manage external iCal/ICS feed URLs (Google Calendar, Outlook,
+               Apple iCloud, etc.). Stored in settings.externalCalendars
+               and pulled in by the Calendar page on mount. CORS often
+               blocks browser fetches; calendarFeeds.js falls back to a
+               public proxy as a best-effort retry. */}
+          {activeTab === 'calendars' && (
+            <div className="settings__panel">
+              <SettingsHeader
+                title="Calendars"
+                description="Link iCal feeds from Google Calendar, Microsoft Outlook, Apple iCloud, or any other source so their events appear on your Calendar page alongside Clad Forge events."
+              />
+              <CalendarFeedsManager
+                value={settings.externalCalendars || []}
+                onChange={next => update('externalCalendars', next)}
+              />
+              <SaveBar saved={saved} onSave={showSaved} />
+            </div>
+          )}
 
           {/* ═══ ACTIVITY ═══
                Full-length audit trail of changes across the system. Used
@@ -987,6 +1008,112 @@ function normalizeHex(input) {
     return '#' + (r + r + g + g + b + b).toLowerCase();
   }
   return null;
+}
+
+// External calendar feeds manager. Each row = one iCal feed config:
+// name, URL, color picker, enable toggle, remove button. The "Add feed"
+// affordance at the bottom appends a new row.
+//
+// Doesn't sync feeds itself — that happens on the Calendar page when
+// settings.externalCalendars changes. Sync status (success / CORS error
+// / count of events) shows in the Calendar's right sidebar.
+function CalendarFeedsManager({ value, onChange }) {
+  function update(idx, patch) {
+    onChange(value.map((f, i) => i === idx ? { ...f, ...patch } : f));
+  }
+  function remove(idx) {
+    if (!window.confirm('Remove this calendar feed? Its events will disappear from the Calendar page.')) return;
+    onChange(value.filter((_, i) => i !== idx));
+  }
+  function add() {
+    onChange([
+      ...value,
+      {
+        id: 'cal-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: '',
+        url: '',
+        color: '#3b82f6',
+        enabled: true,
+      },
+    ]);
+  }
+
+  return (
+    <div className="settings__section">
+      <h4 className="settings__section-title">Linked Feeds</h4>
+      <p className="settings__section-hint">
+        Paste an iCal/ICS URL from your calendar provider. In Google Calendar
+        find <em>Settings &rarr; [calendar] &rarr; Integrate calendar &rarr; Secret address in iCal format</em>.
+        In Microsoft Outlook: <em>Calendar settings &rarr; Shared calendars &rarr; Publish &rarr; ICS link</em>.
+        Most providers block direct browser fetches with CORS — the app
+        will automatically retry through a public proxy. For production
+        we'd recommend hosting your own proxy or a Supabase edge function.
+      </p>
+
+      {value.length === 0 ? (
+        <div className="cal-feeds__empty">
+          No calendars linked yet. Click <strong>Add feed</strong> below to connect one.
+        </div>
+      ) : (
+        <div className="cal-feeds__list">
+          {value.map((feed, i) => (
+            <div key={feed.id || i} className="cal-feeds__row">
+              <div className="cal-feeds__top">
+                <input
+                  type="text"
+                  className="cal-feeds__name"
+                  value={feed.name || ''}
+                  onChange={e => update(i, { name: e.target.value })}
+                  placeholder="Calendar name (e.g. Work, Personal)"
+                />
+                <label
+                  className="cal-feeds__swatch"
+                  style={{ background: feed.color || '#3b82f6' }}
+                  title="Pick a color for this feed"
+                >
+                  <input
+                    type="color"
+                    value={feed.color || '#3b82f6'}
+                    onChange={e => update(i, { color: e.target.value })}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className={`settings__toggle ${feed.enabled !== false ? 'settings__toggle--on' : ''}`}
+                  onClick={() => update(i, { enabled: !(feed.enabled !== false) })}
+                  role="switch"
+                  aria-checked={feed.enabled !== false}
+                  title={feed.enabled !== false ? 'Enabled — click to hide' : 'Disabled — click to show'}
+                >
+                  <span className="settings__toggle-thumb" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm btn--danger-hover"
+                  onClick={() => remove(i)}
+                  title="Remove this feed"
+                >
+                  Remove
+                </button>
+              </div>
+              <input
+                type="url"
+                className="cal-feeds__url"
+                value={feed.url || ''}
+                onChange={e => update(i, { url: e.target.value })}
+                placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
+                spellCheck={false}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button type="button" className="btn btn--ghost" onClick={add} style={{ marginTop: 12 }}>
+        + Add feed
+      </button>
+    </div>
+  );
 }
 
 function ToggleField({ label, description, value, onChange }) {

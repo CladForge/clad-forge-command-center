@@ -1016,3 +1016,11 @@ ALTER TABLE settings ADD COLUMN IF NOT EXISTS dashboard_kpi_cards JSONB;
 -- another migration each time. Defaults applied client-side from
 -- initialSettings.dashboardPreferences.
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS dashboard_preferences JSONB;
+
+-- ============= PHASE 7: External calendar feeds =============
+-- Stores user-configured iCal/ICS feed URLs (Google, Outlook, Apple,
+-- etc.) so they appear alongside admin-authored events on the
+-- Calendar page. Format: array of { id, name, url, color, enabled }.
+-- The actual fetching happens client-side; CORS-restricted feeds may
+-- need a proxy edge function in a follow-up.
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS external_calendars JSONB;

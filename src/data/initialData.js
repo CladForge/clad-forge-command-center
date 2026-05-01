@@ -287,6 +287,13 @@ Best regards,
     dueSoonDays:       14,  // 7 | 14 | 21 | 30
     staleProposalDays: 3,   // 1 | 3 | 5 | 7
   },
+
+  // ── External calendar feeds ──
+  // Array of { id, name, url, color, enabled } pulled into the Calendar
+  // page alongside admin-authored events. URLs should be iCal/ICS feeds
+  // (Google, Outlook, Apple iCloud, etc.). Fetching happens client-side
+  // so CORS-restricted feeds may need a proxy — see /lib/calendarFeeds.js.
+  externalCalendars: [],
 };
 
 export const initialInvoices = [];
