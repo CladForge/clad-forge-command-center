@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateId } from '../data/initialData';
 import AnnotatedScreenshot from './AnnotatedScreenshot';
@@ -22,15 +22,17 @@ export default function AppScreenshotsSection({
   const [selectedId, setSelectedId] = useState(screenshots[0]?.id || null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
 
   const selected = screenshots.find(s => s.id === selectedId) || screenshots[0] || null;
   const selectedPins = selected ? pins.filter(p => p.screenshotId === selected.id) : [];
 
-  async function handleUpload(e) {
-    const file = e.target.files?.[0];
+  // Shared upload pipeline — used by file picker, paste handler, drag-drop.
+  // Takes a File or Blob, validates, encodes as data URI, inserts row.
+  async function uploadFile(file, suggestedCaption) {
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please select an image file.');
+    if (!file.type || !file.type.startsWith('image/')) {
+      setUploadError('That doesn\'t look like an image.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -43,11 +45,16 @@ export default function AppScreenshotsSection({
     reader.onload = async ev => {
       const dataUri = ev.target.result;
       const newId = generateId();
+      // Pasted images land as `image.png` (no useful filename) — fall back to
+      // a timestamped caption so it's not just a generic name in the picker.
+      const fallbackCaption = suggestedCaption || (file.name && file.name !== 'image.png'
+        ? file.name.replace(/\.[^.]+$/, '')
+        : `Screenshot ${new Date().toLocaleString()}`);
       const { error } = await supabase.from('app_screenshots').insert({
         id: newId,
         application_id: applicationId,
         image_url: dataUri,
-        caption: file.name.replace(/\.[^.]+$/, ''),
+        caption: fallbackCaption,
         captured_by: currentUserId,
       });
       if (error) {
@@ -57,10 +64,57 @@ export default function AppScreenshotsSection({
         setSelectedId(newId);
       }
       setUploading(false);
-      // Reset input so user can re-upload the same filename
-      e.target.value = '';
     };
     reader.readAsDataURL(file);
+  }
+
+  function handleFileInputChange(e) {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+    // Reset input so user can re-upload the same filename
+    e.target.value = '';
+  }
+
+  // Paste support — listen on window so the user can paste from anywhere on
+  // the page. We ignore paste events originating from text inputs / textareas
+  // / contentEditable elements so typing-paste in those still works normally.
+  useEffect(() => {
+    function handlePaste(e) {
+      const target = e.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type && item.type.startsWith('image/')) {
+          e.preventDefault();
+          const blob = item.getAsFile();
+          if (blob) uploadFile(blob);
+          break;
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applicationId, currentUserId]);
+
+  // Drag-and-drop support
+  function handleDragOver(e) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+  function handleDragLeave(e) {
+    // Only clear if leaving the dropzone entirely (not its children)
+    if (e.currentTarget === e.target) setIsDragging(false);
+  }
+  function handleDrop(e) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFile(file);
   }
 
   async function handleAddPin(xPct, yPct, body) {
@@ -109,7 +163,21 @@ export default function AppScreenshotsSection({
   const canDeleteSelected = selected && (isAdmin || selected.capturedBy === currentUserId);
 
   return (
-    <div className="app-screenshots">
+    <div
+      className={`app-screenshots ${isDragging ? 'app-screenshots--dragging' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drop overlay shown while dragging a file over the section */}
+      {isDragging && (
+        <div className="app-screenshots__drop-overlay">
+          <div className="app-screenshots__drop-overlay-text">
+            Drop image to upload
+          </div>
+        </div>
+      )}
+
       {/* Top bar: upload + screenshot picker */}
       <div className="app-screenshots__bar">
         <div className="app-screenshots__list">
@@ -145,7 +213,7 @@ export default function AppScreenshotsSection({
             <input
               type="file"
               accept="image/*"
-              onChange={handleUpload}
+              onChange={handleFileInputChange}
               style={{ display: 'none' }}
               disabled={uploading}
             />
@@ -161,6 +229,10 @@ export default function AppScreenshotsSection({
           )}
         </div>
       </div>
+
+      <p className="app-screenshots__paste-hint">
+        Paste an image with <kbd>Ctrl+V</kbd> · drop a file anywhere in this area · or click Upload Screenshot
+      </p>
 
       {uploadError && <div className="modal__error" style={{ marginTop: 8 }}>{uploadError}</div>}
 
@@ -181,7 +253,7 @@ export default function AppScreenshotsSection({
         <div className="empty-state" style={{ padding: 40 }}>
           <span className="empty-state__icon">📸</span>
           <h3>No screenshots yet</h3>
-          <p>Upload a screenshot of the application to start dropping markup pins.</p>
+          <p>Paste an image, drop one here, or click Upload Screenshot to get started.</p>
         </div>
       )}
     </div>
