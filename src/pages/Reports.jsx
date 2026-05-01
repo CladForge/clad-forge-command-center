@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { initialSettings } from '../data/initialData';
+import { CLAD_FORGE_LOGO_DATA_URI } from '../lib/brand';
 
 // ── Formatting ───────────────────────────────────────────────────────
 function fmtCompact(n) {
@@ -254,10 +255,19 @@ export default function Reports({
         </div>
       </div>
 
-      {/* Print-only cover page. Display: none on screen, block when printing. */}
+      {/* Print-only cover page. Display: none on screen, block when printing.
+          Brand mark, company name, then the report metadata so the printed
+          document feels like a Clad Forge artifact rather than a screenshot
+          of the app. */}
       <div className="report-cover">
-        <h1>{s.companyName || 'Business Report'}</h1>
-        <h2>Business Report</h2>
+        <img
+          className="report-cover__logo"
+          src={CLAD_FORGE_LOGO_DATA_URI}
+          alt={s.companyName || 'Clad Forge'}
+        />
+        <h1 className="report-cover__company">{s.companyName || 'Clad Forge'}</h1>
+        <p className="report-cover__type">Business Report</p>
+        <div className="report-cover__divider" />
         <p className="report-cover__period">{periodInfo.label}</p>
         <p className="report-cover__meta">Generated {generatedOn}</p>
       </div>
@@ -539,10 +549,14 @@ export default function Reports({
         </div>
       </section>
 
-      {/* ═══ Print footer ═══ */}
+      {/* ═══ Footer — small attribution line, more visible on the printed
+            page than on screen. */}
       <footer className="report-footer">
-        <span>{s.companyName || 'Clad Forge'}</span>
-        <span>Generated {generatedOn}</span>
+        <div className="report-footer__brand">
+          <img src={CLAD_FORGE_LOGO_DATA_URI} alt="" />
+          <span>{s.companyName || 'Clad Forge'}</span>
+        </div>
+        <span className="report-footer__date">Generated {generatedOn}</span>
       </footer>
     </div>
   );

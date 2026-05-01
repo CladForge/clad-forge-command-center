@@ -3191,17 +3191,25 @@ mark.code-highlight {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PRINT — strip the app chrome, force a clean light layout, show the
-   cover page. Tested against Chrome's "Save as PDF" output.
+   PRINT — branded Clad Forge artifact. Strips the app chrome, forces
+   a light layout, preserves all the colored bars/accents (browsers
+   strip backgrounds by default — we override with print-color-adjust).
+   Tested against Chrome's "Save as PDF" output.
    ═══════════════════════════════════════════════════════════════════ */
 @media print {
+  /* Force browsers to print every background color and image we've
+     specified. Without this, Chrome / Edge / Safari all strip pale
+     tints, h-bar fills, KPI accents, etc. by default — leaving white
+     boxes where colored bars should be. */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   /* Reset every ancestor that scopes scroll/height/flex. The screen
-     layout pins #root and .app to 100vh with `overflow: hidden`, and
-     .app__content is the actual scroll container. For print we need
-     ALL of those to drop their height/overflow constraints AND fall
-     out of flex so children flow as a single tall document the
-     printer can paginate naturally. The previous version missed
-     #root, which clipped the print preview to a single page. */
+     layout pins #root and .app to 100vh with overflow: hidden, and
+     .app__content is the actual scroll container. For print we drop
+     all of those constraints so the document flows as one tall page
+     the printer can paginate naturally. */
   html, body, #root, .app, .app__main, .app__content {
     display: block !important;
     width: auto !important;
@@ -3212,12 +3220,11 @@ mark.code-highlight {
     margin: 0 !important;
     padding: 0 !important;
   }
-  /* Force a printable color scheme regardless of the user's data-theme. */
   body, .app, .app__main, .app__content {
     background: #fff !important;
-    color: #111 !important;
+    color: #1a1b27 !important;
   }
-  .app__content { padding: 16px 18px !important; }
+  .app__content { padding: 14px 18px 24px !important; }
   /* Hide the app shell and any interactive controls. */
   .sidebar,
   .topbar,
@@ -3225,81 +3232,184 @@ mark.code-highlight {
   .dash__card-link,
   button,
   .filter-chip { display: none !important; }
-  /* Show the print cover. */
+
+  /* ── Branded cover page ──────────────────────────────────────────
+     Logo + company name + report type + period + generated date.
+     Orange accent line below the metadata so it reads as a Clad
+     Forge artifact rather than a printed screenshot. */
   .report-cover {
     display: block !important;
     text-align: center;
-    padding: 40px 0 32px;
-    border-bottom: 2px solid #111;
-    margin-bottom: 32px;
+    padding: 60px 0 40px;
+    margin-bottom: 36px;
     page-break-after: avoid;
   }
-  .report-cover h1 {
-    font-family: var(--font-display);
-    font-size: 2.2rem;
-    font-weight: 700;
-    margin-bottom: 8px;
+  .report-cover__logo {
+    display: block;
+    margin: 0 auto 24px;
+    width: 80px;
+    height: 80px;
   }
-  .report-cover h2 {
+  .report-cover__company {
     font-family: var(--font-display);
-    font-size: 1.2rem;
-    font-weight: 400;
-    color: #555;
-    margin-bottom: 24px;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #1a1b27 !important;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .report-cover__type {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #ff8c00 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    margin-bottom: 28px;
+  }
+  .report-cover__divider {
+    width: 80px;
+    height: 3px;
+    background: #ff8c00 !important;
+    margin: 0 auto 24px;
+    border-radius: 2px;
   }
   .report-cover__period {
     font-family: var(--font-mono);
-    font-size: 1rem;
-    color: #111;
-    margin-bottom: 4px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1a1b27 !important;
+    margin-bottom: 6px;
   }
   .report-cover__meta {
-    font-size: 0.82rem;
-    color: #666;
+    font-size: 0.85rem;
+    color: #6b7280 !important;
   }
-  /* Compact layout for paper. */
-  .report-section { margin-bottom: 22px; page-break-inside: avoid; }
+
+  /* ── Section structure ──────────────────────────────────────────
+     Headers in brand orange to mark each section visually; thin
+     orange underline so sections read as distinct blocks even when
+     paginated. */
+  .report-section {
+    margin-bottom: 26px;
+    page-break-inside: avoid;
+  }
   .report-section__title {
-    color: #111 !important;
-    border-bottom-color: #111 !important;
+    color: #ff8c00 !important;
+    border-bottom: 2px solid #ff8c00 !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 16px !important;
   }
+
+  /* ── Cards ──────────────────────────────────────────────────────
+     White cards with subtle borders. Inner card-color treatments
+     stay (top accent, value tint) so each card still reads as
+     differentiated; the soft wash is dropped because colored backs
+     waste ink. */
   .dash__card,
   .report-ministat {
     background: #fff !important;
-    border-color: #ccc !important;
+    border: 1px solid #d4d4d8 !important;
     box-shadow: none !important;
     page-break-inside: avoid;
+    border-radius: 6px !important;
+  }
+  .dash__card-header h3 { color: #1a1b27 !important; }
+  .dash__card-badge {
+    background: rgba(255, 140, 0, 0.12) !important;
+    color: #ff8c00 !important;
   }
   .dash__kpi {
     background: #fff !important;
-    border-color: #ccc !important;
+    border: 1px solid #d4d4d8 !important;
     box-shadow: none !important;
     page-break-inside: avoid;
   }
+  /* Drop the soft wash overlay — kills ink usage without losing the
+     top accent or value color. */
   .dash__kpi::before { display: none !important; }
-  .dash__kpi-label,
-  .dash__kpi-sub,
-  .report-ministat__label { color: #555 !important; }
-  .dash__kpi-value,
-  .report-ministat__value { color: #111 !important; }
-  /* Lists/tables inside the report — let them grow naturally on paper. */
+  .dash__kpi-label { color: #6b7280 !important; }
+  .dash__kpi-sub { color: #6b7280 !important; }
+  /* The top border-top stays on .dash__kpi via inline style + the
+     value text stays the card color, so each card still has its
+     accent. */
+
+  /* ── Bar charts (revenue trend, h-bars) ─────────────────────────
+     The colored fills depend on background being preserved, which
+     the print-color-adjust rule above handles. Keep the track bars
+     visible too. */
+  .dash__bar-track,
+  .dash__h-bar-track {
+    background: #e5e7eb !important;
+  }
+  .dash__h-bar-label,
+  .dash__h-bar-value,
+  .dash__h-bar-count,
+  .dash__bar-value,
+  .dash__bar-label { color: #1a1b27 !important; }
+
+  /* Lists/tables — uncap any internal heights/scrolls. */
   .report-list,
   .dash__actions-list,
   .dash__app-health,
   .dash__deadlines {
     max-height: none !important;
+    min-height: 0 !important;
     overflow: visible !important;
   }
-  .data-table th { background: #eee !important; color: #111 !important; }
-  .data-table td { color: #111 !important; }
+  .report-list__title,
+  .report-list__rank { color: #1a1b27 !important; }
+  .report-list__sub { color: #6b7280 !important; }
+  .report-list__value { color: #ff8c00 !important; }
+
+  /* Mini-stats text needs explicit color since the screen uses the
+     theme variable that resolved to white. */
+  .report-ministat__label { color: #6b7280 !important; }
+
+  /* Proposal funnel — the orange win-rate callout has a brand wash
+     background that needs to print. */
+  .report-funnel__rate {
+    background: rgba(255, 140, 0, 0.12) !important;
+  }
+  .report-funnel__rate strong { color: #ff8c00 !important; }
+  .report-funnel__label { color: #1a1b27 !important; }
+
+  /* Tables. */
+  .data-table th {
+    background: #f3f4f6 !important;
+    color: #1a1b27 !important;
+    border-bottom: 1px solid #d4d4d8 !important;
+  }
+  .data-table td { color: #1a1b27 !important; }
+  .data-table__bold { color: #1a1b27 !important; font-weight: 600 !important; }
+  .data-table__muted { color: #6b7280 !important; }
+  .data-table__mono { color: #1a1b27 !important; }
+
   /* Page break hints. */
   h2, h3 { break-after: avoid; }
   table { break-inside: auto; }
   tr { break-inside: avoid; }
-  /* Footer always at the very bottom on screen, repeats on each printed
-     page only if you want — leave default for now. */
-  .report-footer { color: #666 !important; border-top-color: #ccc !important; }
+
+  /* ── Footer — branded line at the very bottom of the document. */
+  .report-footer {
+    border-top: 2px solid #ff8c00 !important;
+    color: #6b7280 !important;
+    padding-top: 14px !important;
+    margin-top: 24px !important;
+  }
+  .report-footer__brand img {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  .report-footer__brand { color: #1a1b27 !important; font-weight: 600; }
 }
+
+/* On-screen footer too — lightweight branded strip. */
+.report-footer__brand { display: flex; align-items: center; gap: 8px; }
+.report-footer__brand img { width: 16px; height: 16px; opacity: 0.8; }
+.report-footer__date { font-family: var(--font-mono); }
 
 /* ===== CALENDAR ===== */
 .calendar-page { display: flex; flex-direction: column; flex: 1; min-height: 0; }
