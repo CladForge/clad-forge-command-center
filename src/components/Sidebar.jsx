@@ -22,7 +22,6 @@ const navSections = [
       { path: '/tickets', label: 'Tickets', icon: 'tickets' },
       { path: '/finances', label: 'Finances', icon: 'finances' },
       { path: '/documents', label: 'Documents', icon: 'documents' },
-      { path: '/time', label: 'Time Tracker', icon: 'time' },
     ],
   },
   {

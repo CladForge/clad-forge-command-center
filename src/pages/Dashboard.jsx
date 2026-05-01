@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
 
-export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], timeEntries = [], setClients, addNotification }) {
+export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
   const navigate = useNavigate();
 
@@ -29,8 +29,6 @@ export default function Dashboard({ clients, projects, sows, activities, setting
   const proposalTotal = (pkgs) => (pkgs || []).reduce((s, p) => s + (p.optional && !p.included ? 0 : (p.price || 0)), 0);
   const pendingProposals = sows.filter(s => s.status === 'sent');
   const pendingValue = pendingProposals.reduce((s, p) => s + proposalTotal(p.packages), 0);
-
-  const totalHoursLogged = timeEntries.reduce((s, e) => s + (e.hours || 0) + (e.minutes || 0) / 60, 0);
 
   // ═══ CHART DATA ═══
 
@@ -121,7 +119,6 @@ export default function Dashboard({ clients, projects, sows, activities, setting
         <KpiCard label="Active Clients" value={activeClients} sub={`${prospects} prospects`} color="var(--brand)" onClick={() => navigate('/clients')} />
         <KpiCard label="Active Projects" value={activeProjects} sub={formatCurrency(totalProjectBudget) + ' total budget'} color="var(--info)" onClick={() => navigate('/pipeline')} />
         <KpiCard label="Proposals" value={sows.length} sub={`${formatCurrency(pendingValue)} pending`} color="var(--purple)" onClick={() => navigate('/proposals')} />
-        <KpiCard label="Hours Logged" value={totalHoursLogged.toFixed(1)} sub={`${timeEntries.length} entries`} color="var(--brand-mid)" onClick={() => navigate('/time')} />
       </div>
 
       {/* ═══ CHARTS ROW 1 ═══ */}
