@@ -229,17 +229,19 @@ function SetCard({ set, counts, isAdmin, currentUserId, onOpen, onChange }) {
       {set.targetDate && (
         <p className="markup-set-card__sub">Target: {set.targetDate}</p>
       )}
-      <SetCardCounts counts={counts} />
-      {canDelete && set.status !== 'completed' && (
-        <button
-          className="markup-set-card__delete"
-          onClick={handleDelete}
-          aria-label="Delete set"
-          title="Delete set"
-        >
-          ×
-        </button>
-      )}
+      <div className="markup-set-card__bottom">
+        <SetCardCounts counts={counts} />
+        {canDelete && set.status !== 'completed' && (
+          <button
+            className="markup-set-card__delete"
+            onClick={handleDelete}
+            aria-label="Delete set"
+            title="Delete set"
+          >
+            Delete
+          </button>
+        )}
+      </div>
     </div>
   );
 }

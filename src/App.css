@@ -2930,21 +2930,24 @@ mark.code-highlight {
 .markup-sets-list__group-title { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--slate-light); font-weight: 700; margin: 0 0 10px 0; }
 .markup-sets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 
-.markup-set-card { position: relative; padding: 16px 18px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.markup-set-card { padding: 16px 18px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; display: flex; flex-direction: column; gap: 8px; text-align: left; }
 .markup-set-card:hover { border-color: var(--brand-mid); transform: translateY(-1px); box-shadow: var(--shadow); }
 .markup-set-card--unfiled { border-style: dashed; opacity: 0.85; }
 .markup-set-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .markup-set-card__name { font-size: 1rem; font-weight: 600; color: var(--ink); }
 .markup-set-card__desc { font-size: 0.85rem; color: var(--slate); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .markup-set-card__sub { font-size: 0.78rem; color: var(--slate-light); margin: 0; }
-.markup-set-card__counts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--border); margin-top: auto; font-size: 0.78rem; color: var(--slate); }
+/* Bottom row contains counts on the left, optional delete action on the right.
+   Using a flex row keeps the delete button safely below the status pill. */
+.markup-set-card__bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid var(--border); margin-top: auto; }
+.markup-set-card__counts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.78rem; color: var(--slate); flex: 1; min-width: 0; }
 .markup-set-card__counts strong { color: var(--ink); font-weight: 600; }
 .markup-set-card__open { color: var(--brand); }
 .markup-set-card__open strong { color: var(--brand); }
 .markup-set-card__resolved { color: var(--success); font-weight: 500; }
-.markup-set-card__delete { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: transparent; color: var(--slate-light); border: none; cursor: pointer; opacity: 0; transition: all 0.15s ease; font-size: 1.1rem; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.markup-set-card__delete { padding: 4px 10px; background: transparent; color: var(--slate-light); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; opacity: 0; transition: all 0.15s ease; font-size: 0.74rem; font-weight: 500; flex-shrink: 0; }
 .markup-set-card:hover .markup-set-card__delete { opacity: 1; }
-.markup-set-card__delete:hover { background: var(--danger); color: white; }
+.markup-set-card__delete:hover { background: var(--danger); border-color: var(--danger); color: white; }
 
 /* Compact stat boxes shown on the portal app detail page next to the
    "Open Markup Reviews" button. Each shows label + value at a glance. */
