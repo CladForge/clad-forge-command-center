@@ -217,7 +217,7 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
     });
   const actionItems = [...pinItems, ...ticketItems, ...staleProposalItems]
     .sort((a, b) => b.ageDays - a.ageDays)
-    .slice(0, 7);
+    .slice(0, 15);
 
   // ── Application Health table (replacement for By Industry chart) ──
   // Each row pairs an app with the recurring revenue it carries (its own
@@ -242,7 +242,7 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
       return { app, monthlyContrib, openTickets: appOpenTickets, clientName: client?.company || '' };
     })
     .sort((a, b) => b.openTickets - a.openTickets || b.monthlyContrib - a.monthlyContrib)
-    .slice(0, 6);
+    .slice(0, 12);
 
   // Monthly revenue (configurable trailing window). Window length pulls
   // from prefs.chartMonths so users can pick 3/6/12 in Settings.
@@ -268,7 +268,7 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
   const upcomingDeadlines = projects
     .filter(p => p.deadline && p.stage !== 'completed' && p.stage !== 'on-hold')
     .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
-    .slice(0, 5);
+    .slice(0, 12);
 
   return (
     <div className="dash">

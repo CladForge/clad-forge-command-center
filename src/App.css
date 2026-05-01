@@ -1041,7 +1041,10 @@
 .dash__mini-value { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--brand); flex-shrink: 0; }
 
 /* Deadlines */
-.dash__deadlines { display: flex; flex-direction: column; }
+/* Same height treatment as actions/app-health so the bottom-row trio
+   feels like a uniform block; tall enough to surface 8-10 items, scroll
+   beyond that. */
+.dash__deadlines { display: flex; flex-direction: column; flex: 1; min-height: 380px; max-height: 520px; overflow-y: auto; }
 .dash__deadline-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 12px; }
 .dash__deadline-row:last-child { border-bottom: none; }
 .dash__deadline-info { flex: 1; min-width: 0; }
@@ -1068,10 +1071,12 @@
 .dash__overdue-amt { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--danger); }
 .dash__overdue-days { font-size: 0.72rem; color: var(--slate-light); }
 
-/* Action items list (Row 2, replaces Top Clients). Mixed worklist of
-   markup pins, urgent tickets, and stale proposals. The left tag shows
-   what kind of item it is so the eye can scan by type. */
-.dash__actions-list { display: flex; flex-direction: column; flex: 1; }
+/* Action items list. Mixed worklist of markup pins, urgent tickets, and
+   stale proposals. The left tag shows what kind of item it is so the
+   eye can scan by type. min-height keeps the card substantial when the
+   list is short; max-height + overflow lets a long list scroll inside
+   the card rather than stretching the whole row vertically. */
+.dash__actions-list { display: flex; flex-direction: column; flex: 1; min-height: 380px; max-height: 520px; overflow-y: auto; }
 .dash__action-row {
   display: flex; align-items: center; gap: 10px; padding: 9px 0;
   border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s;
@@ -1093,7 +1098,7 @@
 
 /* Application health table (Row 3, replaces By Industry). Mini-table of
    apps with status pill, open ticket count, and MRR contribution. */
-.dash__app-health { display: flex; flex-direction: column; flex: 1; }
+.dash__app-health { display: flex; flex-direction: column; flex: 1; min-height: 380px; max-height: 520px; overflow-y: auto; }
 .dash__app-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 0;
   border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s;
