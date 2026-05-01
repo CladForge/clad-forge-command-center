@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { initialSettings } from '../data/initialData';
-import { KPI_CARD_DEFS, resolveCardOrder } from '../lib/dashboardCards';
+import { KPI_CARD_DEFS, resolveCardOrder, colorFor } from '../lib/dashboardCards';
 
 const TABS = [
   { id: 'company', label: 'Company', icon: '🏢' },
@@ -589,6 +589,27 @@ function DashboardCardPicker({ value, onChange }) {
     onChange(next);
   }
 
+  // Save a custom color override for a card. Hex value comes from the
+  // native <input type="color"> — always 7 chars (#RRGGBB).
+  function setColor(index, hex) {
+    const next = value.map((c, i) => i === index ? { ...c, color: hex } : c);
+    onChange(next);
+  }
+
+  // Drop the override so the card falls back to its registry default.
+  // Uses object-rest to omit `color` cleanly rather than setting it to
+  // undefined, which would still serialize through JSON. The `_color`
+  // name uses an underscore so the eslint allowed-unused-vars regex
+  // (^[A-Z_]) ignores it.
+  function resetColor(index) {
+    const next = value.map((c, i) => {
+      if (i !== index) return c;
+      const { color: _color, ...rest } = c;
+      return rest;
+    });
+    onChange(next);
+  }
+
   function handleDragStart(e, i) {
     setDragIndex(i);
     e.dataTransfer.effectAllowed = 'move';
@@ -611,12 +632,15 @@ function DashboardCardPicker({ value, onChange }) {
     setDropIndex(null);
   }
 
-  const labelById = Object.fromEntries(KPI_CARD_DEFS.map(d => [d.id, d.label]));
+  const defById = Object.fromEntries(KPI_CARD_DEFS.map(d => [d.id, d]));
 
   return (
     <div className="dash-pref-list">
       {value.map((card, i) => {
+        const def = defById[card.id];
         const enabled = card.enabled !== false;
+        const effectiveColor = colorFor(card);
+        const isCustomColor = !!card.color && card.color !== def?.defaultColor;
         const isDragging = dragIndex === i;
         const isDropTarget = dropIndex === i && dragIndex !== null && dragIndex !== i;
         return (
@@ -635,14 +659,41 @@ function DashboardCardPicker({ value, onChange }) {
             onDragEnd={handleDragEnd}
           >
             <span className="dash-pref-row__handle" aria-hidden="true">≡</span>
-            <span className="dash-pref-row__label">{labelById[card.id] || card.id}</span>
+            {/* Color swatch doubles as a label-for the hidden native picker.
+                onMouseDown stops the row's drag from initiating when the
+                user just wants to open the color dialog. */}
+            <label
+              className="dash-pref-row__swatch"
+              style={{ background: effectiveColor }}
+              onMouseDown={e => e.stopPropagation()}
+              title={`Card color: ${effectiveColor}${isCustomColor ? ' (custom)' : ' (default)'}`}
+            >
+              <input
+                type="color"
+                value={effectiveColor}
+                onChange={e => setColor(i, e.target.value)}
+              />
+            </label>
+            <span className="dash-pref-row__label">{def?.label || card.id}</span>
+            <span className="dash-pref-row__hex" title="Hex value">{effectiveColor}</span>
+            {isCustomColor && (
+              <button
+                type="button"
+                className="dash-pref-row__reset"
+                onClick={() => resetColor(i)}
+                onMouseDown={e => e.stopPropagation()}
+                title="Reset to default color"
+              >
+                Reset
+              </button>
+            )}
             <button
               className={`settings__toggle ${enabled ? 'settings__toggle--on' : ''}`}
               onClick={() => toggle(i)}
               onMouseDown={e => e.stopPropagation()}
               role="switch"
               aria-checked={enabled}
-              aria-label={`${enabled ? 'Hide' : 'Show'} ${labelById[card.id]}`}
+              aria-label={`${enabled ? 'Hide' : 'Show'} ${def?.label}`}
             >
               <span className="settings__toggle-thumb" />
             </button>

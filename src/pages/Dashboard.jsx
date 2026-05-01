@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
-import { resolveCardOrder, pickKpiColumns } from '../lib/dashboardCards';
+import { resolveCardOrder, pickKpiColumns, colorFor } from '../lib/dashboardCards';
 
 export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
@@ -168,31 +168,31 @@ export default function Dashboard({ clients, projects, sows, activities, setting
            The card props are computed up-front so the render below stays a
            dumb lookup-and-render. */}
       {(() => {
-        // Each registry entry maps to a row of display props here. If you add
-        // a new card to KPI_CARD_DEFS, add the matching key below — the
-        // resolver in dashboardCards.js handles the persistence side, but the
-        // render still needs the actual numbers.
+        // Each registry entry maps to a row of display props (label/value/
+        // sub/onClick). Color comes from the per-card config (registry
+        // default or saved override) — see colorFor() in lib/dashboardCards.
+        // If you add a new card to KPI_CARD_DEFS, add the matching key below.
         const cardProps = {
           // ── Default cards ─────────────────────────────────────────────
-          totalRevenue:   { label: 'Total Revenue',   value: formatCurrency(totalRevenue), sub: `${paidInvoices.length} paid invoices`, color: 'var(--success)', onClick: () => navigate('/invoices') },
-          outstanding:    { label: 'Outstanding',     value: formatCurrency(totalOutstanding), sub: totalOverdue > 0 ? `${formatCurrency(totalOverdue)} overdue` : `${outstandingInvoices.length} invoices`, color: totalOverdue > 0 ? 'var(--danger)' : 'var(--warning)', onClick: () => navigate('/invoices') },
-          activeClients:  { label: 'Active Clients',  value: activeClients, sub: `${prospects} prospects`, color: 'var(--brand)', onClick: () => navigate('/clients') },
-          activeProjects: { label: 'Active Projects', value: activeProjects, sub: formatCurrency(totalProjectBudget) + ' total budget', color: 'var(--info)', onClick: () => navigate('/pipeline') },
-          proposals:      { label: 'Proposals',       value: sows.length, sub: `${formatCurrency(pendingValue)} pending`, color: 'var(--purple)', onClick: () => navigate('/proposals') },
+          totalRevenue:   { label: 'Total Revenue',   value: formatCurrency(totalRevenue), sub: `${paidInvoices.length} paid invoices`, onClick: () => navigate('/invoices') },
+          outstanding:    { label: 'Outstanding',     value: formatCurrency(totalOutstanding), sub: totalOverdue > 0 ? `${formatCurrency(totalOverdue)} overdue` : `${outstandingInvoices.length} invoices`, onClick: () => navigate('/invoices') },
+          activeClients:  { label: 'Active Clients',  value: activeClients, sub: `${prospects} prospects`, onClick: () => navigate('/clients') },
+          activeProjects: { label: 'Active Projects', value: activeProjects, sub: formatCurrency(totalProjectBudget) + ' total budget', onClick: () => navigate('/pipeline') },
+          proposals:      { label: 'Proposals',       value: sows.length, sub: `${formatCurrency(pendingValue)} pending`, onClick: () => navigate('/proposals') },
 
           // ── Optional cards (off by default; toggle in Settings) ──────
-          thisMonthRevenue:  { label: 'Revenue This Month', value: formatCurrency(thisMonthRevenue), sub: `${thisMonthPaid.length} invoice${thisMonthPaid.length === 1 ? '' : 's'} paid`, color: 'var(--success)', onClick: () => navigate('/invoices') },
-          overdue:           { label: 'Overdue',            value: overdueInvoices.length, sub: formatCurrency(totalOverdue), color: 'var(--danger)', onClick: () => navigate('/invoices') },
-          pendingProposals:  { label: 'Pending Proposals',  value: pendingProposals.length, sub: `${formatCurrency(pendingValue)} pending`, color: 'var(--warning)', onClick: () => navigate('/proposals') },
-          acceptedProposals: { label: 'Accepted Proposals', value: acceptedProposals.length, sub: `${formatCurrency(acceptedValue)} won`, color: 'var(--success)', onClick: () => navigate('/proposals') },
-          winRate:           { label: 'Win Rate',           value: `${winRate}%`, sub: decidedProposals.length === 0 ? 'no decisions yet' : `${acceptedProposals.length} of ${decidedProposals.length} decided`, color: 'var(--brand)', onClick: () => navigate('/proposals') },
-          pipelineValue:     { label: 'Pipeline Value',     value: formatCurrency(pipelineValue), sub: `${projects.filter(p => p.stage !== 'completed').length} open projects`, color: 'var(--info)', onClick: () => navigate('/pipeline') },
-          totalClients:      { label: 'Total Clients',      value: clients.length, sub: `${activeClients} active · ${prospects} prospects`, color: 'var(--brand)', onClick: () => navigate('/clients') },
-          avgProjectBudget:  { label: 'Avg Project Budget', value: formatCurrency(avgProjectBudget), sub: `${projects.length} projects`, color: 'var(--info)', onClick: () => navigate('/pipeline') },
-          avgDaysToPay:      { label: 'Avg Days to Pay',    value: avgDaysToPay, sub: paidWithDates.length === 0 ? 'no paid invoices yet' : `across ${paidWithDates.length} paid`, color: avgDaysToPay > 30 ? 'var(--warning)' : 'var(--success)', onClick: () => navigate('/invoices') },
-          openTickets:       { label: 'Open Tickets',       value: openTickets.length, sub: `${tickets.length} total`, color: openTickets.length > 0 ? 'var(--warning)' : 'var(--success)', onClick: () => navigate('/tickets') },
-          liveApplications:  { label: 'Live Apps',          value: liveApplications.length, sub: `${applications.length} total`, color: 'var(--purple)', onClick: () => navigate('/clients') },
-          monthlyRecurring:  { label: 'Monthly Recurring',  value: formatCurrency(monthlyRecurring), sub: `${activeRecurring.length} active`, color: 'var(--brand-mid)', onClick: () => navigate('/recurring') },
+          thisMonthRevenue:  { label: 'Revenue This Month', value: formatCurrency(thisMonthRevenue), sub: `${thisMonthPaid.length} invoice${thisMonthPaid.length === 1 ? '' : 's'} paid`, onClick: () => navigate('/invoices') },
+          overdue:           { label: 'Overdue',            value: overdueInvoices.length, sub: formatCurrency(totalOverdue), onClick: () => navigate('/invoices') },
+          pendingProposals:  { label: 'Pending Proposals',  value: pendingProposals.length, sub: `${formatCurrency(pendingValue)} pending`, onClick: () => navigate('/proposals') },
+          acceptedProposals: { label: 'Accepted Proposals', value: acceptedProposals.length, sub: `${formatCurrency(acceptedValue)} won`, onClick: () => navigate('/proposals') },
+          winRate:           { label: 'Win Rate',           value: `${winRate}%`, sub: decidedProposals.length === 0 ? 'no decisions yet' : `${acceptedProposals.length} of ${decidedProposals.length} decided`, onClick: () => navigate('/proposals') },
+          pipelineValue:     { label: 'Pipeline Value',     value: formatCurrency(pipelineValue), sub: `${projects.filter(p => p.stage !== 'completed').length} open projects`, onClick: () => navigate('/pipeline') },
+          totalClients:      { label: 'Total Clients',      value: clients.length, sub: `${activeClients} active · ${prospects} prospects`, onClick: () => navigate('/clients') },
+          avgProjectBudget:  { label: 'Avg Project Budget', value: formatCurrency(avgProjectBudget), sub: `${projects.length} projects`, onClick: () => navigate('/pipeline') },
+          avgDaysToPay:      { label: 'Avg Days to Pay',    value: avgDaysToPay, sub: paidWithDates.length === 0 ? 'no paid invoices yet' : `across ${paidWithDates.length} paid`, onClick: () => navigate('/invoices') },
+          openTickets:       { label: 'Open Tickets',       value: openTickets.length, sub: `${tickets.length} total`, onClick: () => navigate('/tickets') },
+          liveApplications:  { label: 'Live Apps',          value: liveApplications.length, sub: `${applications.length} total`, onClick: () => navigate('/clients') },
+          monthlyRecurring:  { label: 'Monthly Recurring',  value: formatCurrency(monthlyRecurring), sub: `${activeRecurring.length} active`, onClick: () => navigate('/recurring') },
         };
         const order = resolveCardOrder(settings.dashboardKpiCards);
         const visible = order.filter(c => c.enabled !== false && cardProps[c.id]);
@@ -203,7 +203,7 @@ export default function Dashboard({ clients, projects, sows, activities, setting
         const cols = pickKpiColumns(visible.length);
         return (
           <div className="dash__kpis" style={{ '--kpi-cols': cols }}>
-            {visible.map(c => <KpiCard key={c.id} {...cardProps[c.id]} />)}
+            {visible.map(c => <KpiCard key={c.id} color={colorFor(c)} {...cardProps[c.id]} />)}
           </div>
         );
       })()}
@@ -393,9 +393,11 @@ export default function Dashboard({ clients, projects, sows, activities, setting
 /* ═══ HELPER COMPONENTS ═══ */
 
 function KpiCard({ label, value, sub, color, onClick }) {
+  // The color is plumbed via a CSS custom property so all the visual
+  // treatment (top accent, value tint, hover glow, soft wash) can pull
+  // from a single source. See `.dash__kpi` rules in App.css.
   return (
-    <div className="dash__kpi" onClick={onClick}>
-      <div className="dash__kpi-accent" style={{ background: color }} />
+    <div className="dash__kpi" style={{ '--card-color': color }} onClick={onClick}>
       <span className="dash__kpi-label">{label}</span>
       <span className="dash__kpi-value">{value}</span>
       <span className="dash__kpi-sub">{sub}</span>

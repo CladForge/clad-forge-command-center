@@ -15,28 +15,39 @@
 // customization feature; everything below is opt-in so existing users
 // don't see their dashboard rearrange itself after this update lands.
 
+// defaultColor is a 6-digit hex literal so it round-trips through the
+// native <input type="color"> in Settings without conversion. The chosen
+// palette pairs metric semantics with color: revenue green, debts red,
+// open work amber, etc. Users can override per-card via Settings.
 export const KPI_CARD_DEFS = [
   // ── Default cards (visible on first load) ──────────────────────────
-  { id: 'totalRevenue',   label: 'Total Revenue' },
-  { id: 'outstanding',    label: 'Outstanding' },
-  { id: 'activeClients',  label: 'Active Clients' },
-  { id: 'activeProjects', label: 'Active Projects' },
-  { id: 'proposals',      label: 'Proposals' },
+  { id: 'totalRevenue',   label: 'Total Revenue',      defaultColor: '#10b981' }, // emerald
+  { id: 'outstanding',    label: 'Outstanding',        defaultColor: '#f59e0b' }, // amber
+  { id: 'activeClients',  label: 'Active Clients',     defaultColor: '#ff8c00' }, // brand orange
+  { id: 'activeProjects', label: 'Active Projects',    defaultColor: '#3b82f6' }, // blue
+  { id: 'proposals',      label: 'Proposals',          defaultColor: '#a855f7' }, // purple
 
   // ── Optional cards (off by default — toggle on in Settings) ────────
-  { id: 'thisMonthRevenue', label: 'Revenue This Month',  defaultEnabled: false },
-  { id: 'overdue',          label: 'Overdue Invoices',    defaultEnabled: false },
-  { id: 'pendingProposals', label: 'Pending Proposals',   defaultEnabled: false },
-  { id: 'acceptedProposals',label: 'Accepted Proposals',  defaultEnabled: false },
-  { id: 'winRate',          label: 'Proposal Win Rate',   defaultEnabled: false },
-  { id: 'pipelineValue',    label: 'Pipeline Value',      defaultEnabled: false },
-  { id: 'totalClients',     label: 'Total Clients',       defaultEnabled: false },
-  { id: 'avgProjectBudget', label: 'Avg Project Budget',  defaultEnabled: false },
-  { id: 'avgDaysToPay',     label: 'Avg Days to Pay',     defaultEnabled: false },
-  { id: 'openTickets',      label: 'Open Support Tickets', defaultEnabled: false },
-  { id: 'liveApplications', label: 'Live Applications',   defaultEnabled: false },
-  { id: 'monthlyRecurring', label: 'Monthly Recurring',   defaultEnabled: false },
+  { id: 'thisMonthRevenue', label: 'Revenue This Month',  defaultEnabled: false, defaultColor: '#10b981' },
+  { id: 'overdue',          label: 'Overdue Invoices',    defaultEnabled: false, defaultColor: '#ef4444' }, // red
+  { id: 'pendingProposals', label: 'Pending Proposals',   defaultEnabled: false, defaultColor: '#f59e0b' },
+  { id: 'acceptedProposals',label: 'Accepted Proposals',  defaultEnabled: false, defaultColor: '#10b981' },
+  { id: 'winRate',          label: 'Proposal Win Rate',   defaultEnabled: false, defaultColor: '#ff8c00' },
+  { id: 'pipelineValue',    label: 'Pipeline Value',      defaultEnabled: false, defaultColor: '#3b82f6' },
+  { id: 'totalClients',     label: 'Total Clients',       defaultEnabled: false, defaultColor: '#ff8c00' },
+  { id: 'avgProjectBudget', label: 'Avg Project Budget',  defaultEnabled: false, defaultColor: '#3b82f6' },
+  { id: 'avgDaysToPay',     label: 'Avg Days to Pay',     defaultEnabled: false, defaultColor: '#10b981' },
+  { id: 'openTickets',      label: 'Open Support Tickets', defaultEnabled: false, defaultColor: '#f59e0b' },
+  { id: 'liveApplications', label: 'Live Applications',   defaultEnabled: false, defaultColor: '#a855f7' },
+  { id: 'monthlyRecurring', label: 'Monthly Recurring',   defaultEnabled: false, defaultColor: '#14b8a6' }, // teal
 ];
+
+// Look up the effective color for a given card config: a saved override
+// wins over the registry default, which wins over a hardcoded fallback.
+export function colorFor(cardConfig) {
+  const def = KPI_CARD_DEFS.find(d => d.id === cardConfig?.id);
+  return cardConfig?.color || def?.defaultColor || '#ff8c00';
+}
 
 // Reconcile a saved card order with the live registry. Drops any saved IDs
 // that no longer exist in the registry, and appends any registry IDs that
