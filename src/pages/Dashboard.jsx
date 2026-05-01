@@ -103,7 +103,7 @@ export default function Dashboard({ clients, projects, sows, activities, setting
       {/* ═══ WELCOME BANNER ═══ */}
       <div className="dash__welcome">
         <div className="dash__welcome-content">
-          <h2>Welcome back, {settings.ownerName?.split(' ')[0] || 'there'}</h2>
+          <h2>Welcome back, {settings.ownerName?.split(' ')[0] || 'there'}!</h2>
         </div>
         <div className="dash__welcome-actions">
           <button className="btn btn--primary" onClick={() => navigate('/proposals')}>+ New Proposal</button>
