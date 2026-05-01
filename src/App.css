@@ -1219,7 +1219,10 @@
 .cp__hero-info { flex: 1; min-width: 200px; }
 .cp__hero-name { font-family: var(--font-display); font-size: 1.8rem; font-weight: 400; color: #fff; line-height: 1.15; }
 .cp__hero-meta { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
-.cp__hero-meta span { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+/* Style only the plain meta spans (industry, etc.) — exclude pills so
+   their own color rules win. Without this :not() the blanket span rule
+   was washing the status pill's success green out to 50% white. */
+.cp__hero-meta > span:not(.status-pill) { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
 
 .cp__hero-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .cp__hero-btn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.15); font-size: 0.78rem; padding: 5px 12px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all 0.14s; cursor: pointer; font-family: var(--font-body); }
