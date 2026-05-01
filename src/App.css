@@ -2823,6 +2823,30 @@ mark.code-highlight {
 .portal-account__row dt { font-size: 0.78rem; color: var(--slate); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 .portal-account__row dd { font-size: 0.9rem; color: var(--ink); }
 
+/* ── Milestones (admin ProjectDetail + portal PortalProjectDetail share these) ── */
+.milestone-row { display: flex; gap: 16px; padding: 14px 16px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; align-items: flex-start; transition: border-color 0.15s ease; }
+.milestone-row:hover { border-color: var(--border-light); }
+.milestone-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.milestone-row__head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.milestone-row__title { font-size: 0.95rem; font-weight: 600; color: var(--ink); }
+.milestone-row__desc { font-size: 0.85rem; color: var(--slate); line-height: 1.5; margin: 0; }
+.milestone-row__meta { font-size: 0.78rem; color: var(--slate-light); margin: 0; }
+.milestone-row__comment { margin-top: 8px; padding: 10px 14px; background: var(--surface); border-left: 3px solid var(--brand); border-radius: 4px; }
+.milestone-row__comment-label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-light); margin-bottom: 4px; }
+.milestone-row__comment p { font-size: 0.85rem; color: var(--ink); margin: 0; line-height: 1.5; white-space: pre-line; }
+.milestone-row__actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.milestone-row__decision-actions { display: flex; gap: 8px; margin-top: 10px; }
+.milestone-row__decision-form { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 14px; background: var(--surface); border: 1px solid var(--border-light); border-radius: 8px; }
+.milestone-row__decision-form label { font-size: 0.85rem; font-weight: 500; color: var(--ink); }
+.milestone-row__decision-form textarea { background: var(--surface-elevated); }
+.milestone-row__decision-buttons { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Milestone status pills — variant of status-pill */
+.status-pill--ms-draft { background: rgba(142,141,160,0.15); color: var(--slate); }
+.status-pill--ms-pending { background: rgba(255,140,0,0.18); color: var(--brand); }
+.status-pill--ms-approved { background: rgba(51,184,135,0.18); color: var(--success); }
+.status-pill--ms-changes_requested { background: rgba(255,59,38,0.18); color: var(--danger); }
+
 @media (max-width: 1024px) {
   .portal-stats { grid-template-columns: repeat(2, 1fr); }
   .portal-grid { grid-template-columns: 1fr; }

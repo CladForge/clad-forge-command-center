@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -13,10 +15,52 @@ const STAGE_LABELS = {
   'on-hold': 'On Hold',
 };
 
-export default function PortalProjectDetail({ projects, invoices, documents }) {
+export default function PortalProjectDetail({ projects, invoices, documents, milestones = [], reloadMilestones }) {
   const navigate = useNavigate();
   const { id } = useParams();
   const project = projects.find(p => p.id === id);
+
+  // Decision-form state — only one milestone is "in decision mode" at a time
+  const [decidingId, setDecidingId] = useState(null);
+  const [decisionType, setDecisionType] = useState(null); // 'approved' | 'changes_requested'
+  const [decisionComment, setDecisionComment] = useState('');
+  const [submittingDecision, setSubmittingDecision] = useState(false);
+  const [decisionError, setDecisionError] = useState('');
+
+  function startDecision(mid, type) {
+    setDecidingId(mid);
+    setDecisionType(type);
+    setDecisionComment('');
+    setDecisionError('');
+  }
+  function cancelDecision() {
+    setDecidingId(null);
+    setDecisionType(null);
+    setDecisionComment('');
+    setDecisionError('');
+  }
+
+  async function submitDecision() {
+    if (decisionType === 'changes_requested' && !decisionComment.trim()) {
+      setDecisionError('Please share what needs to change so we know what to revise.');
+      return;
+    }
+    setSubmittingDecision(true);
+    setDecisionError('');
+    const { data, error } = await supabase.rpc('client_decide_milestone', {
+      p_milestone_id: decidingId,
+      p_decision: decisionType,
+      p_comment: decisionComment.trim(),
+    });
+    if (error || data === false) {
+      setDecisionError(error?.message || 'Could not submit decision. Please try again.');
+      setSubmittingDecision(false);
+      return;
+    }
+    if (reloadMilestones) await reloadMilestones();
+    cancelDecision();
+    setSubmittingDecision(false);
+  }
 
   if (!project) {
     return (
@@ -77,6 +121,111 @@ export default function PortalProjectDetail({ projects, invoices, documents }) {
           </div>
         </div>
       )}
+
+      {/* Milestones — client decisions */}
+      {(() => {
+        const projectMilestones = (milestones || []).filter(m => m.projectId === id);
+        if (projectMilestones.length === 0) return null;
+        return (
+          <div className="panel" style={{ marginTop: 20 }}>
+            <div className="panel__header">
+              <h3>Milestones ({projectMilestones.length})</h3>
+            </div>
+            <div style={{ padding: '8px 22px 16px' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {projectMilestones.map(m => {
+                  const isDeciding = decidingId === m.id;
+                  return (
+                    <li key={m.id} className="milestone-row">
+                      <div className="milestone-row__main">
+                        <div className="milestone-row__head">
+                          <span className="milestone-row__title">{m.title}</span>
+                          <span className={`status-pill status-pill--ms-${m.status}`}>
+                            {m.status === 'pending' && 'Awaiting Your Review'}
+                            {m.status === 'approved' && '✓ Approved'}
+                            {m.status === 'changes_requested' && 'Changes Requested'}
+                          </span>
+                        </div>
+                        {m.description && <p className="milestone-row__desc">{m.description}</p>}
+                        {m.targetDate && (
+                          <p className="milestone-row__meta">Target: {m.targetDate}</p>
+                        )}
+                        {m.clientComment && m.status !== 'pending' && (
+                          <div className="milestone-row__comment">
+                            <span className="milestone-row__comment-label">Your comment:</span>
+                            <p>{m.clientComment}</p>
+                          </div>
+                        )}
+
+                        {/* Decision UI — only for pending milestones */}
+                        {m.status === 'pending' && !isDeciding && (
+                          <div className="milestone-row__decision-actions">
+                            <button
+                              className="btn btn--primary btn--sm"
+                              onClick={() => startDecision(m.id, 'approved')}
+                            >
+                              ✓ Approve
+                            </button>
+                            <button
+                              className="btn btn--secondary btn--sm"
+                              onClick={() => startDecision(m.id, 'changes_requested')}
+                            >
+                              Request Changes
+                            </button>
+                          </div>
+                        )}
+
+                        {m.status === 'pending' && isDeciding && (
+                          <div className="milestone-row__decision-form">
+                            <label>
+                              {decisionType === 'approved'
+                                ? 'Add a comment (optional):'
+                                : 'What would you like changed?'}
+                            </label>
+                            <textarea
+                              value={decisionComment}
+                              onChange={e => setDecisionComment(e.target.value)}
+                              placeholder={
+                                decisionType === 'approved'
+                                  ? 'Looks great! / Ship it / etc.'
+                                  : 'Describe what needs to change...'
+                              }
+                              rows={3}
+                              autoFocus
+                              disabled={submittingDecision}
+                            />
+                            {decisionError && <div className="modal__error">{decisionError}</div>}
+                            <div className="milestone-row__decision-buttons">
+                              <button
+                                className="btn btn--ghost btn--sm"
+                                onClick={cancelDecision}
+                                disabled={submittingDecision}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                className={`btn btn--sm ${decisionType === 'approved' ? 'btn--primary' : 'btn--secondary'}`}
+                                onClick={submitDecision}
+                                disabled={submittingDecision}
+                              >
+                                {submittingDecision
+                                  ? 'Submitting…'
+                                  : decisionType === 'approved'
+                                    ? '✓ Confirm Approval'
+                                    : 'Send Change Request'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        );
+      })()}
 
       {project.deliverables && project.deliverables.length > 0 && (
         <div className="panel" style={{ marginTop: 20 }}>

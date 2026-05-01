@@ -23,7 +23,7 @@ function daysUntil(dateStr) {
   return diff;
 }
 
-export default function ProjectDetail({ projects, setProjects, clients, sows, invoices, timeEntries, documents }) {
+export default function ProjectDetail({ projects, setProjects, clients, sows, invoices, timeEntries, documents, milestones = [], setMilestones }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const project = projects.find(p => p.id === id);
@@ -34,6 +34,15 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   const [scopeDraft, setScopeDraft] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState(null);
+
+  // Milestones state — only for THIS project, sorted by position
+  const projectMilestones = useMemo(
+    () => (milestones || []).filter(m => m.projectId === id).sort((a, b) => (a.position || 0) - (b.position || 0)),
+    [milestones, id]
+  );
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState(null);
+  const [milestoneForm, setMilestoneForm] = useState({ title: '', description: '', targetDate: '' });
 
   const client = useMemo(() => clients.find(c => c.id === project?.clientId), [clients, project]);
 
@@ -117,6 +126,58 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   function removeUpdate(uid) {
     if (!window.confirm('Delete this update? This cannot be undone.')) return;
     updateProject({ updates: updates.filter(u => u.id !== uid) });
+  }
+
+  /* ─────────────── Milestones ─────────────── */
+  function openMilestoneCreate() {
+    setEditingMilestone(null);
+    setMilestoneForm({ title: '', description: '', targetDate: '' });
+    setShowMilestoneModal(true);
+  }
+  function openMilestoneEdit(m) {
+    setEditingMilestone(m);
+    setMilestoneForm({ title: m.title || '', description: m.description || '', targetDate: m.targetDate || '' });
+    setShowMilestoneModal(true);
+  }
+  function saveMilestone() {
+    if (!milestoneForm.title.trim()) return;
+    if (!setMilestones) return;
+    if (editingMilestone) {
+      setMilestones(prev => prev.map(m => m.id === editingMilestone.id ? { ...m, ...milestoneForm } : m));
+    } else {
+      // New milestones land in 'draft' so they're not visible to the client
+      // until the admin sends them for review.
+      const next = {
+        id: generateId(),
+        projectId: id,
+        title: milestoneForm.title.trim(),
+        description: milestoneForm.description,
+        targetDate: milestoneForm.targetDate,
+        status: 'draft',
+        position: projectMilestones.length,
+        createdAt: new Date().toISOString(),
+      };
+      setMilestones(prev => [...prev, next]);
+    }
+    setShowMilestoneModal(false);
+    setEditingMilestone(null);
+  }
+  function deleteMilestone(mid) {
+    const m = projectMilestones.find(x => x.id === mid);
+    if (!window.confirm(`Delete milestone "${m?.title || ''}"? This cannot be undone.`)) return;
+    setMilestones(prev => prev.filter(x => x.id !== mid));
+  }
+  function changeMilestoneStatus(mid, newStatus) {
+    // Resetting to draft/pending also clears the previous client decision so
+    // the client gets a fresh review and the audit trail starts new for
+    // this round. (Decision history isn't yet stored — Phase 4d may add it.)
+    setMilestones(prev => prev.map(m => {
+      if (m.id !== mid) return m;
+      const cleared = newStatus === 'draft' || newStatus === 'pending'
+        ? { clientComment: '', decidedBy: null, decidedAt: null }
+        : {};
+      return { ...m, status: newStatus, ...cleared };
+    }));
   }
 
   function saveScope() {
@@ -426,6 +487,78 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
             </div>
           </div>
 
+          {/* Milestones — explicit decision points for client approval */}
+          <div className="panel">
+            <div className="panel__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3>Milestones ({projectMilestones.length})</h3>
+                <p style={{ fontSize: '0.78rem', color: 'var(--slate)', margin: '4px 0 0 0' }}>
+                  Create a milestone, then send it for client review. They&apos;ll see it in their portal.
+                </p>
+              </div>
+              <button className="btn btn--primary btn--sm" onClick={openMilestoneCreate}>+ Milestone</button>
+            </div>
+            <div style={{ padding: '8px 22px 18px' }}>
+              {projectMilestones.length === 0 ? (
+                <p style={{ color: 'var(--slate)', fontSize: '0.85rem', fontStyle: 'italic', padding: '12px 0' }}>
+                  No milestones yet. Add one to start tracking client signoffs.
+                </p>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {projectMilestones.map(m => (
+                    <li key={m.id} className="milestone-row">
+                      <div className="milestone-row__main">
+                        <div className="milestone-row__head">
+                          <span className="milestone-row__title">{m.title}</span>
+                          <span className={`status-pill status-pill--ms-${m.status}`}>
+                            {m.status === 'draft' && 'Draft'}
+                            {m.status === 'pending' && 'Awaiting Client'}
+                            {m.status === 'approved' && '✓ Approved'}
+                            {m.status === 'changes_requested' && 'Changes Requested'}
+                          </span>
+                        </div>
+                        {m.description && <p className="milestone-row__desc">{m.description}</p>}
+                        {m.targetDate && (
+                          <p className="milestone-row__meta">Target: {m.targetDate}</p>
+                        )}
+                        {m.clientComment && (
+                          <div className="milestone-row__comment">
+                            <span className="milestone-row__comment-label">Client comment:</span>
+                            <p>{m.clientComment}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="milestone-row__actions">
+                        {m.status === 'draft' && (
+                          <button className="btn btn--primary btn--sm" onClick={() => changeMilestoneStatus(m.id, 'pending')}>
+                            Send for Review
+                          </button>
+                        )}
+                        {m.status === 'pending' && (
+                          <button className="btn btn--ghost btn--sm" onClick={() => changeMilestoneStatus(m.id, 'draft')}>
+                            Recall to Draft
+                          </button>
+                        )}
+                        {m.status === 'changes_requested' && (
+                          <button className="btn btn--primary btn--sm" onClick={() => changeMilestoneStatus(m.id, 'pending')}>
+                            Resubmit
+                          </button>
+                        )}
+                        {m.status === 'approved' && (
+                          <button className="btn btn--ghost btn--sm" onClick={() => changeMilestoneStatus(m.id, 'pending')} title="Reopen for re-review">
+                            Reopen
+                          </button>
+                        )}
+                        <button className="btn btn--ghost btn--sm" onClick={() => openMilestoneEdit(m)}>Edit</button>
+                        <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={() => deleteMilestone(m.id)}>×</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
           {/* Update Log */}
           <div className="panel">
             <div className="panel__header"><h3>Update Log ({updates.length})</h3></div>
@@ -643,6 +776,63 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
             <div className="modal__footer">
               <button className="btn btn--ghost" onClick={() => setShowEditModal(false)}>Cancel</button>
               <button className="btn btn--primary" onClick={saveEditModal}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Milestone Add/Edit Modal */}
+      {showMilestoneModal && (
+        <div className="modal-overlay" onClick={() => setShowMilestoneModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal__header">
+              <h2>{editingMilestone ? 'Edit Milestone' : 'New Milestone'}</h2>
+              <button className="modal__close" onClick={() => setShowMilestoneModal(false)}>×</button>
+            </div>
+            <div className="modal__body">
+              <div className="form-group">
+                <label>Title *</label>
+                <input
+                  type="text"
+                  value={milestoneForm.title}
+                  onChange={e => setMilestoneForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Wireframes complete, Phase 1 deliverables ready"
+                  autoFocus
+                />
+              </div>
+              <div className="form-group" style={{ marginTop: 12 }}>
+                <label>Description (optional)</label>
+                <textarea
+                  value={milestoneForm.description}
+                  onChange={e => setMilestoneForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="What does the client need to review at this milestone?"
+                  rows={3}
+                />
+              </div>
+              <div className="form-group" style={{ marginTop: 12 }}>
+                <label>Target date (optional)</label>
+                <input
+                  type="date"
+                  value={milestoneForm.targetDate}
+                  onChange={e => setMilestoneForm(f => ({ ...f, targetDate: e.target.value }))}
+                />
+              </div>
+              {!editingMilestone && (
+                <p className="form-hint" style={{ marginTop: 16 }}>
+                  This milestone will be created as a draft. Use &quot;Send for Review&quot; on the
+                  milestone row when you&apos;re ready for the client to see it.
+                </p>
+              )}
+            </div>
+            <div className="modal__footer">
+              <button className="btn btn--ghost" onClick={() => setShowMilestoneModal(false)}>Cancel</button>
+              <button
+                className="btn btn--primary"
+                onClick={saveMilestone}
+                disabled={!milestoneForm.title.trim()}
+              >
+                {editingMilestone ? 'Save Changes' : 'Create Milestone'}
+              </button>
             </div>
           </div>
         </div>

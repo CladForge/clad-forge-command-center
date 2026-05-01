@@ -66,6 +66,7 @@ const TABLE_COLUMNS = {
   finance_entries: ['id','type','date','amount','category','description','client_id','project_id','invoice_id','tax_deductible','tax_category','receipt_url','payment_method','notes','year','month','created_at','created_by'],
   tax_payments: ['id','date','quarter','amount','payment_method','confirmation','notes','year','created_at','created_by'],
   client_users: ['id','auth_user_id','client_id','portal_role','invited_by','invited_at','accepted_at','last_seen_at','created_at'],
+  project_milestones: ['id','project_id','title','description','target_date','status','client_comment','decided_by','decided_at','position','created_at','created_by'],
 };
 
 // Strip fields not in the DB table before sending to Supabase
@@ -156,6 +157,7 @@ export function useSupabaseData() {
   const [financeEntries, setFinanceEntriesState] = useState(initialFinanceEntries);
   const [taxPayments, setTaxPaymentsState] = useState(initialTaxPayments);
   const [clientUsers, setClientUsersState] = useState([]);
+  const [milestones, setMilestonesState] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const connectedRef = useRef(false);
@@ -167,7 +169,7 @@ export function useSupabaseData() {
         const [
           clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
           invoicesRes, timeEntriesRes, eventsRes, contractorsRes,
-          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, milestonesRes,
         ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
@@ -188,6 +190,7 @@ export function useSupabaseData() {
           supabase.from('finance_entries').select('*').order('date', { ascending: false }),
           supabase.from('tax_payments').select('*').order('date', { ascending: false }),
           supabase.from('client_users').select('*').order('invited_at', { ascending: false }),
+          supabase.from('project_milestones').select('*').order('position', { ascending: true }),
         ]);
 
         if (clientsRes.error) throw clientsRes.error;
@@ -222,6 +225,7 @@ export function useSupabaseData() {
         if (financeEntriesRes.data) setFinanceEntriesState(financeEntriesRes.data.map(snakeToCamel));
         if (taxPaymentsRes.data) setTaxPaymentsState(taxPaymentsRes.data.map(snakeToCamel));
         if (clientUsersRes.data) setClientUsersState(clientUsersRes.data.map(snakeToCamel));
+        if (milestonesRes.data) setMilestonesState(milestonesRes.data.map(snakeToCamel));
 
         connectedRef.current = true;
         setConnected(true);
@@ -496,6 +500,14 @@ export function useSupabaseData() {
     [addActivity]
   );
 
+  // PROJECT MILESTONES — admin manages, client decides via RPC.
+  // The makeSetter handles insert/update/delete + auto-logs activity.
+  // Client decisions come in via supabase realtime (or page reload).
+  const setMilestones = useCallback(
+    makeSetter(setMilestonesState, 'project_milestones', { labelField: 'title', entityLabel: 'milestone', icon: 'flag' }),
+    [addActivity]
+  );
+
   // CLIENT_USERS — admin-side state for the Portal Access tab. Inserts and
   // deletes are managed via the invite-client-user / revoke-client-user edge
   // functions (which also touch auth.users), so this setter only handles
@@ -535,6 +547,7 @@ export function useSupabaseData() {
     financeEntries, setFinanceEntries,
     taxPayments, setTaxPayments,
     clientUsers, setClientUsers, reloadClientUsers,
+    milestones, setMilestones,
     loading,
     connected,
   };

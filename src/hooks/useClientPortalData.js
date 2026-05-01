@@ -33,6 +33,7 @@ export function useClientPortalData(authUserId) {
   const [sows, setSOWs] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [recurringExpenses, setRecurringExpenses] = useState([]);
+  const [milestones, setMilestones] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -109,7 +110,8 @@ export function useClientPortalData(authUserId) {
         if (cancelled) return;
 
         if (clientRes.data) setActiveClient(snakeToCamel(clientRes.data));
-        setProjects((projectsRes.data || []).map(snakeToCamel));
+        const projectsList = (projectsRes.data || []).map(snakeToCamel);
+        setProjects(projectsList);
         // Hide drafts and cancelled rows from clients — they should only see
         // invoices/proposals the admin has actually sent. Filtering at the
         // source keeps this consistent across every portal page (dashboard,
@@ -127,6 +129,26 @@ export function useClientPortalData(authUserId) {
         setDocuments((documentsRes.data || []).map(snakeToCamel));
         setRecurringExpenses((recurringRes.data || []).map(snakeToCamel));
         if (settingsRes.data) setSettings(snakeToCamel(settingsRes.data));
+
+        // Milestones: scoped to the active client's projects. Hide draft
+        // milestones — they're admin-only working state, not for client eyes.
+        const projectIds = projectsList.map(p => p.id);
+        if (projectIds.length > 0) {
+          const { data: milestonesData } = await supabase
+            .from('project_milestones')
+            .select('*')
+            .in('project_id', projectIds)
+            .order('position', { ascending: true });
+          if (!cancelled) {
+            setMilestones(
+              (milestonesData || [])
+                .map(snakeToCamel)
+                .filter(m => m.status !== 'draft')
+            );
+          }
+        } else {
+          setMilestones([]);
+        }
       } catch (err) {
         if (!cancelled) setError(err.message);
       } finally {
@@ -146,6 +168,23 @@ export function useClientPortalData(authUserId) {
   const activeMembership = memberships.find(m => m.clientId === activeClientId) || null;
   const portalRole = activeMembership?.portalRole || 'viewer';
 
+  /**
+   * Reload milestones (used after a client decides on one — RPC-driven
+   * updates don't fire onAuthStateChange so we re-fetch optimistically).
+   */
+  const reloadMilestones = useCallback(async () => {
+    const projectIds = projects.map(p => p.id);
+    if (projectIds.length === 0) return;
+    const { data } = await supabase
+      .from('project_milestones')
+      .select('*')
+      .in('project_id', projectIds)
+      .order('position', { ascending: true });
+    setMilestones(
+      (data || []).map(snakeToCamel).filter(m => m.status !== 'draft')
+    );
+  }, [projects]);
+
   return {
     memberships,
     linkedClients,
@@ -158,6 +197,8 @@ export function useClientPortalData(authUserId) {
     sows,
     documents,
     recurringExpenses,
+    milestones,
+    reloadMilestones,
     settings,
     loading,
     error,

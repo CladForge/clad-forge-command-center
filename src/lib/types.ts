@@ -77,3 +77,20 @@ export interface ClientUser {
   lastSeenAt?: string;
   createdAt?: string;
 }
+
+/** A project milestone — explicit decision point with client approval workflow.
+ *  Distinct from projects.deliverables (a simple checklist). */
+export interface ProjectMilestone {
+  id: string;
+  projectId: string;
+  title: string;
+  description?: string;
+  targetDate?: string;
+  status: 'draft' | 'pending' | 'approved' | 'changes_requested';
+  clientComment?: string;
+  decidedBy?: string;
+  decidedAt?: string;
+  position?: number;
+  createdAt?: string;
+  createdBy?: string;
+}

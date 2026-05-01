@@ -599,3 +599,118 @@ CREATE POLICY client_users_delete ON client_users FOR DELETE TO authenticated US
 
 -- onboarding_submissions: existing policies (public insert, authenticated read/update)
 -- already match Phase 3 intent. No change needed here.
+
+-- ================================================================
+-- PHASE 4c — PROJECT MILESTONES
+-- Decision points with explicit client approval workflow. Separate from
+-- projects.deliverables (which is a simple JSONB checklist).
+--
+-- Status lifecycle:
+--   draft              admin only, hidden from client
+--   pending            visible to client, awaiting their Approve / Request Changes
+--   approved           client signed off (terminal until admin reopens via status change)
+--   changes_requested  client wants revisions; back to admin's court
+--
+-- Clients use the client_decide_milestone RPC (SECURITY DEFINER) rather than
+-- direct UPDATE — RLS blocks them from writing to milestones, and the RPC
+-- validates the caller's portal access + only allows decisions on 'pending'.
+-- ================================================================
+CREATE TABLE IF NOT EXISTS project_milestones (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  target_date TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'draft'
+    CHECK (status IN ('draft','pending','approved','changes_requested')),
+  client_comment TEXT DEFAULT '',
+  decided_by UUID REFERENCES auth.users(id),
+  decided_at TIMESTAMPTZ,
+  position INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_project_milestones_project ON project_milestones(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_milestones_status ON project_milestones(status);
+ALTER TABLE project_milestones ENABLE ROW LEVEL SECURITY;
+
+-- RLS: admin: all; client: SELECT scoped to their projects (their client_id);
+-- write paths for clients go through the RPC instead.
+DROP POLICY IF EXISTS project_milestones_select ON project_milestones;
+DROP POLICY IF EXISTS project_milestones_insert ON project_milestones;
+DROP POLICY IF EXISTS project_milestones_update ON project_milestones;
+DROP POLICY IF EXISTS project_milestones_delete ON project_milestones;
+
+CREATE POLICY project_milestones_select ON project_milestones FOR SELECT TO authenticated
+  USING (
+    auth_is_admin() OR project_id IN (
+      SELECT id FROM projects WHERE client_id = ANY(auth_client_ids())
+    )
+  );
+CREATE POLICY project_milestones_insert ON project_milestones FOR INSERT TO authenticated
+  WITH CHECK (auth_is_admin());
+CREATE POLICY project_milestones_update ON project_milestones FOR UPDATE TO authenticated
+  USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+CREATE POLICY project_milestones_delete ON project_milestones FOR DELETE TO authenticated
+  USING (auth_is_admin());
+
+-- Client decision RPC. Validates portal membership + only-when-pending,
+-- logs an activity entry on success so the admin sees it in their feed.
+CREATE OR REPLACE FUNCTION public.client_decide_milestone(
+  p_milestone_id text,
+  p_decision text,
+  p_comment text
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  caller_id uuid := auth.uid();
+  m_client_id text;
+  m_status text;
+  m_title text;
+BEGIN
+  IF caller_id IS NULL THEN RETURN false; END IF;
+  IF p_decision NOT IN ('approved', 'changes_requested') THEN RETURN false; END IF;
+
+  SELECT p.client_id, m.status, m.title INTO m_client_id, m_status, m_title
+  FROM project_milestones m
+  JOIN projects p ON p.id = m.project_id
+  WHERE m.id = p_milestone_id;
+
+  IF m_client_id IS NULL THEN RETURN false; END IF;
+  IF m_status <> 'pending' THEN RETURN false; END IF;
+
+  -- Caller must have portal access to that client
+  IF NOT EXISTS (
+    SELECT 1 FROM client_users
+    WHERE auth_user_id = caller_id AND client_id = m_client_id
+  ) THEN
+    RETURN false;
+  END IF;
+
+  UPDATE project_milestones
+  SET status = p_decision,
+      client_comment = p_comment,
+      decided_by = caller_id,
+      decided_at = now()
+  WHERE id = p_milestone_id;
+
+  -- Activity log so the admin sees the decision in their feed
+  INSERT INTO activities (id, type, message, icon, created_by)
+  VALUES (
+    gen_random_uuid()::text,
+    'milestone',
+    CASE p_decision
+      WHEN 'approved' THEN 'Client approved milestone: ' || m_title
+      ELSE 'Client requested changes on: ' || m_title
+    END,
+    CASE p_decision WHEN 'approved' THEN 'check-circle' ELSE 'alert-circle' END,
+    caller_id
+  );
+
+  RETURN true;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.client_decide_milestone(text, text, text) TO authenticated;

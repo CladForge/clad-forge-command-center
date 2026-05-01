@@ -126,6 +126,8 @@ export default function ClientPortal({ profile, onSignOut }) {
                   projects={data.projects}
                   invoices={data.invoices}
                   documents={data.documents}
+                  milestones={data.milestones}
+                  reloadMilestones={data.reloadMilestones}
                 />
               } />
               <Route path="/portal/invoices" element={
