@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateId, initialSettings } from '../data/initialData';
 import InvitePortalUserModal from '../components/InvitePortalUserModal';
+import AppCard from '../components/AppCard';
 import { supabase } from '../lib/supabase';
 
 const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
@@ -314,8 +315,19 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
   const emptyApp = {
     name: '', description: '', url: '', type: 'website',
     status: 'planning', launchedAt: '', monthlyCost: 0, notes: '',
+    thumbnailUrl: '',
   };
   const [appForm, setAppForm] = useState(emptyApp);
+
+  function handleAppThumbnailUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Please select an image file'); return; }
+    if (file.size > 2 * 1024 * 1024) { alert('Thumbnail must be under 2MB. Recommended: 1200×675 JPEG, ~150KB.'); return; }
+    const reader = new FileReader();
+    reader.onload = ev => setAppForm(f => ({ ...f, thumbnailUrl: ev.target.result }));
+    reader.readAsDataURL(file);
+  }
 
   function openAppCreate() {
     setEditingApp(null);
@@ -333,6 +345,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
       launchedAt: app.launchedAt || '',
       monthlyCost: app.monthlyCost || 0,
       notes: app.notes || '',
+      thumbnailUrl: app.thumbnailUrl || '',
     });
     setShowAppModal(true);
   }
@@ -618,7 +631,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
               </div>
               <button className="btn btn--primary" onClick={openAppCreate}>+ Application</button>
             </div>
-            <div style={{ padding: clientApplications.length === 0 ? 0 : '12px 22px 22px' }}>
+            <div style={{ padding: clientApplications.length === 0 ? 0 : '16px 22px 22px' }}>
               {clientApplications.length === 0 ? (
                 <div className="empty-state">
                   <span className="empty-state__icon">📦</span>
@@ -626,48 +639,18 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                   <p>Add the first application this client owns. They&apos;ll see it in their portal.</p>
                 </div>
               ) : (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Type</th>
-                      <th>Status</th>
-                      <th>URL</th>
-                      <th style={{ textAlign: 'right' }}>Monthly</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clientApplications.map(app => (
-                      <tr key={app.id}>
-                        <td>
-                          <span className="data-table__bold">{app.name}</span>
-                          {app.description && <span className="data-table__sub">{app.description}</span>}
-                        </td>
-                        <td className="data-table__muted">{app.type}</td>
-                        <td>
-                          <span className={`status-pill status-pill--app-${app.status}`}>{app.status}</span>
-                        </td>
-                        <td>
-                          {app.url ? (
-                            <a href={app.url.startsWith('http') ? app.url : `https://${app.url}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)' }}>
-                              {app.url.replace(/^https?:\/\//, '').replace(/\/$/, '')} ↗
-                            </a>
-                          ) : <span className="data-table__muted">—</span>}
-                        </td>
-                        <td className="data-table__mono" style={{ textAlign: 'right' }}>
-                          {app.monthlyCost > 0 ? formatCurrency(app.monthlyCost) : '—'}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                            <button className="btn btn--ghost btn--sm" onClick={() => openAppEdit(app)}>Edit</button>
-                            <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={() => deleteApp(app.id)}>×</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="app-card-grid">
+                  {clientApplications.map(app => (
+                    <AppCard
+                      key={app.id}
+                      app={app}
+                      monthlyCost={app.monthlyCost}
+                      onEdit={() => openAppEdit(app)}
+                      onDelete={() => deleteApp(app.id)}
+                      adminMode
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -774,6 +757,46 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
               <button className="modal__close" onClick={() => setShowAppModal(false)}>×</button>
             </div>
             <div className="modal__body">
+              {/* Thumbnail upload — top of form so it's the first thing the
+                  admin sees. Stored as base64 data URI to match brand_logo_url. */}
+              <div className="form-group" style={{ marginBottom: 18 }}>
+                <label>Thumbnail</label>
+                <div className="app-thumb-upload">
+                  <div className="app-thumb-upload__preview">
+                    {appForm.thumbnailUrl ? (
+                      <img src={appForm.thumbnailUrl} alt="Thumbnail preview" />
+                    ) : (
+                      <div className="app-thumb-upload__placeholder">
+                        <span>16:9</span>
+                        <span className="app-thumb-upload__placeholder-sub">No thumbnail uploaded</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="app-thumb-upload__controls">
+                    <label className="btn btn--ghost btn--sm" style={{ cursor: 'pointer' }}>
+                      {appForm.thumbnailUrl ? 'Replace image' : 'Upload image'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAppThumbnailUpload}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    {appForm.thumbnailUrl && (
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm btn--danger-hover"
+                        onClick={() => setAppForm(f => ({ ...f, thumbnailUrl: '' }))}
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <span className="form-hint">
+                      Recommended: 1200×675 JPEG. Max 2MB. Shown to client on the portal.
+                    </span>
+                  </div>
+                </div>
+              </div>
               <div className="form-grid">
                 <div className="form-group form-group--full">
                   <label>Name *</label>

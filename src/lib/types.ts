@@ -108,6 +108,9 @@ export interface Application {
   launchedAt?: string;
   monthlyCost?: number;
   notes?: string;
+  /** Base64 data URI thumbnail (admin uploads). Optional — falls back to a
+   *  type-icon placeholder on the card if not set. */
+  thumbnailUrl?: string;
   /** Free-form per-app config — domain info, runbook notes, feature flags, etc.
    *  Specific categories will be split into typed fields as use cases firm up. */
   metadata?: Record<string, unknown>;

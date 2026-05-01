@@ -768,3 +768,10 @@ ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS application_id TEXT
   REFERENCES applications(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_recurring_expenses_application
   ON recurring_expenses(application_id);
+
+-- Thumbnail for application cards. Stored as a base64 data URI to match the
+-- existing brand_logo_url pattern on clients (no Supabase Storage bucket
+-- setup needed for the MVP). 2MB cap is enforced client-side. Phase 5
+-- will swap to proper Storage when auto-screenshot capture lands and
+-- thumbnails get re-used by the markup feature.
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS thumbnail_url TEXT DEFAULT '';

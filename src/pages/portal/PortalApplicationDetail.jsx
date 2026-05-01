@@ -54,6 +54,14 @@ export default function PortalApplicationDetail({ applications, recurringExpense
         ← Back to applications
       </button>
 
+      {/* Hero thumbnail (16:9). If no thumbnail set, the section is hidden
+          to avoid an empty visual block at the top of the page. */}
+      {app.thumbnailUrl && (
+        <div className="app-detail-hero" style={{ marginTop: 16 }}>
+          <img src={app.thumbnailUrl} alt={app.name} loading="lazy" />
+        </div>
+      )}
+
       <div className="portal-page__header" style={{ marginTop: 16 }}>
         <div>
           <h1>{app.name}</h1>

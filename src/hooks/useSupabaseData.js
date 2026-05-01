@@ -67,7 +67,7 @@ const TABLE_COLUMNS = {
   tax_payments: ['id','date','quarter','amount','payment_method','confirmation','notes','year','created_at','created_by'],
   client_users: ['id','auth_user_id','client_id','portal_role','invited_by','invited_at','accepted_at','last_seen_at','created_at'],
   project_milestones: ['id','project_id','title','description','target_date','status','client_comment','decided_by','decided_at','position','created_at','created_by'],
-  applications: ['id','client_id','name','description','url','type','status','launched_at','monthly_cost','notes','metadata','created_at','created_by'],
+  applications: ['id','client_id','name','description','url','type','status','launched_at','monthly_cost','notes','thumbnail_url','metadata','created_at','created_by'],
 };
 
 // Strip fields not in the DB table before sending to Supabase
