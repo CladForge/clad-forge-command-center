@@ -975,10 +975,13 @@
 .dash__row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
 .dash__row--3 { grid-template-columns: 1fr 1fr 1fr; }
 
-.dash__card { background: var(--surface); border-radius: var(--radius-lg); padding: 22px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); animation: fadeInUp 0.35s var(--ease) both; }
+/* Cards are flex columns so their inner content section can `flex: 1`
+   into any whitespace left when a sibling card is taller. Without this
+   the Pipeline h-bars sat at the top of an over-tall card. */
+.dash__card { background: var(--surface); border-radius: var(--radius-lg); padding: 22px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); animation: fadeInUp 0.35s var(--ease) both; display: flex; flex-direction: column; }
 .dash__card--2 { grid-column: span 1; }
 
-.dash__card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.dash__card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-shrink: 0; }
 .dash__card-header h3 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 400; }
 .dash__card-badge { font-size: 0.72rem; color: var(--brand); background: var(--brand-pale); padding: 3px 10px; border-radius: 20px; font-weight: 600; }
 .dash__card-link { font-size: 0.78rem; color: var(--brand); font-weight: 500; cursor: pointer; background: none; border: none; font-family: var(--font-body); }
@@ -1006,15 +1009,18 @@
 .dash__legend-count { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: var(--ink); }
 
 /* Horizontal Bars */
-.dash__h-bars { display: flex; flex-direction: column; gap: 10px; }
-.dash__h-bar-row { display: flex; align-items: center; gap: 10px; }
-.dash__h-bar-label { font-size: 0.78rem; color: var(--slate); width: 80px; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+/* H-bars container fills the card body via flex: 1 (parent .dash__card is
+   now flex column). justify-content: space-around distributes rows evenly
+   over the available height — used to leave a chunk of dead space below. */
+.dash__h-bars { display: flex; flex-direction: column; gap: 22px; flex: 1; justify-content: space-around; padding: 4px 0; }
+.dash__h-bar-row { display: flex; align-items: center; gap: 12px; }
+.dash__h-bar-label { font-size: 0.82rem; color: var(--slate); width: 88px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .dash__h-bar-label--wide { width: 120px; }
-.dash__h-bar-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.dash__h-bar-track { flex: 1; height: 8px; background: var(--stone); border-radius: 4px; overflow: hidden; }
-.dash__h-bar-fill { height: 100%; border-radius: 4px; min-width: 3px; transition: width 0.8s var(--ease); }
-.dash__h-bar-value { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 500; color: var(--ink); width: 50px; text-align: right; }
-.dash__h-bar-count { font-family: var(--font-mono); font-size: 0.72rem; color: var(--slate-light); width: 20px; text-align: center; }
+.dash__h-bar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dash__h-bar-track { flex: 1; height: 14px; background: var(--stone); border-radius: 7px; overflow: hidden; }
+.dash__h-bar-fill { height: 100%; border-radius: 7px; min-width: 3px; transition: width 0.8s var(--ease); }
+.dash__h-bar-value { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 500; color: var(--ink); width: 56px; text-align: right; }
+.dash__h-bar-count { font-family: var(--font-mono); font-size: 0.74rem; color: var(--slate-light); width: 24px; text-align: center; }
 
 /* Mini Table */
 .dash__mini-table { display: flex; flex-direction: column; }
@@ -1036,6 +1042,62 @@
 .dash__deadline-days { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600; color: var(--slate); flex-shrink: 0; padding: 2px 8px; background: var(--stone); border-radius: 4px; }
 .dash__deadline-days--warn { color: var(--warning); background: var(--warning-bg); }
 .dash__deadline-days--overdue { color: var(--danger); background: var(--danger-bg); }
+
+/* Overdue invoices list (Row 1, replaces the Invoice Status donut). One
+   row per overdue invoice, click → /invoices. */
+.dash__overdue-list { display: flex; flex-direction: column; flex: 1; }
+.dash__overdue-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.12s;
+}
+.dash__overdue-row:last-child { border-bottom: none; }
+.dash__overdue-row:hover { background: var(--border-light); margin: 0 -8px; padding: 10px 8px; border-radius: 4px; }
+.dash__overdue-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.dash__overdue-num { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink); font-weight: 600; }
+.dash__overdue-client { font-size: 0.74rem; color: var(--slate-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash__overdue-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.dash__overdue-amt { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--danger); }
+.dash__overdue-days { font-size: 0.72rem; color: var(--slate-light); }
+
+/* Action items list (Row 2, replaces Top Clients). Mixed worklist of
+   markup pins, urgent tickets, and stale proposals. The left tag shows
+   what kind of item it is so the eye can scan by type. */
+.dash__actions-list { display: flex; flex-direction: column; flex: 1; }
+.dash__action-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 0;
+  border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s;
+}
+.dash__action-row:last-child { border-bottom: none; }
+.dash__action-row:hover { background: var(--border-light); margin: 0 -8px; padding: 9px 8px; border-radius: 4px; }
+.dash__action-tag {
+  font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase;
+  font-weight: 600; padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+  min-width: 56px; text-align: center;
+}
+.dash__action-tag--pin      { background: rgba(255, 140, 0, 0.12);  color: var(--brand); }
+.dash__action-tag--ticket   { background: rgba(239, 68, 68, 0.12);  color: var(--danger); }
+.dash__action-tag--proposal { background: rgba(245, 158, 11, 0.14); color: var(--warning); }
+.dash__action-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dash__action-title { font-size: 0.82rem; color: var(--ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash__action-sub { font-size: 0.72rem; color: var(--slate-light); }
+.dash__action-age { font-family: var(--font-mono); font-size: 0.74rem; color: var(--slate); flex-shrink: 0; padding: 2px 6px; background: var(--stone); border-radius: 4px; }
+
+/* Application health table (Row 3, replaces By Industry). Mini-table of
+   apps with status pill, open ticket count, and MRR contribution. */
+.dash__app-health { display: flex; flex-direction: column; flex: 1; }
+.dash__app-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 0;
+  border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s;
+}
+.dash__app-row:last-child { border-bottom: none; }
+.dash__app-row:hover { background: var(--border-light); margin: 0 -8px; padding: 10px 8px; border-radius: 4px; }
+.dash__app-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dash__app-name { font-size: 0.85rem; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash__app-client { font-size: 0.72rem; color: var(--slate-light); }
+.dash__app-tickets { font-size: 0.72rem; color: var(--slate-light); flex-shrink: 0; min-width: 56px; text-align: right; }
+.dash__app-tickets--has { color: var(--danger); font-weight: 600; }
+.dash__app-mrr { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink); font-weight: 600; flex-shrink: 0; min-width: 80px; text-align: right; }
 
 /* Activity Feed */
 .dash__activity { display: flex; flex-direction: column; }

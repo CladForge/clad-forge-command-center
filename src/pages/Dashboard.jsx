@@ -4,7 +4,7 @@ import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
 import { resolveCardOrder, pickKpiColumns, colorFor, MAX_VISIBLE_KPI_CARDS } from '../lib/dashboardCards';
 
-export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], annotationPins = [], setClients, addNotification }) {
+export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], annotationPins = [], appScreenshots = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
   const navigate = useNavigate();
 
@@ -127,15 +127,120 @@ export default function Dashboard({ clients, projects, sows, activities, setting
 
   const maxPipelineValue = Math.max(...pipelineData.map(d => d.value), 1);
 
-  // Invoice status donut
-  const invoiceStatusData = [
-    { label: 'Paid', count: paidInvoices.length, color: '#059669' },
-    { label: 'Sent', count: invoices.filter(i => i.status === 'sent').length, color: '#2563eb' },
-    { label: 'Overdue', count: overdueInvoices.length, color: '#dc2626' },
-    { label: 'Draft', count: invoices.filter(i => i.status === 'draft').length, color: '#9ca3af' },
-  ].filter(d => d.count > 0);
+  // ── Overdue invoices list (replacement for Invoice Status donut) ──
+  // Catches anything explicitly flagged 'overdue' plus 'sent' invoices
+  // whose due date has already passed (in case auto-detect hasn't run).
+  // Sorted by oldest-due first so the most pressing chase is at the top.
+  const overdueList = invoices
+    .filter(i => {
+      if (i.status === 'overdue') return true;
+      if (i.status === 'sent' && i.dueDate && new Date(i.dueDate) < todayStart) return true;
+      return false;
+    })
+    .map(i => {
+      const c = clients.find(cl => cl.id === i.clientId);
+      const due = i.dueDate ? new Date(i.dueDate) : null;
+      const daysOverdue = due ? Math.floor((todayStart - due) / 86400000) : null;
+      return {
+        id: i.id,
+        invoiceNumber: i.invoiceNumber,
+        clientName: c?.company || i.clientCompany || '—',
+        amount: invoiceTotal(i.items, i.taxRate, i.discount),
+        daysOverdue,
+        shareToken: i.shareToken,
+      };
+    })
+    .sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0))
+    .slice(0, 6);
 
-  const invoiceDonutTotal = invoiceStatusData.reduce((s, d) => s + d.count, 0) || 1;
+  // ── Action Items list (replacement for Top Clients ranking) ──
+  // Unified queue of "things waiting on you", pulled from three sources:
+  //   - open markup pins (resolved through screenshot → app → client)
+  //   - urgent / high-priority tickets in open or in-progress state
+  //   - proposals still 'sent' more than 3 days after going out
+  // Each item has a uniform shape so the renderer is dumb.
+  const STALE_PROPOSAL_DAYS = 3;
+  const pinItems = annotationPins
+    .filter(p => p.status === 'open')
+    .map(p => {
+      const sc = appScreenshots.find(s => s.id === p.screenshotId);
+      const app = sc ? applications.find(a => a.id === sc.applicationId) : null;
+      const client = app ? clients.find(cl => cl.id === app.clientId) : null;
+      const ageDays = p.createdAt ? Math.floor((now - new Date(p.createdAt)) / 86400000) : 0;
+      return {
+        type: 'pin',
+        id: 'pin-' + p.id,
+        title: app ? `Markup pin on ${app.name}` : 'Markup pin',
+        sub: client?.company || '',
+        ageDays,
+        onClick: () => navigate('/clients'),
+      };
+    });
+  const ticketItems = tickets
+    .filter(t =>
+      (t.priority === 'urgent' || t.priority === 'high') &&
+      (t.status === 'open' || t.status === 'in_progress' || t.status === 'in-progress')
+    )
+    .map(t => {
+      const client = clients.find(c => c.id === t.clientId);
+      const ageDays = t.createdAt ? Math.floor((now - new Date(t.createdAt)) / 86400000) : 0;
+      return {
+        type: 'ticket',
+        id: 'ticket-' + t.id,
+        title: t.subject || 'Ticket',
+        sub: client?.company || '',
+        ageDays,
+        priority: t.priority,
+        onClick: () => navigate('/tickets'),
+      };
+    });
+  const staleProposalItems = sows
+    .filter(s => s.status === 'sent')
+    .map(s => {
+      const sentAt = s.sentDate || s.createdAt;
+      const ageDays = sentAt ? Math.floor((now - new Date(sentAt)) / 86400000) : 0;
+      return { sow: s, ageDays };
+    })
+    .filter(({ ageDays }) => ageDays >= STALE_PROPOSAL_DAYS)
+    .map(({ sow, ageDays }) => {
+      const client = clients.find(c => c.id === sow.clientId);
+      return {
+        type: 'proposal',
+        id: 'proposal-' + sow.id,
+        title: sow.projectTitle || 'Proposal',
+        sub: client?.company || '',
+        ageDays,
+        onClick: () => navigate('/proposals'),
+      };
+    });
+  const actionItems = [...pinItems, ...ticketItems, ...staleProposalItems]
+    .sort((a, b) => b.ageDays - a.ageDays)
+    .slice(0, 7);
+
+  // ── Application Health table (replacement for By Industry chart) ──
+  // Each row pairs an app with the recurring revenue it carries (its own
+  // monthlyCost + linked active recurring expenses) and how many open
+  // tickets reference it. Sort: most-trouble-first (open tickets desc),
+  // tiebreak by MRR contribution.
+  const appHealth = applications
+    .map(app => {
+      const linkedExpenses = recurringExpenses.filter(e =>
+        e.applicationId === app.id && e.status === 'active'
+      );
+      const monthlyContrib = (app.monthlyCost || 0) + linkedExpenses.reduce((s, e) => {
+        if (e.frequency === 'monthly') return s + (e.amount || 0);
+        if (e.frequency === 'yearly')  return s + (e.amount || 0) / 12;
+        return s;
+      }, 0);
+      const appOpenTickets = tickets.filter(t =>
+        t.applicationId === app.id &&
+        (t.status === 'open' || t.status === 'in_progress' || t.status === 'in-progress')
+      ).length;
+      const client = clients.find(c => c.id === app.clientId);
+      return { app, monthlyContrib, openTickets: appOpenTickets, clientName: client?.company || '' };
+    })
+    .sort((a, b) => b.openTickets - a.openTickets || b.monthlyContrib - a.monthlyContrib)
+    .slice(0, 6);
 
   // Monthly revenue (last 6 months from invoices)
   const monthlyRevenue = useMemo(() => {
@@ -155,24 +260,11 @@ export default function Dashboard({ clients, projects, sows, activities, setting
 
   const maxMonthlyRev = Math.max(...monthlyRevenue.map(m => m.revenue), 1);
 
-  // Top clients by value
-  const clientBudget = (c) => projects.filter(p => p.clientId === c.id).reduce((s, p) => s + (p.budget || 0), 0);
-  const topClients = [...clients]
-    .sort((a, b) => clientBudget(b) - clientBudget(a))
-    .slice(0, 5);
-
   // Upcoming deadlines
   const upcomingDeadlines = projects
     .filter(p => p.deadline && p.stage !== 'completed' && p.stage !== 'on-hold')
     .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
     .slice(0, 5);
-
-  // Industry breakdown
-  const industryData = Object.entries(
-    clients.reduce((acc, c) => { acc[c.industry] = (acc[c.industry] || 0) + 1; return acc; }, {})
-  ).sort((a, b) => b[1] - a[1]);
-
-  const maxIndustry = Math.max(...industryData.map(d => d[1]), 1);
 
   return (
     <div className="dash">
@@ -266,38 +358,37 @@ export default function Dashboard({ clients, projects, sows, activities, setting
           </div>
         </div>
 
-        {/* Invoice Status Donut */}
+        {/* Overdue Invoices — replaces Invoice Status donut. Action-
+            oriented: each row navigates to /invoices so you can chase. */}
         <div className="dash__card">
           <div className="dash__card-header">
-            <h3>Invoice Status</h3>
-            <span className="dash__card-badge">{invoices.length} total</span>
+            <h3>Overdue Invoices</h3>
+            <button className="dash__card-link" onClick={() => navigate('/invoices')}>View all →</button>
           </div>
-          {invoices.length > 0 ? (
-            <div className="dash__donut-wrap">
-              <div
-                className="dash__donut"
-                style={{
-                  background: `conic-gradient(${buildConicGradient(invoiceStatusData, invoiceDonutTotal)})`,
-                }}
-              >
-                <div className="dash__donut-center">
-                  <span className="dash__donut-value">{invoices.length}</span>
-                  <span className="dash__donut-label">Invoices</span>
-                </div>
-              </div>
-              <div className="dash__donut-legend">
-                {invoiceStatusData.map(d => (
-                  <div key={d.label} className="dash__legend-item">
-                    <span className="dash__legend-dot" style={{ background: d.color }} />
-                    <span className="dash__legend-text">{d.label}</span>
-                    <span className="dash__legend-count">{d.count}</span>
+          <div className="dash__overdue-list">
+            {overdueList.length === 0 ? (
+              <div className="dash__chart-empty">All invoices current — nothing overdue</div>
+            ) : (
+              overdueList.map(inv => (
+                <div
+                  key={inv.id}
+                  className="dash__overdue-row"
+                  onClick={() => navigate('/invoices')}
+                >
+                  <div className="dash__overdue-info">
+                    <span className="dash__overdue-num">{inv.invoiceNumber || '—'}</span>
+                    <span className="dash__overdue-client">{inv.clientName}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="dash__chart-empty">No invoices yet</div>
-          )}
+                  <div className="dash__overdue-meta">
+                    <span className="dash__overdue-amt">{formatCurrency(inv.amount)}</span>
+                    <span className="dash__overdue-days">
+                      {inv.daysOverdue == null ? 'overdue' : `${inv.daysOverdue}d late`}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
@@ -326,45 +417,82 @@ export default function Dashboard({ clients, projects, sows, activities, setting
           </div>
         </div>
 
-        {/* Top Clients */}
+        {/* Action Items — unified queue of stuff waiting on the admin.
+            Pulls from open markup pins, urgent tickets, and stale (3+ day)
+            pending proposals. Sorted by age desc so the oldest things
+            surface first. Replaces the Top Clients vanity ranking. */}
         <div className="dash__card">
           <div className="dash__card-header">
-            <h3>Top Clients</h3>
-            <button className="dash__card-link" onClick={() => navigate('/clients')}>View all →</button>
+            <h3>Action Items</h3>
+            <span className="dash__card-badge">{actionItems.length}</span>
           </div>
-          <div className="dash__mini-table">
-            {topClients.map((client, i) => (
-              <div key={client.id} className="dash__mini-row">
-                <span className="dash__mini-rank">{i + 1}</span>
-                <div className="dash__mini-info">
-                  <span className="dash__mini-name">{client.company}</span>
-                  <span className="dash__mini-sub">{client.industry}</span>
+          <div className="dash__actions-list">
+            {actionItems.length === 0 ? (
+              <div className="dash__chart-empty">Nothing waiting on you — nice work</div>
+            ) : (
+              actionItems.map(item => (
+                <div
+                  key={item.id}
+                  className={`dash__action-row dash__action-row--${item.type}`}
+                  onClick={item.onClick}
+                >
+                  <span className={`dash__action-tag dash__action-tag--${item.type}`}>
+                    {item.type === 'pin'      && 'Markup'}
+                    {item.type === 'ticket'   && (item.priority === 'urgent' ? 'Urgent' : 'High')}
+                    {item.type === 'proposal' && 'Proposal'}
+                  </span>
+                  <div className="dash__action-info">
+                    <span className="dash__action-title">{item.title}</span>
+                    {item.sub && <span className="dash__action-sub">{item.sub}</span>}
+                  </div>
+                  <span className="dash__action-age">{item.ageDays}d</span>
                 </div>
-                <span className="dash__mini-value">{formatCurrency(clientBudget(client))}</span>
-              </div>
-            ))}
-            {topClients.length === 0 && <div className="dash__chart-empty">No clients yet</div>}
+              ))
+            )}
           </div>
         </div>
       </div>
 
       {/* ═══ ROW 3 ═══ */}
       <div className="dash__row dash__row--3">
-        {/* Industry Breakdown */}
+        {/* Application Health — replaces the By Industry vanity chart.
+            One row per application: name, status pill, MRR contribution
+            (own monthly cost + linked recurring expenses), and open ticket
+            count. Sorted by open tickets desc so problem children surface. */}
         <div className="dash__card">
           <div className="dash__card-header">
-            <h3>By Industry</h3>
+            <h3>Application Health</h3>
+            <button className="dash__card-link" onClick={() => navigate('/clients')}>View all →</button>
           </div>
-          <div className="dash__h-bars">
-            {industryData.map(([industry, count]) => (
-              <div key={industry} className="dash__h-bar-row">
-                <span className="dash__h-bar-label dash__h-bar-label--wide">{industry}</span>
-                <div className="dash__h-bar-track">
-                  <div className="dash__h-bar-fill" style={{ width: `${(count / maxIndustry) * 100}%`, background: 'var(--brand)' }} />
+          <div className="dash__app-health">
+            {appHealth.length === 0 ? (
+              <div className="dash__chart-empty">No applications tracked yet</div>
+            ) : (
+              appHealth.map(({ app, monthlyContrib, openTickets, clientName }) => (
+                <div
+                  key={app.id}
+                  className="dash__app-row"
+                  onClick={() => navigate('/clients')}
+                >
+                  <div className="dash__app-info">
+                    <span className="dash__app-name">{app.name}</span>
+                    <span className="dash__app-client">{clientName}</span>
+                  </div>
+                  <span className={`status-pill status-pill--app-${app.status}`}>
+                    {app.status === 'in-development' ? 'Dev' : app.status === 'maintenance' ? 'Maint' : app.status?.charAt(0).toUpperCase() + app.status?.slice(1)}
+                  </span>
+                  <span
+                    className={`dash__app-tickets ${openTickets > 0 ? 'dash__app-tickets--has' : ''}`}
+                    title={`${openTickets} open ticket${openTickets === 1 ? '' : 's'}`}
+                  >
+                    {openTickets > 0 ? `${openTickets} open` : '—'}
+                  </span>
+                  <span className="dash__app-mrr">
+                    {monthlyContrib > 0 ? formatCurrency(monthlyContrib) + '/mo' : '—'}
+                  </span>
                 </div>
-                <span className="dash__h-bar-count">{count}</span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -450,14 +578,4 @@ function formatCompact(n) {
   if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
   if (n >= 1000) return '$' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
   return '$' + n.toLocaleString();
-}
-
-function buildConicGradient(data, total) {
-  let cumulative = 0;
-  return data.map((d) => {
-    const start = (cumulative / total) * 360;
-    cumulative += d.count;
-    const end = (cumulative / total) * 360;
-    return `${d.color} ${start}deg ${end}deg`;
-  }).join(', ');
 }
