@@ -340,160 +340,117 @@ export default function Dashboard({ clients, projects, sows, activities, setting
         );
       })()}
 
-      {/* ═══ CHARTS ROW 1 ═══
-           Each section is independently toggleable in Settings; we collapse
-           the row entirely if both are hidden, and stretch a single visible
-           one to full-width by overriding gridTemplateColumns inline. */}
-      {(sectionsOn.monthlyRevenue || sectionsOn.overdueInvoices) && (
-        <div
-          className="dash__row"
-          style={{
-            gridTemplateColumns:
-              sectionsOn.monthlyRevenue && sectionsOn.overdueInvoices ? undefined : '1fr',
-          }}
-        >
-        {sectionsOn.monthlyRevenue && (
-          <div className="dash__card dash__card--2">
-          <div className="dash__card-header">
-            <h3>Monthly Revenue</h3>
-            <span className="dash__card-badge">Last {chartMonths} Months</span>
-          </div>
-          <div className="dash__bar-chart">
-            {monthlyRevenue.map(month => (
-              <div key={month.key} className="dash__bar-col">
-                <span className="dash__bar-value">{month.revenue > 0 ? formatCompact(month.revenue) : ''}</span>
-                <div className="dash__bar-track">
-                  <div
-                    className="dash__bar-fill"
-                    style={{ height: `${(month.revenue / maxMonthlyRev) * 100}%` }}
-                  />
-                </div>
-                <span className="dash__bar-label">{month.label}</span>
+      {/* ═══ ROW 1 — Monthly Revenue + Pipeline Value ═══
+           Two visual-summary charts paired together. Each is independently
+           toggleable; the row collapses if both are hidden and stretches a
+           single visible one full-width via the cols-N modifier class. */}
+      {(() => {
+        const cells = [sectionsOn.monthlyRevenue, sectionsOn.pipelineValue].filter(Boolean).length;
+        if (cells === 0) return null;
+        return (
+        <div className={`dash__row dash__row--cols-${cells}`}>
+          {sectionsOn.monthlyRevenue && (
+            <div className="dash__card dash__card--2">
+              <div className="dash__card-header">
+                <h3>Monthly Revenue</h3>
+                <span className="dash__card-badge">Last {chartMonths} Months</span>
               </div>
-            ))}
-          </div>
-          </div>
-        )}
-
-        {sectionsOn.overdueInvoices && (
-        <div className="dash__card">
-          <div className="dash__card-header">
-            <h3>Overdue Invoices</h3>
-            <button className="dash__card-link" onClick={() => navigate('/invoices')}>View all →</button>
-          </div>
-          <div className="dash__overdue-list">
-            {overdueList.length === 0 ? (
-              <div className="dash__chart-empty">All invoices current — nothing overdue</div>
-            ) : (
-              overdueList.map(inv => (
-                <div
-                  key={inv.id}
-                  className="dash__overdue-row"
-                  onClick={() => navigate('/invoices')}
-                >
-                  <div className="dash__overdue-info">
-                    <span className="dash__overdue-num">{inv.invoiceNumber || '—'}</span>
-                    <span className="dash__overdue-client">{inv.clientName}</span>
+              <div className="dash__bar-chart">
+                {monthlyRevenue.map(month => (
+                  <div key={month.key} className="dash__bar-col">
+                    <span className="dash__bar-value">{month.revenue > 0 ? formatCompact(month.revenue) : ''}</span>
+                    <div className="dash__bar-track">
+                      <div
+                        className="dash__bar-fill"
+                        style={{ height: `${(month.revenue / maxMonthlyRev) * 100}%` }}
+                      />
+                    </div>
+                    <span className="dash__bar-label">{month.label}</span>
                   </div>
-                  <div className="dash__overdue-meta">
-                    <span className="dash__overdue-amt">{formatCurrency(inv.amount)}</span>
-                    <span className="dash__overdue-days">
-                      {inv.daysOverdue == null ? 'overdue' : `${inv.daysOverdue}d late`}
+                ))}
+              </div>
+            </div>
+          )}
+          {sectionsOn.pipelineValue && (
+            <div className="dash__card">
+              <div className="dash__card-header">
+                <h3>Pipeline Value</h3>
+                <span className="dash__card-badge">{formatCurrency(totalProjectBudget)}</span>
+              </div>
+              <div className="dash__h-bars">
+                {pipelineData.map(stage => (
+                  <div key={stage.id} className="dash__h-bar-row">
+                    <span className="dash__h-bar-label">
+                      <span className="dash__h-bar-dot" style={{ background: stage.color }} />
+                      {stage.label}
                     </span>
+                    <div className="dash__h-bar-track">
+                      <div className="dash__h-bar-fill" style={{ width: `${(stage.value / maxPipelineValue) * 100}%`, background: stage.color }} />
+                    </div>
+                    <span className="dash__h-bar-value">{formatCompact(stage.value)}</span>
+                    <span className="dash__h-bar-count">{stage.count}</span>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-        )}
-        </div>
-      )}
-
-      {/* ═══ CHARTS ROW 2 ═══ — Pipeline + Action Items, same toggle scheme */}
-      {(sectionsOn.pipelineValue || sectionsOn.actionItems) && (
-        <div
-          className="dash__row"
-          style={{
-            gridTemplateColumns:
-              sectionsOn.pipelineValue && sectionsOn.actionItems ? undefined : '1fr',
-          }}
-        >
-        {sectionsOn.pipelineValue && (
-        <div className="dash__card">
-          <div className="dash__card-header">
-            <h3>Pipeline Value</h3>
-            <span className="dash__card-badge">{formatCurrency(totalProjectBudget)}</span>
-          </div>
-          <div className="dash__h-bars">
-            {pipelineData.map(stage => (
-              <div key={stage.id} className="dash__h-bar-row">
-                <span className="dash__h-bar-label">
-                  <span className="dash__h-bar-dot" style={{ background: stage.color }} />
-                  {stage.label}
-                </span>
-                <div className="dash__h-bar-track">
-                  <div className="dash__h-bar-fill" style={{ width: `${(stage.value / maxPipelineValue) * 100}%`, background: stage.color }} />
-                </div>
-                <span className="dash__h-bar-value">{formatCompact(stage.value)}</span>
-                <span className="dash__h-bar-count">{stage.count}</span>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
+        );
+      })()}
 
-        )}
-
-        {sectionsOn.actionItems && (
-        <div className="dash__card">
-          <div className="dash__card-header">
-            <h3>Action Items</h3>
-            <span className="dash__card-badge">{actionItems.length}</span>
-          </div>
-          <div className="dash__actions-list">
-            {actionItems.length === 0 ? (
-              <div className="dash__chart-empty">Nothing waiting on you — nice work</div>
-            ) : (
-              actionItems.map(item => (
-                <div
-                  key={item.id}
-                  className={`dash__action-row dash__action-row--${item.type}`}
-                  onClick={item.onClick}
-                >
-                  <span className={`dash__action-tag dash__action-tag--${item.type}`}>
-                    {item.type === 'pin'      && 'Markup'}
-                    {item.type === 'ticket'   && (item.priority === 'urgent' ? 'Urgent' : 'High')}
-                    {item.type === 'proposal' && 'Proposal'}
-                  </span>
-                  <div className="dash__action-info">
-                    <span className="dash__action-title">{item.title}</span>
-                    {item.sub && <span className="dash__action-sub">{item.sub}</span>}
+      {/* ═══ ROW 2 — Overdue Invoices ═══
+           Standalone row: when visible it spans full width so the worklist
+           can show more entries before scrolling. When hidden the row
+           disappears entirely. */}
+      {sectionsOn.overdueInvoices && (
+        <div className="dash__row dash__row--cols-1">
+          <div className="dash__card">
+            <div className="dash__card-header">
+              <h3>Overdue Invoices</h3>
+              <button className="dash__card-link" onClick={() => navigate('/invoices')}>View all →</button>
+            </div>
+            <div className="dash__overdue-list">
+              {overdueList.length === 0 ? (
+                <div className="dash__chart-empty">All invoices current — nothing overdue</div>
+              ) : (
+                overdueList.map(inv => (
+                  <div
+                    key={inv.id}
+                    className="dash__overdue-row"
+                    onClick={() => navigate('/invoices')}
+                  >
+                    <div className="dash__overdue-info">
+                      <span className="dash__overdue-num">{inv.invoiceNumber || '—'}</span>
+                      <span className="dash__overdue-client">{inv.clientName}</span>
+                    </div>
+                    <div className="dash__overdue-meta">
+                      <span className="dash__overdue-amt">{formatCurrency(inv.amount)}</span>
+                      <span className="dash__overdue-days">
+                        {inv.daysOverdue == null ? 'overdue' : `${inv.daysOverdue}d late`}
+                      </span>
+                    </div>
                   </div>
-                  <span className="dash__action-age">{item.ageDays}d</span>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
-        )}
         </div>
       )}
 
-      {/* ═══ ROW 3 ═══ — App Health / Upcoming Deadlines / Recent Activity.
-           Up to 3 cells; we count visibles and stretch grid columns to
-           match so a single visible card spans the whole row. */}
+      {/* ═══ ROW 3 — App Health / Deadlines / Activity / Action Items ═══
+           Up to 4 cells. Count visibles and pick the matching cols-N
+           class so the grid template columns adapt cleanly while still
+           letting media queries override on tablet/phone widths. */}
       {(() => {
         const cells = [
           sectionsOn.appHealth,
           sectionsOn.upcomingDeadlines,
           sectionsOn.recentActivity,
+          sectionsOn.actionItems,
         ].filter(Boolean).length;
         if (cells === 0) return null;
         return (
-        <div
-          className="dash__row dash__row--3"
-          style={{ gridTemplateColumns: `repeat(${cells}, 1fr)` }}
-        >
+        <div className={`dash__row dash__row--cols-${cells}`}>
         {sectionsOn.appHealth && (
         <div className="dash__card">
           <div className="dash__card-header">
@@ -583,6 +540,39 @@ export default function Dashboard({ clients, projects, sows, activities, setting
               </div>
             ))}
             {activities.length === 0 && <div className="dash__chart-empty">No activity yet</div>}
+          </div>
+        </div>
+        )}
+
+        {sectionsOn.actionItems && (
+        <div className="dash__card">
+          <div className="dash__card-header">
+            <h3>Action Items</h3>
+            <span className="dash__card-badge">{actionItems.length}</span>
+          </div>
+          <div className="dash__actions-list">
+            {actionItems.length === 0 ? (
+              <div className="dash__chart-empty">Nothing waiting on you — nice work</div>
+            ) : (
+              actionItems.map(item => (
+                <div
+                  key={item.id}
+                  className={`dash__action-row dash__action-row--${item.type}`}
+                  onClick={item.onClick}
+                >
+                  <span className={`dash__action-tag dash__action-tag--${item.type}`}>
+                    {item.type === 'pin'      && 'Markup'}
+                    {item.type === 'ticket'   && (item.priority === 'urgent' ? 'Urgent' : 'High')}
+                    {item.type === 'proposal' && 'Proposal'}
+                  </span>
+                  <div className="dash__action-info">
+                    <span className="dash__action-title">{item.title}</span>
+                    {item.sub && <span className="dash__action-sub">{item.sub}</span>}
+                  </div>
+                  <span className="dash__action-age">{item.ageDays}d</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
         )}

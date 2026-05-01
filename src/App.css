@@ -973,6 +973,14 @@
 
 /* Cards */
 .dash__row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+/* Column-count modifier set. The Dashboard layout picks the right one
+   based on how many sections are actually visible (some are toggleable
+   in Settings). Using classes — not inline styles — so the media-query
+   responsive overrides further down still take effect. */
+.dash__row--cols-1 { grid-template-columns: 1fr; }
+.dash__row--cols-2 { grid-template-columns: 1fr 1fr; }
+.dash__row--cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.dash__row--cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
 .dash__row--3 { grid-template-columns: 1fr 1fr 1fr; }
 
 /* Cards are flex columns so their inner content section can `flex: 1`
@@ -2759,7 +2767,9 @@ mark.code-highlight {
      is desktop-first; on smaller screens we let the grid wrap naturally
      so cards stay above ~180px and don't overflow horizontally. */
   .dash__kpis { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-  .dash__row--3 { grid-template-columns: 1fr 1fr; }
+  .dash__row--3,
+  .dash__row--cols-3,
+  .dash__row--cols-4 { grid-template-columns: 1fr 1fr; }
   .invoices__summary, .proposals__summary { grid-template-columns: repeat(2, 1fr); }
   .prop-builder__body { flex-direction: column; }
   .prop-builder__sidebar { width: 100%; position: static; }
@@ -2777,7 +2787,11 @@ mark.code-highlight {
   /* On phones, switch to a tighter 2-up grid; auto-fit's minmax above
      would also work but a fixed 2-col layout is more predictable here. */
   .dash__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dash__row, .dash__row--3 { grid-template-columns: 1fr; }
+  .dash__row,
+  .dash__row--3,
+  .dash__row--cols-2,
+  .dash__row--cols-3,
+  .dash__row--cols-4 { grid-template-columns: 1fr; }
   .dash__welcome { text-align: center; }
   .dash__welcome-actions { justify-content: center; }
   .dash__donut-wrap { flex-direction: column; align-items: center; }
