@@ -31,7 +31,7 @@ function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-export default function AppCard({ app, monthlyCost, onClick, onEdit, onDelete, adminMode = false }) {
+export default function AppCard({ app, monthlyCost, onClick, onEdit, onDelete, onMarkups, markupCount = 0, openMarkupCount = 0, adminMode = false }) {
   const liveUrl = app.url
     ? (app.url.startsWith('http') ? app.url : `https://${app.url}`)
     : null;
@@ -98,8 +98,17 @@ export default function AppCard({ app, monthlyCost, onClick, onEdit, onDelete, a
           )}
         </div>
 
-        {adminMode && (onEdit || onDelete) && (
+        {adminMode && (onEdit || onDelete || onMarkups) && (
           <div className="app-card__actions" data-card-stop>
+            {onMarkups && (
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={onMarkups}
+                title="View screenshots & markup pins"
+              >
+                Markups{markupCount > 0 ? ` (${markupCount}${openCountSuffix(openMarkupCount)})` : ''}
+              </button>
+            )}
             {onEdit && (
               <button className="btn btn--ghost btn--sm" onClick={onEdit}>Edit</button>
             )}
@@ -111,6 +120,11 @@ export default function AppCard({ app, monthlyCost, onClick, onEdit, onDelete, a
       </div>
     </div>
   );
+}
+
+function openCountSuffix(openCount) {
+  if (!openCount || openCount <= 0) return '';
+  return ` · ${openCount} open`;
 }
 
 // Simple type-keyed icon for the thumbnail fallback

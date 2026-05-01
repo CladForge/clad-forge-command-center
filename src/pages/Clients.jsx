@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { generateId, initialSettings } from '../data/initialData';
 import InvitePortalUserModal from '../components/InvitePortalUserModal';
 import AppCard from '../components/AppCard';
+import AppScreenshotsSection from '../components/AppScreenshotsSection';
 import { supabase } from '../lib/supabase';
 
 const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
 
 function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
 
-export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications }) {
+export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, appScreenshots = [], annotationPins = [], reloadAdminScreenshots, profile }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
   const [search, setSearch] = useState('');
@@ -84,6 +85,10 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         reloadClientUsers={reloadClientUsers}
         applications={applications}
         setApplications={setApplications}
+        appScreenshots={appScreenshots}
+        annotationPins={annotationPins}
+        reloadAdminScreenshots={reloadAdminScreenshots}
+        profile={profile}
         onBack={() => setViewClientId(null)}
         onEdit={() => { openEdit(client); setViewClientId(null); }}
         onDelete={() => handleDelete(client.id)}
@@ -214,7 +219,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    CLIENT PROFILE PAGE
    ═══════════════════════════════════════════ */
 
-function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, onBack, onEdit, onDelete }) {
+function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, appScreenshots = [], annotationPins = [], reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
@@ -373,6 +378,12 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
     if (!window.confirm(`Delete application "${a?.name || ''}"? This cannot be undone — and any recurring expenses linked to it will be unlinked (not deleted).`)) return;
     setApplications(prev => prev.filter(x => x.id !== appId));
   }
+
+  // Markups modal — opened from each app card
+  const [markupsAppId, setMarkupsAppId] = useState(null);
+  const markupsApp = markupsAppId ? clientApplications.find(a => a.id === markupsAppId) : null;
+  const markupsScreenshots = markupsApp ? appScreenshots.filter(s => s.applicationId === markupsApp.id) : [];
+  const markupsPins = markupsApp ? annotationPins.filter(p => markupsScreenshots.some(s => s.id === p.screenshotId)) : [];
 
   return (
     <div className="cp">
@@ -640,16 +651,24 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                 </div>
               ) : (
                 <div className="app-card-grid">
-                  {clientApplications.map(app => (
-                    <AppCard
-                      key={app.id}
-                      app={app}
-                      monthlyCost={app.monthlyCost}
-                      onEdit={() => openAppEdit(app)}
-                      onDelete={() => deleteApp(app.id)}
-                      adminMode
-                    />
-                  ))}
+                  {clientApplications.map(app => {
+                    const ssIds = appScreenshots.filter(s => s.applicationId === app.id).map(s => s.id);
+                    const total = annotationPins.filter(p => ssIds.includes(p.screenshotId)).length;
+                    const openCount = annotationPins.filter(p => ssIds.includes(p.screenshotId) && p.status === 'open').length;
+                    return (
+                      <AppCard
+                        key={app.id}
+                        app={app}
+                        monthlyCost={app.monthlyCost}
+                        onEdit={() => openAppEdit(app)}
+                        onDelete={() => deleteApp(app.id)}
+                        onMarkups={() => setMarkupsAppId(app.id)}
+                        markupCount={total}
+                        openMarkupCount={openCount}
+                        adminMode
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -746,6 +765,33 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
           onClose={() => setShowInviteModal(false)}
           onInvited={reloadClientUsers}
         />
+      )}
+
+      {/* Markups modal — admin reviews + resolves client-submitted markup pins */}
+      {markupsApp && (
+        <div className="modal-overlay" onClick={() => setMarkupsAppId(null)}>
+          <div className="modal modal--wide" onClick={e => e.stopPropagation()} style={{ maxWidth: 1100, maxHeight: '90vh' }}>
+            <div className="modal__header">
+              <div>
+                <h2>Markups — {markupsApp.name}</h2>
+                <span className="modal__subtitle">
+                  {markupsScreenshots.length} screenshot{markupsScreenshots.length !== 1 ? 's' : ''}, {markupsPins.length} total pin{markupsPins.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <button className="modal__close" onClick={() => setMarkupsAppId(null)}>×</button>
+            </div>
+            <div className="modal__body" style={{ overflow: 'auto' }}>
+              <AppScreenshotsSection
+                applicationId={markupsApp.id}
+                screenshots={markupsScreenshots}
+                pins={markupsPins}
+                currentUserId={profile?.id}
+                isAdmin={true}
+                onChange={reloadAdminScreenshots}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Application Add/Edit Modal */}

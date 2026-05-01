@@ -160,6 +160,10 @@ export default function ClientPortal({ profile, onSignOut }) {
                   applications={data.applications}
                   recurringExpenses={data.recurringExpenses}
                   invoices={data.invoices}
+                  appScreenshots={data.appScreenshots}
+                  annotationPins={data.annotationPins}
+                  reloadScreenshots={data.reloadScreenshots}
+                  profile={profile}
                 />
               } />
               <Route path="/portal/expenses" element={

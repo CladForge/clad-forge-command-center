@@ -861,3 +861,89 @@ CREATE POLICY ticket_comments_update ON ticket_comments FOR UPDATE TO authentica
   USING (auth_is_admin()) WITH CHECK (auth_is_admin());
 CREATE POLICY ticket_comments_delete ON ticket_comments FOR DELETE TO authenticated
   USING (auth_is_admin());
+
+-- ================================================================
+-- PHASE 5 — APPLICATION SCREENSHOTS + ANNOTATION PINS
+-- Visual markup: client (or admin) uploads a screenshot of an app, drops
+-- pins at specific spots with comments. Admin marks pins resolved as fixes
+-- ship. Auto-screenshot capture (Cloudflare Browser Rendering, microlink,
+-- etc.) is a future expansion — for MVP we use manual file upload.
+-- ================================================================
+CREATE TABLE IF NOT EXISTS app_screenshots (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  application_id TEXT NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+  image_url TEXT NOT NULL,           -- data URI for now; Storage URL once Phase 5+ adds buckets
+  caption TEXT DEFAULT '',
+  captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  captured_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_app_screenshots_app ON app_screenshots(application_id);
+ALTER TABLE app_screenshots ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS app_screenshots_select ON app_screenshots;
+DROP POLICY IF EXISTS app_screenshots_insert ON app_screenshots;
+DROP POLICY IF EXISTS app_screenshots_update ON app_screenshots;
+DROP POLICY IF EXISTS app_screenshots_delete ON app_screenshots;
+-- Visible to admin and to clients whose client_id owns the application
+CREATE POLICY app_screenshots_select ON app_screenshots FOR SELECT TO authenticated
+  USING (
+    auth_is_admin() OR application_id IN (
+      SELECT id FROM applications WHERE client_id = ANY(auth_client_ids())
+    )
+  );
+CREATE POLICY app_screenshots_insert ON app_screenshots FOR INSERT TO authenticated
+  WITH CHECK (
+    auth_is_admin() OR application_id IN (
+      SELECT id FROM applications WHERE client_id = ANY(auth_client_ids())
+    )
+  );
+CREATE POLICY app_screenshots_update ON app_screenshots FOR UPDATE TO authenticated
+  USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+-- Clients can delete their own uploaded screenshots; admin can delete any
+CREATE POLICY app_screenshots_delete ON app_screenshots FOR DELETE TO authenticated
+  USING (auth_is_admin() OR captured_by = auth.uid());
+
+-- Pins are point-in-image markers (x/y as % of image dims so they stay
+-- correct at any rendered size).
+CREATE TABLE IF NOT EXISTS annotation_pins (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  screenshot_id TEXT NOT NULL REFERENCES app_screenshots(id) ON DELETE CASCADE,
+  x_pct NUMERIC NOT NULL CHECK (x_pct >= 0 AND x_pct <= 100),
+  y_pct NUMERIC NOT NULL CHECK (y_pct >= 0 AND y_pct <= 100),
+  body TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved')),
+  author_id UUID REFERENCES auth.users(id),
+  resolved_by UUID REFERENCES auth.users(id),
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_annotation_pins_screenshot ON annotation_pins(screenshot_id);
+ALTER TABLE annotation_pins ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS annotation_pins_select ON annotation_pins;
+DROP POLICY IF EXISTS annotation_pins_insert ON annotation_pins;
+DROP POLICY IF EXISTS annotation_pins_update ON annotation_pins;
+DROP POLICY IF EXISTS annotation_pins_delete ON annotation_pins;
+CREATE POLICY annotation_pins_select ON annotation_pins FOR SELECT TO authenticated
+  USING (
+    auth_is_admin() OR screenshot_id IN (
+      SELECT s.id FROM app_screenshots s
+      JOIN applications a ON a.id = s.application_id
+      WHERE a.client_id = ANY(auth_client_ids())
+    )
+  );
+CREATE POLICY annotation_pins_insert ON annotation_pins FOR INSERT TO authenticated
+  WITH CHECK (
+    auth_is_admin() OR screenshot_id IN (
+      SELECT s.id FROM app_screenshots s
+      JOIN applications a ON a.id = s.application_id
+      WHERE a.client_id = ANY(auth_client_ids())
+    )
+  );
+-- Only admin can update (mark resolved). Clients delete + recreate if they
+-- want to "edit" their pin — keeps the audit trail honest.
+CREATE POLICY annotation_pins_update ON annotation_pins FOR UPDATE TO authenticated
+  USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+CREATE POLICY annotation_pins_delete ON annotation_pins FOR DELETE TO authenticated
+  USING (auth_is_admin() OR author_id = auth.uid());

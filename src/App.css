@@ -2913,6 +2913,40 @@ mark.code-highlight {
 .app-detail-hero { width: 100%; aspect-ratio: 16 / 9; max-height: 420px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
 .app-detail-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+/* ── Screenshots & annotation pins (Phase 5) ── */
+.app-screenshots { display: flex; flex-direction: column; gap: 12px; }
+.app-screenshots__bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.app-screenshots__list { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; min-width: 0; }
+.app-screenshots__empty-label { font-size: 0.85rem; color: var(--slate); font-style: italic; padding: 8px 4px; }
+.app-screenshots__chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 100px; cursor: pointer; transition: all 0.15s ease; max-width: 200px; }
+.app-screenshots__chip:hover { border-color: var(--brand-mid); }
+.app-screenshots__chip--active { background: var(--brand-pale); border-color: var(--brand); color: var(--brand); }
+.app-screenshots__chip-name { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-screenshots__chip-count { font-size: 0.7rem; padding: 2px 6px; border-radius: 100px; background: rgba(142,141,160,0.2); color: var(--slate); font-weight: 600; }
+.app-screenshots__chip-count--open { background: var(--brand); color: var(--stone); }
+.app-screenshots__actions { display: flex; gap: 6px; flex-shrink: 0; }
+.app-screenshots__viewer { width: 100%; }
+
+.annotated-screenshot { display: flex; flex-direction: column; gap: 8px; }
+.annotated-screenshot__image-wrap { position: relative; display: inline-block; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--stone); }
+.annotated-screenshot__image { display: block; max-width: 100%; height: auto; cursor: crosshair; user-select: none; }
+.annotated-screenshot__hint { font-size: 0.78rem; color: var(--slate-light); margin: 0; }
+
+/* Pins are absolutely positioned within the image-wrap. The transform
+   centers the marker on the click point. */
+.annotation-pin { position: absolute; transform: translate(-50%, -50%); z-index: 2; }
+.annotation-pin__marker { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: var(--stone); border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4); font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
+.annotation-pin__marker:hover { transform: scale(1.1); }
+.annotation-pin--resolved .annotation-pin__marker { background: var(--success); }
+.annotation-pin--draft .annotation-pin__marker { background: var(--info); }
+.annotation-pin__marker--draft { font-size: 1.2rem; }
+
+.annotation-pin__popup { position: absolute; top: 36px; left: 50%; transform: translateX(-50%); width: 280px; background: var(--surface-elevated); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; box-shadow: var(--shadow-lg); z-index: 10; display: flex; flex-direction: column; gap: 8px; }
+.annotation-pin__popup textarea { width: 100%; background: var(--surface); border: 1px solid var(--border-light); color: var(--ink); padding: 8px; border-radius: 6px; font-family: inherit; font-size: 0.85rem; resize: vertical; }
+.annotation-pin__body { font-size: 0.88rem; line-height: 1.5; color: var(--ink); margin: 0; white-space: pre-line; }
+.annotation-pin__meta { display: flex; gap: 8px; align-items: center; }
+.annotation-pin__actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+
 /* Thumbnail uploader inside the admin app modal */
 .app-thumb-upload { display: flex; gap: 18px; align-items: flex-start; }
 .app-thumb-upload__preview { flex-shrink: 0; width: 240px; aspect-ratio: 16 / 9; background: var(--surface); border: 1px dashed var(--border-light); border-radius: 8px; overflow: hidden; }

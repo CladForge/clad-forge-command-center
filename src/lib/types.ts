@@ -123,6 +123,33 @@ export interface TicketComment {
   createdAt?: string;
 }
 
+/** A screenshot of an application for visual markup. */
+export interface AppScreenshot {
+  id: string;
+  applicationId: string;
+  /** Base64 data URI for now; will become Supabase Storage URL later. */
+  imageUrl: string;
+  caption?: string;
+  capturedAt?: string;
+  capturedBy?: string;
+  createdAt?: string;
+}
+
+/** A pin dropped on a screenshot. x/y are percentages so the pin stays
+ *  positioned correctly at any rendered image size. */
+export interface AnnotationPin {
+  id: string;
+  screenshotId: string;
+  xPct: number;
+  yPct: number;
+  body?: string;
+  status: 'open' | 'resolved';
+  authorId?: string;
+  resolvedBy?: string;
+  resolvedAt?: string;
+  createdAt?: string;
+}
+
 /** A living deliverable owned by a client. Built by projects, maintained over
  *  time. Service tickets and screenshot annotations (future) attach to apps. */
 export interface Application {

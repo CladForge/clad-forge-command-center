@@ -37,6 +37,8 @@ export function useClientPortalData(authUserId) {
   const [applications, setApplications] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [ticketComments, setTicketComments] = useState([]);
+  const [appScreenshots, setAppScreenshots] = useState([]);
+  const [annotationPins, setAnnotationPins] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -160,6 +162,32 @@ export function useClientPortalData(authUserId) {
           setTicketComments([]);
         }
 
+        // Screenshots + pins for the client's applications.
+        const appIds = (applicationsRes.data || []).map(a => a.id);
+        if (appIds.length > 0) {
+          const { data: ssData } = await supabase
+            .from('app_screenshots')
+            .select('*')
+            .in('application_id', appIds)
+            .order('created_at', { ascending: false });
+          const screenshots = (ssData || []).map(snakeToCamel);
+          if (!cancelled) setAppScreenshots(screenshots);
+          const ssIds = screenshots.map(s => s.id);
+          if (ssIds.length > 0) {
+            const { data: pinsData } = await supabase
+              .from('annotation_pins')
+              .select('*')
+              .in('screenshot_id', ssIds)
+              .order('created_at', { ascending: true });
+            if (!cancelled) setAnnotationPins((pinsData || []).map(snakeToCamel));
+          } else {
+            setAnnotationPins([]);
+          }
+        } else {
+          setAppScreenshots([]);
+          setAnnotationPins([]);
+        }
+
         // Milestones: scoped to the active client's projects. Hide draft
         // milestones — they're admin-only working state, not for client eyes.
         const projectIds = projectsList.map(p => p.id);
@@ -215,6 +243,28 @@ export function useClientPortalData(authUserId) {
     );
   }, [projects]);
 
+  /** Reload screenshots + pins after client adds a screenshot or pin. */
+  const reloadScreenshots = useCallback(async () => {
+    const appIds = applications.map(a => a.id);
+    if (appIds.length === 0) return;
+    const { data: ssData } = await supabase
+      .from('app_screenshots').select('*')
+      .in('application_id', appIds)
+      .order('created_at', { ascending: false });
+    const screenshots = (ssData || []).map(snakeToCamel);
+    setAppScreenshots(screenshots);
+    const ssIds = screenshots.map(s => s.id);
+    if (ssIds.length > 0) {
+      const { data: pinsData } = await supabase
+        .from('annotation_pins').select('*')
+        .in('screenshot_id', ssIds)
+        .order('created_at', { ascending: true });
+      setAnnotationPins((pinsData || []).map(snakeToCamel));
+    } else {
+      setAnnotationPins([]);
+    }
+  }, [applications]);
+
   /** Reload tickets + their comments (used after client posts a new
    *  ticket or comment — instant optimistic refresh). */
   const reloadTickets = useCallback(async () => {
@@ -256,6 +306,9 @@ export function useClientPortalData(authUserId) {
     tickets,
     ticketComments,
     reloadTickets,
+    appScreenshots,
+    annotationPins,
+    reloadScreenshots,
     settings,
     loading,
     error,

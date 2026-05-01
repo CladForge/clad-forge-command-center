@@ -59,6 +59,7 @@ export default function App() {
     applications, setApplications,
     tickets, setTickets,
     ticketComments, setTicketComments,
+    appScreenshots, annotationPins, reloadAdminScreenshots,
     loading, connected,
   } = useSupabaseData();
 
@@ -186,7 +187,7 @@ export default function App() {
         <main className="app__content">
           <Routes>
             <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} activities={activities} settings={settings} invoices={invoices} timeEntries={timeEntries} notifications={notifications} setClients={setClients} addNotification={addNotification} />} />
-            <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} clientUsers={clientUsers} setClientUsers={setClientUsers} reloadClientUsers={reloadClientUsers} applications={applications} setApplications={setApplications} />} />
+            <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} clientUsers={clientUsers} setClientUsers={setClientUsers} reloadClientUsers={reloadClientUsers} applications={applications} setApplications={setApplications} appScreenshots={appScreenshots} annotationPins={annotationPins} reloadAdminScreenshots={reloadAdminScreenshots} profile={profile} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} sows={sows} setSOWs={setSOWs} />} />
             <Route path="/projects/:id" element={<ProjectDetail projects={projects} setProjects={setProjects} clients={clients} sows={sows} invoices={invoices} timeEntries={timeEntries} documents={documents} milestones={milestones} setMilestones={setMilestones} />} />
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} setProjects={setProjects} sows={sows} setSOWs={setSOWs} settings={settings} />} />

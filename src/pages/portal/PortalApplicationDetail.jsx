@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import AppScreenshotsSection from '../../components/AppScreenshotsSection';
 
 function fmtCurrency(n) {
   return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -21,10 +22,16 @@ const STATUS_LABELS = {
   archived: 'Archived',
 };
 
-export default function PortalApplicationDetail({ applications, recurringExpenses, invoices }) {
+export default function PortalApplicationDetail({
+  applications, recurringExpenses, invoices,
+  appScreenshots = [], annotationPins = [], reloadScreenshots,
+  profile,
+}) {
   const navigate = useNavigate();
   const { id } = useParams();
   const app = applications.find(a => a.id === id);
+  const myScreenshots = appScreenshots.filter(s => s.applicationId === id);
+  const myPins = annotationPins.filter(p => myScreenshots.some(s => s.id === p.screenshotId));
 
   if (!app) {
     return (
@@ -160,6 +167,28 @@ export default function PortalApplicationDetail({ applications, recurringExpense
           </div>
         </div>
       )}
+
+      {/* Screenshots + markup pins */}
+      <div className="panel" style={{ marginTop: 20 }}>
+        <div className="panel__header">
+          <div>
+            <h3>Screenshots & Markup</h3>
+            <p style={{ fontSize: '0.78rem', color: 'var(--slate)', margin: '4px 0 0 0' }}>
+              Upload a screenshot of an issue or area you&apos;d like changed, then click on the image to drop pins with comments.
+            </p>
+          </div>
+        </div>
+        <div style={{ padding: '16px 22px 20px' }}>
+          <AppScreenshotsSection
+            applicationId={id}
+            screenshots={myScreenshots}
+            pins={myPins}
+            currentUserId={profile?.id}
+            isAdmin={false}
+            onChange={reloadScreenshots}
+          />
+        </div>
+      </div>
 
       {/* Notes shown by admin to the client */}
       {app.notes && (
