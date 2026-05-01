@@ -14,7 +14,7 @@ import type { Profile, Client, Settings } from '../../lib/types';
 //   - Exhaustive icon-name union for compile-time safety on the icon switch
 //   - Existing CSS keeps working untouched
 
-type IconName = 'dashboard' | 'folder' | 'box' | 'file' | 'send' | 'repeat' | 'paperclip' | 'user';
+type IconName = 'dashboard' | 'folder' | 'box' | 'file' | 'send' | 'repeat' | 'paperclip' | 'user' | 'message';
 
 interface NavItem {
   to: string;
@@ -30,6 +30,7 @@ const NAV: NavItem[] = [
   { to: '/portal/invoices', label: 'Invoices', icon: 'file' },
   { to: '/portal/proposals', label: 'Proposals', icon: 'send' },
   { to: '/portal/expenses', label: 'Recurring', icon: 'repeat' },
+  { to: '/portal/tickets', label: 'Tickets', icon: 'message' },
   { to: '/portal/documents', label: 'Documents', icon: 'paperclip' },
   { to: '/portal/account', label: 'Account', icon: 'user' },
 ];
@@ -169,6 +170,12 @@ function PortalNavIcon({ name }: { name: IconName }) {
         <svg {...props}>
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+    case 'message':
+      return (
+        <svg {...props}>
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
         </svg>
       );
   }

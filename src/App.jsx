@@ -22,6 +22,7 @@ import Finances from './pages/Finances';
 import Settings from './pages/Settings';
 import Contractors from './pages/Contractors';
 import Documents from './pages/Documents';
+import Tickets from './pages/Tickets';
 import Onboarding from './pages/Onboarding';
 import OnboardingReview from './components/OnboardingReview';
 import ProposalSign from './pages/ProposalSign';
@@ -56,6 +57,8 @@ export default function App() {
     clientUsers, setClientUsers, reloadClientUsers,
     milestones, setMilestones,
     applications, setApplications,
+    tickets, setTickets,
+    ticketComments, setTicketComments,
     loading, connected,
   } = useSupabaseData();
 
@@ -189,6 +192,7 @@ export default function App() {
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} setProjects={setProjects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} invoices={invoices} setInvoices={setInvoices} />} />
             <Route path="/recurring" element={<RecurringExpenses clients={clients} projects={projects} expenses={recurringExpenses} setExpenses={setRecurringExpenses} settings={settings} />} />
+            <Route path="/tickets" element={<Tickets clients={clients} applications={applications} tickets={tickets} setTickets={setTickets} ticketComments={ticketComments} setTicketComments={setTicketComments} profile={profile} />} />
             <Route path="/finances" element={<Finances clients={clients} projects={projects} settings={settings} entries={financeEntries} setEntries={setFinanceEntries} taxPayments={taxPayments} setTaxPayments={setTaxPayments} />} />
             <Route path="/time" element={<TimeTracker projects={projects} clients={clients} entries={timeEntries} setEntries={setTimeEntries} />} />
             <Route path="/reports" element={<Reports clients={clients} projects={projects} invoices={invoices} timeEntries={timeEntries} settings={settings} />} />

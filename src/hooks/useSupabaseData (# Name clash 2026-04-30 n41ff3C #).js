@@ -527,6 +527,17 @@ export function useSupabaseData() {
     [addActivity]
   );
 
+  // SERVICE TICKETS — clients submit, admin replies. setTicketComments
+  // intentionally skips activity logging (would be noisy on every reply).
+  const setTickets = useCallback(
+    makeSetter(setTicketsState, 'service_tickets', { labelField: 'subject', entityLabel: 'ticket', icon: 'message-square' }),
+    [addActivity]
+  );
+  const setTicketComments = useCallback(
+    makeSetter(setTicketCommentsState, 'ticket_comments', { labelField: 'body', entityLabel: 'comment', logActivity: false }),
+    [addActivity]
+  );
+
   // CLIENT_USERS — admin-side state for the Portal Access tab. Inserts and
   // deletes are managed via the invite-client-user / revoke-client-user edge
   // functions (which also touch auth.users), so this setter only handles
@@ -568,6 +579,8 @@ export function useSupabaseData() {
     clientUsers, setClientUsers, reloadClientUsers,
     milestones, setMilestones,
     applications, setApplications,
+    tickets, setTickets,
+    ticketComments, setTicketComments,
     loading,
     connected,
   };

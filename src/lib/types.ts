@@ -95,6 +95,34 @@ export interface ProjectMilestone {
   createdBy?: string;
 }
 
+/** A support ticket — clients submit, admin replies. Optionally tied to an
+ *  application or a project for context. */
+export interface ServiceTicket {
+  id: string;
+  clientId: string;
+  applicationId?: string;
+  projectId?: string;
+  subject: string;
+  description?: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  submittedBy?: string;
+  assignedTo?: string;
+  resolvedAt?: string;
+  closedAt?: string;
+  createdAt?: string;
+}
+
+/** A comment on a ticket. is_internal = admin-only note, hidden from client. */
+export interface TicketComment {
+  id: string;
+  ticketId: string;
+  body: string;
+  authorId?: string;
+  isInternal?: boolean;
+  createdAt?: string;
+}
+
 /** A living deliverable owned by a client. Built by projects, maintained over
  *  time. Service tickets and screenshot annotations (future) attach to apps. */
 export interface Application {

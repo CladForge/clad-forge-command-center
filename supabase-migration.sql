@@ -775,3 +775,89 @@ CREATE INDEX IF NOT EXISTS idx_recurring_expenses_application
 -- will swap to proper Storage when auto-screenshot capture lands and
 -- thumbnails get re-used by the markup feature.
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS thumbnail_url TEXT DEFAULT '';
+
+-- ================================================================
+-- PHASE 4d — SERVICE TICKETS
+-- Client submits issues / requests, admin replies, threaded comments,
+-- status workflow. Tickets can optionally tie to an application or a
+-- project so context is clear.
+-- ================================================================
+CREATE TABLE IF NOT EXISTS service_tickets (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  application_id TEXT REFERENCES applications(id) ON DELETE SET NULL,
+  project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
+  subject TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  priority TEXT NOT NULL DEFAULT 'normal'
+    CHECK (priority IN ('low','normal','high','urgent')),
+  status TEXT NOT NULL DEFAULT 'open'
+    CHECK (status IN ('open','in_progress','resolved','closed')),
+  submitted_by UUID REFERENCES auth.users(id),
+  assigned_to UUID REFERENCES auth.users(id),
+  resolved_at TIMESTAMPTZ,
+  closed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_service_tickets_client ON service_tickets(client_id);
+CREATE INDEX IF NOT EXISTS idx_service_tickets_status ON service_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_service_tickets_app ON service_tickets(application_id);
+ALTER TABLE service_tickets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS service_tickets_select ON service_tickets;
+DROP POLICY IF EXISTS service_tickets_insert ON service_tickets;
+DROP POLICY IF EXISTS service_tickets_update ON service_tickets;
+DROP POLICY IF EXISTS service_tickets_delete ON service_tickets;
+CREATE POLICY service_tickets_select ON service_tickets FOR SELECT TO authenticated
+  USING (auth_is_admin() OR client_id = ANY(auth_client_ids()));
+-- Clients CAN create tickets for their own client; admins can create for any
+CREATE POLICY service_tickets_insert ON service_tickets FOR INSERT TO authenticated
+  WITH CHECK (auth_is_admin() OR client_id = ANY(auth_client_ids()));
+-- Only admin can change status / assign / resolve. Client-side updates would
+-- be limited to closing their own ticket — defer until needed.
+CREATE POLICY service_tickets_update ON service_tickets FOR UPDATE TO authenticated
+  USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+CREATE POLICY service_tickets_delete ON service_tickets FOR DELETE TO authenticated
+  USING (auth_is_admin());
+
+-- Threaded comments. is_internal = admin-only notes (hidden from client).
+CREATE TABLE IF NOT EXISTS ticket_comments (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  ticket_id TEXT NOT NULL REFERENCES service_tickets(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  author_id UUID REFERENCES auth.users(id),
+  is_internal BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ticket_comments_ticket ON ticket_comments(ticket_id);
+ALTER TABLE ticket_comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS ticket_comments_select ON ticket_comments;
+DROP POLICY IF EXISTS ticket_comments_insert ON ticket_comments;
+DROP POLICY IF EXISTS ticket_comments_update ON ticket_comments;
+DROP POLICY IF EXISTS ticket_comments_delete ON ticket_comments;
+-- Clients see comments on their own tickets, EXCLUDING is_internal=true
+CREATE POLICY ticket_comments_select ON ticket_comments FOR SELECT TO authenticated
+  USING (
+    auth_is_admin()
+    OR (
+      NOT is_internal AND ticket_id IN (
+        SELECT id FROM service_tickets WHERE client_id = ANY(auth_client_ids())
+      )
+    )
+  );
+-- Clients can post comments on their own tickets (never as internal).
+-- A WITH CHECK clause enforces both ownership AND is_internal=false for clients.
+CREATE POLICY ticket_comments_insert ON ticket_comments FOR INSERT TO authenticated
+  WITH CHECK (
+    auth_is_admin()
+    OR (
+      NOT is_internal AND ticket_id IN (
+        SELECT id FROM service_tickets WHERE client_id = ANY(auth_client_ids())
+      )
+    )
+  );
+CREATE POLICY ticket_comments_update ON ticket_comments FOR UPDATE TO authenticated
+  USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+CREATE POLICY ticket_comments_delete ON ticket_comments FOR DELETE TO authenticated
+  USING (auth_is_admin());

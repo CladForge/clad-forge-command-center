@@ -2847,6 +2847,36 @@ mark.code-highlight {
 .status-pill--ms-approved { background: rgba(51,184,135,0.18); color: var(--success); }
 .status-pill--ms-changes_requested { background: rgba(255,59,38,0.18); color: var(--danger); }
 
+/* Ticket priority pills */
+.priority-pill--low { background: rgba(142,141,160,0.15); color: var(--slate); }
+.priority-pill--normal { background: rgba(59,130,246,0.18); color: var(--info); }
+.priority-pill--high { background: rgba(255,171,64,0.20); color: var(--warning); }
+.priority-pill--urgent { background: rgba(255,59,38,0.20); color: var(--danger); font-weight: 700; }
+
+/* Ticket status pills */
+.status-pill--ticket-open { background: rgba(255,140,0,0.18); color: var(--brand); }
+.status-pill--ticket-in_progress { background: rgba(143,137,250,0.18); color: var(--purple); }
+.status-pill--ticket-resolved { background: rgba(51,184,135,0.18); color: var(--success); }
+.status-pill--ticket-closed { background: rgba(142,141,160,0.10); color: var(--slate-light); }
+
+/* Ticket conversation thread */
+.ticket-thread__original { background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+.ticket-thread__original p { margin: 8px 0 6px; font-size: 0.9rem; line-height: 1.6; color: var(--ink); }
+.ticket-thread { display: flex; flex-direction: column; gap: 12px; }
+.ticket-thread__msg { padding: 12px 16px; border-radius: 10px; max-width: 88%; }
+.ticket-thread__msg p { margin: 6px 0 4px; font-size: 0.9rem; line-height: 1.55; color: var(--ink); }
+.ticket-thread__msg--client { background: var(--surface-elevated); border: 1px solid var(--border); align-self: flex-start; }
+.ticket-thread__msg--admin { background: var(--brand-pale); border: 1px solid rgba(255,140,0,0.25); align-self: flex-end; }
+.ticket-thread__msg--internal { background: rgba(255,171,64,0.08); border: 1px dashed var(--warning); }
+.ticket-thread__author { font-size: 0.78rem; font-weight: 600; color: var(--slate); display: flex; align-items: center; gap: 8px; }
+.ticket-thread__internal-badge { font-size: 0.65rem; padding: 2px 6px; background: var(--warning); color: var(--stone); border-radius: 100px; text-transform: uppercase; letter-spacing: 0.05em; }
+.ticket-thread__meta { font-size: 0.72rem; color: var(--slate-light); }
+
+.ticket-reply { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.ticket-reply textarea { background: var(--surface-elevated); }
+.ticket-reply__actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ticket-reply__internal-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--slate); cursor: pointer; }
+
 /* Application status pills */
 .status-pill--app-planning { background: rgba(142,141,160,0.15); color: var(--slate); }
 .status-pill--app-in-development { background: rgba(143,137,250,0.18); color: var(--purple); }
