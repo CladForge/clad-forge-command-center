@@ -15,7 +15,6 @@ const navSections = [
     items: [
       { path: '/clients', label: 'Clients', icon: 'clients' },
       { path: '/pipeline', label: 'Pipeline', icon: 'pipeline' },
-      { path: '/contractors', label: 'Contractors', icon: 'contractors' },
       { path: '/proposals', label: 'Proposals', icon: 'sow' },
       { path: '/invoices', label: 'Invoices', icon: 'invoices' },
       { path: '/recurring', label: 'Recurring', icon: 'recurring' },
