@@ -554,37 +554,92 @@ function SelectField({ label, value, onChange, options, hint = '' }) {
   );
 }
 
-// Reorder + show/hide picker for dashboard KPI cards. value is the resolved
-// array from resolveCardOrder() — a stable list of { id, enabled } in the
-// user's chosen order. onChange receives the next array; the parent persists
-// it via setSettings.
+// Reorder + show/hide picker for dashboard KPI cards.
+//
+// value is the resolved array from resolveCardOrder() — a stable list of
+// { id, enabled } in the user's chosen order. onChange receives the next
+// array; the parent persists it via setSettings.
+//
+// Reorder is HTML5 native drag-and-drop:
+//   - Each row is draggable, with a visible ≡ handle on the left as the
+//     affordance.
+//   - The toggle button stops mousedown propagation so clicking it doesn't
+//     start a drag — that way users can hide/show cards without accidentally
+//     dragging the row.
+//   - dropIndex tracks which row the cursor is over so we can show a top
+//     border line as a drop indicator. After drop, dropIndex resets so the
+//     line disappears.
 function DashboardCardPicker({ value, onChange }) {
-  function move(index, dir) {
-    const target = index + dir;
-    if (target < 0 || target >= value.length) return;
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dropIndex, setDropIndex] = useState(null);
+
+  function move(from, to) {
+    if (from === to || from < 0 || to < 0 || from >= value.length || to > value.length) return;
     const next = [...value];
-    [next[index], next[target]] = [next[target], next[index]];
+    const [moved] = next.splice(from, 1);
+    // If dropping after the original index, the splice already shifted
+    // everything; the target index shouldn't be adjusted further.
+    const insertAt = to > from ? to - 1 : to;
+    next.splice(insertAt, 0, moved);
     onChange(next);
   }
+
   function toggle(index) {
     const next = value.map((c, i) => i === index ? { ...c, enabled: !(c.enabled !== false) } : c);
     onChange(next);
   }
+
+  function handleDragStart(e, i) {
+    setDragIndex(i);
+    e.dataTransfer.effectAllowed = 'move';
+    // Firefox needs setData or the drag won't initiate.
+    try { e.dataTransfer.setData('text/plain', String(i)); } catch { /* not all browsers allow it */ }
+  }
+  function handleDragOver(e, i) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dropIndex !== i) setDropIndex(i);
+  }
+  function handleDrop(e, i) {
+    e.preventDefault();
+    if (dragIndex !== null) move(dragIndex, i);
+    setDragIndex(null);
+    setDropIndex(null);
+  }
+  function handleDragEnd() {
+    setDragIndex(null);
+    setDropIndex(null);
+  }
+
   const labelById = Object.fromEntries(KPI_CARD_DEFS.map(d => [d.id, d.label]));
+
   return (
     <div className="dash-pref-list">
       {value.map((card, i) => {
         const enabled = card.enabled !== false;
+        const isDragging = dragIndex === i;
+        const isDropTarget = dropIndex === i && dragIndex !== null && dragIndex !== i;
         return (
-          <div key={card.id} className={`dash-pref-row ${!enabled ? 'dash-pref-row--off' : ''}`}>
-            <div className="dash-pref-row__nudge">
-              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">▲</button>
-              <button type="button" onClick={() => move(i, +1)} disabled={i === value.length - 1} aria-label="Move down">▼</button>
-            </div>
+          <div
+            key={card.id}
+            className={[
+              'dash-pref-row',
+              !enabled && 'dash-pref-row--off',
+              isDragging && 'dash-pref-row--dragging',
+              isDropTarget && 'dash-pref-row--drop',
+            ].filter(Boolean).join(' ')}
+            draggable
+            onDragStart={e => handleDragStart(e, i)}
+            onDragOver={e => handleDragOver(e, i)}
+            onDrop={e => handleDrop(e, i)}
+            onDragEnd={handleDragEnd}
+          >
+            <span className="dash-pref-row__handle" aria-hidden="true">≡</span>
             <span className="dash-pref-row__label">{labelById[card.id] || card.id}</span>
             <button
               className={`settings__toggle ${enabled ? 'settings__toggle--on' : ''}`}
               onClick={() => toggle(i)}
+              onMouseDown={e => e.stopPropagation()}
               role="switch"
               aria-checked={enabled}
               aria-label={`${enabled ? 'Hide' : 'Show'} ${labelById[card.id]}`}

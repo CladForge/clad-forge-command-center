@@ -4,7 +4,7 @@ import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
 import { resolveCardOrder } from '../lib/dashboardCards';
 
-export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], setClients, addNotification }) {
+export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
   const navigate = useNavigate();
 
@@ -14,6 +14,12 @@ export default function Dashboard({ clients, projects, sows, activities, setting
   const prospects = clients.filter(c => c.status === 'prospect').length;
   const activeProjects = projects.filter(p => p.stage === 'active').length;
   const totalProjectBudget = projects.reduce((s, p) => s + (p.budget || 0), 0);
+  const avgProjectBudget = projects.length > 0 ? totalProjectBudget / projects.length : 0;
+  // "Pipeline value" = budgets of projects that haven't reached completion.
+  // Uses everything except 'completed' to capture both active and review work.
+  const pipelineValue = projects
+    .filter(p => p.stage !== 'completed')
+    .reduce((s, p) => s + (p.budget || 0), 0);
 
   const invoiceTotal = (items, taxRate = 0, discount = 0) => {
     const sub = (items || []).reduce((s, i) => s + (i.quantity || 0) * (i.rate || 0), 0);
@@ -27,9 +33,53 @@ export default function Dashboard({ clients, projects, sows, activities, setting
   const totalOutstanding = outstandingInvoices.reduce((s, i) => s + invoiceTotal(i.items, i.taxRate, i.discount), 0);
   const totalOverdue = overdueInvoices.reduce((s, i) => s + invoiceTotal(i.items, i.taxRate, i.discount), 0);
 
+  // Revenue billed in the *current calendar month* — uses paidDate (when
+  // money actually came in) rather than issueDate so the number matches a
+  // typical "this month I made X" mental model.
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const thisMonthPaid = paidInvoices.filter(i => (i.paidDate || '').startsWith(monthKey));
+  const thisMonthRevenue = thisMonthPaid.reduce((s, i) => s + invoiceTotal(i.items, i.taxRate, i.discount), 0);
+
+  // Avg days from issueDate → paidDate across all paid invoices that have
+  // both dates. Skip rows missing either to avoid NaN poisoning.
+  const paidWithDates = paidInvoices.filter(i => i.issueDate && i.paidDate);
+  const avgDaysToPay = paidWithDates.length === 0 ? 0 : Math.round(
+    paidWithDates.reduce((s, i) => {
+      const days = (new Date(i.paidDate) - new Date(i.issueDate)) / 86400000;
+      return s + Math.max(days, 0);
+    }, 0) / paidWithDates.length
+  );
+
   const proposalTotal = (pkgs) => (pkgs || []).reduce((s, p) => s + (p.optional && !p.included ? 0 : (p.price || 0)), 0);
   const pendingProposals = sows.filter(s => s.status === 'sent');
   const pendingValue = pendingProposals.reduce((s, p) => s + proposalTotal(p.packages), 0);
+  const acceptedProposals = sows.filter(s => s.status === 'accepted');
+  const acceptedValue = acceptedProposals.reduce((s, p) => s + proposalTotal(p.packages), 0);
+  // Win rate: accepted vs accepted+declined (i.e., "decided" proposals only).
+  // Excludes drafts and still-pending sends so the percent doesn't tank just
+  // because there's open work.
+  const decidedProposals = sows.filter(s => s.status === 'accepted' || s.status === 'declined');
+  const winRate = decidedProposals.length === 0 ? 0
+    : Math.round((acceptedProposals.length / decidedProposals.length) * 100);
+
+  // Open tickets = anything pre-resolved. Counted across all clients since
+  // this is the admin dashboard.
+  const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress' || t.status === 'in-progress');
+
+  // Live applications = currently running deliverables. Includes 'live' and
+  // 'maintenance' since both represent apps in production.
+  const liveApplications = applications.filter(a => a.status === 'live' || a.status === 'maintenance');
+
+  // Monthly recurring revenue: active monthly expenses + 1/12 of yearly ones.
+  // (Yearly amortization keeps the number meaningful even if your contract
+  // mix shifts toward annual billing.)
+  const activeRecurring = recurringExpenses.filter(e => e.status === 'active');
+  const monthlyRecurring = activeRecurring.reduce((s, e) => {
+    if (e.frequency === 'monthly') return s + (e.amount || 0);
+    if (e.frequency === 'yearly')  return s + (e.amount || 0) / 12;
+    return s;
+  }, 0);
 
   // ═══ CHART DATA ═══
 
@@ -118,12 +168,31 @@ export default function Dashboard({ clients, projects, sows, activities, setting
            The card props are computed up-front so the render below stays a
            dumb lookup-and-render. */}
       {(() => {
+        // Each registry entry maps to a row of display props here. If you add
+        // a new card to KPI_CARD_DEFS, add the matching key below — the
+        // resolver in dashboardCards.js handles the persistence side, but the
+        // render still needs the actual numbers.
         const cardProps = {
+          // ── Default cards ─────────────────────────────────────────────
           totalRevenue:   { label: 'Total Revenue',   value: formatCurrency(totalRevenue), sub: `${paidInvoices.length} paid invoices`, color: 'var(--success)', onClick: () => navigate('/invoices') },
           outstanding:    { label: 'Outstanding',     value: formatCurrency(totalOutstanding), sub: totalOverdue > 0 ? `${formatCurrency(totalOverdue)} overdue` : `${outstandingInvoices.length} invoices`, color: totalOverdue > 0 ? 'var(--danger)' : 'var(--warning)', onClick: () => navigate('/invoices') },
           activeClients:  { label: 'Active Clients',  value: activeClients, sub: `${prospects} prospects`, color: 'var(--brand)', onClick: () => navigate('/clients') },
           activeProjects: { label: 'Active Projects', value: activeProjects, sub: formatCurrency(totalProjectBudget) + ' total budget', color: 'var(--info)', onClick: () => navigate('/pipeline') },
           proposals:      { label: 'Proposals',       value: sows.length, sub: `${formatCurrency(pendingValue)} pending`, color: 'var(--purple)', onClick: () => navigate('/proposals') },
+
+          // ── Optional cards (off by default; toggle in Settings) ──────
+          thisMonthRevenue:  { label: 'Revenue This Month', value: formatCurrency(thisMonthRevenue), sub: `${thisMonthPaid.length} invoice${thisMonthPaid.length === 1 ? '' : 's'} paid`, color: 'var(--success)', onClick: () => navigate('/invoices') },
+          overdue:           { label: 'Overdue',            value: overdueInvoices.length, sub: formatCurrency(totalOverdue), color: 'var(--danger)', onClick: () => navigate('/invoices') },
+          pendingProposals:  { label: 'Pending Proposals',  value: pendingProposals.length, sub: `${formatCurrency(pendingValue)} pending`, color: 'var(--warning)', onClick: () => navigate('/proposals') },
+          acceptedProposals: { label: 'Accepted Proposals', value: acceptedProposals.length, sub: `${formatCurrency(acceptedValue)} won`, color: 'var(--success)', onClick: () => navigate('/proposals') },
+          winRate:           { label: 'Win Rate',           value: `${winRate}%`, sub: decidedProposals.length === 0 ? 'no decisions yet' : `${acceptedProposals.length} of ${decidedProposals.length} decided`, color: 'var(--brand)', onClick: () => navigate('/proposals') },
+          pipelineValue:     { label: 'Pipeline Value',     value: formatCurrency(pipelineValue), sub: `${projects.filter(p => p.stage !== 'completed').length} open projects`, color: 'var(--info)', onClick: () => navigate('/pipeline') },
+          totalClients:      { label: 'Total Clients',      value: clients.length, sub: `${activeClients} active · ${prospects} prospects`, color: 'var(--brand)', onClick: () => navigate('/clients') },
+          avgProjectBudget:  { label: 'Avg Project Budget', value: formatCurrency(avgProjectBudget), sub: `${projects.length} projects`, color: 'var(--info)', onClick: () => navigate('/pipeline') },
+          avgDaysToPay:      { label: 'Avg Days to Pay',    value: avgDaysToPay, sub: paidWithDates.length === 0 ? 'no paid invoices yet' : `across ${paidWithDates.length} paid`, color: avgDaysToPay > 30 ? 'var(--warning)' : 'var(--success)', onClick: () => navigate('/invoices') },
+          openTickets:       { label: 'Open Tickets',       value: openTickets.length, sub: `${tickets.length} total`, color: openTickets.length > 0 ? 'var(--warning)' : 'var(--success)', onClick: () => navigate('/tickets') },
+          liveApplications:  { label: 'Live Apps',          value: liveApplications.length, sub: `${applications.length} total`, color: 'var(--purple)', onClick: () => navigate('/clients') },
+          monthlyRecurring:  { label: 'Monthly Recurring',  value: formatCurrency(monthlyRecurring), sub: `${activeRecurring.length} active`, color: 'var(--brand-mid)', onClick: () => navigate('/recurring') },
         };
         const order = resolveCardOrder(settings.dashboardKpiCards);
         const visible = order.filter(c => c.enabled !== false && cardProps[c.id]);
