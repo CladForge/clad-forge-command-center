@@ -23,7 +23,7 @@ function formatShortDate(value) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], recurringExpenses = [], setRecurringExpenses, reloadAdminScreenshots, profile }) {
+export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], recurringExpenses = [], setRecurringExpenses, reloadAdminScreenshots, profile }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
   const [search, setSearch] = useState('');
@@ -90,7 +90,6 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         projects={projects}
         sows={sows}
         invoices={invoices}
-        timeEntries={timeEntries}
         settings={settings}
         industries={industries}
         clientUsers={clientUsers}
@@ -253,7 +252,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    CLIENT PROFILE PAGE
    ═══════════════════════════════════════════ */
 
-function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], recurringExpenses = [], setRecurringExpenses, reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
+function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], recurringExpenses = [], setRecurringExpenses, reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
@@ -299,12 +298,6 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
     return allInvoices.filter(i => i.clientId === client.id);
   }, [allInvoices, client.id]);
 
-  const timeEntries = useMemo(() => {
-    const projectIds = clientProjects.map(p => p.id);
-    return allTimeEntries.filter(e => projectIds.includes(e.projectId));
-  }, [allTimeEntries, clientProjects]);
-
-  const totalHours = timeEntries.reduce((s, e) => s + (e.hours || 0) + (e.minutes || 0) / 60, 0);
   const invoiceTotal = invoices.reduce((s, inv) => {
     return s + (inv.items || []).reduce((ss, item) => ss + (item.quantity || 0) * (item.rate || 0), 0);
   }, 0);
@@ -465,7 +458,6 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
           <div className="cp__stat"><span className="cp__stat-val">{clientProjects.length}</span><span className="cp__stat-lbl">Total Projects</span></div>
           <div className="cp__stat"><span className="cp__stat-val">{activeProjects.length}</span><span className="cp__stat-lbl">Active Projects</span></div>
           <div className="cp__stat"><span className="cp__stat-val">{formatCurrency(invoiceTotal)}</span><span className="cp__stat-lbl">Invoiced</span></div>
-          <div className="cp__stat"><span className="cp__stat-val">{totalHours.toFixed(1)}h</span><span className="cp__stat-lbl">Hours Logged</span></div>
           <div className="cp__stat"><span className="cp__stat-val">{formatShortDate(client.createdAt)}</span><span className="cp__stat-lbl">Client Since</span></div>
         </div>
       </div>
@@ -653,28 +645,8 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
             </div>
           </div>
 
-          {/* Time Log for this client */}
-          {timeEntries.length > 0 && (
-            <div className="panel" style={{ marginTop: 20 }}>
-              <div className="panel__header"><h3>Time Log ({totalHours.toFixed(1)}h total)</h3></div>
-              <table className="data-table">
-                <thead><tr><th>Date</th><th>Project</th><th>Description</th><th>Duration</th></tr></thead>
-                <tbody>
-                  {timeEntries.slice(0, 10).map(entry => {
-                    const project = projects.find(p => p.id === entry.projectId);
-                    return (
-                      <tr key={entry.id}>
-                        <td className="data-table__muted">{entry.date}</td>
-                        <td>{project?.title || '—'}</td>
-                        <td>{entry.description || '—'}</td>
-                        <td className="data-table__mono">{entry.hours}h {entry.minutes}m</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {/* Time Log section removed when the Time Tracker feature was
+              scrubbed. */}
         </div>
       )}
 

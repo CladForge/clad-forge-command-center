@@ -35,8 +35,6 @@ export function useClientPortalData(authUserId) {
   const [recurringExpenses, setRecurringExpenses] = useState([]);
   const [milestones, setMilestones] = useState([]);
   const [applications, setApplications] = useState([]);
-  const [tickets, setTickets] = useState([]);
-  const [ticketComments, setTicketComments] = useState([]);
   const [appScreenshots, setAppScreenshots] = useState([]);
   const [annotationPins, setAnnotationPins] = useState([]);
   const [markupSets, setMarkupSets] = useState([]);
@@ -103,7 +101,7 @@ export function useClientPortalData(authUserId) {
     async function loadAll() {
       setLoading(true);
       try {
-        const [clientRes, projectsRes, invoicesRes, sowsRes, documentsRes, recurringRes, settingsRes, applicationsRes, ticketsRes] = await Promise.all([
+        const [clientRes, projectsRes, invoicesRes, sowsRes, documentsRes, recurringRes, settingsRes, applicationsRes] = await Promise.all([
           supabase.from('clients').select('*').eq('id', activeClientId).single(),
           supabase.from('projects').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('invoices').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
@@ -112,7 +110,6 @@ export function useClientPortalData(authUserId) {
           supabase.from('recurring_expenses').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('settings').select('*').eq('id', 'default').single(),
           supabase.from('applications').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
-          supabase.from('service_tickets').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
         ]);
 
         if (cancelled) return;
@@ -144,24 +141,6 @@ export function useClientPortalData(authUserId) {
             .map(snakeToCamel)
             .filter(a => a.status !== 'archived')
         );
-
-        // Tickets — RLS already scopes; we still set client-side for clarity
-        setTickets((ticketsRes.data || []).map(snakeToCamel));
-
-        // Comments — load all comments for this client's tickets in one go.
-        // RLS auto-filters internal-only comments. For larger tenants we'd
-        // load lazily per-ticket, but for MVP this is fine.
-        const ticketIds = (ticketsRes.data || []).map(t => t.id);
-        if (ticketIds.length > 0) {
-          const { data: commentsData } = await supabase
-            .from('ticket_comments')
-            .select('*')
-            .in('ticket_id', ticketIds)
-            .order('created_at', { ascending: true });
-          if (!cancelled) setTicketComments((commentsData || []).map(snakeToCamel));
-        } else {
-          setTicketComments([]);
-        }
 
         // Screenshots + pins + sets for the client's applications.
         const appIds = (applicationsRes.data || []).map(a => a.id);
@@ -270,29 +249,6 @@ export function useClientPortalData(authUserId) {
     }
   }, [applications]);
 
-  /** Reload tickets + their comments (used after client posts a new
-   *  ticket or comment — instant optimistic refresh). */
-  const reloadTickets = useCallback(async () => {
-    if (!activeClientId) return;
-    const { data: tData } = await supabase
-      .from('service_tickets').select('*')
-      .eq('client_id', activeClientId)
-      .order('created_at', { ascending: false });
-    const ts = (tData || []).map(snakeToCamel);
-    setTickets(ts);
-
-    const ticketIds = ts.map(t => t.id);
-    if (ticketIds.length > 0) {
-      const { data: cData } = await supabase
-        .from('ticket_comments').select('*')
-        .in('ticket_id', ticketIds)
-        .order('created_at', { ascending: true });
-      setTicketComments((cData || []).map(snakeToCamel));
-    } else {
-      setTicketComments([]);
-    }
-  }, [activeClientId]);
-
   return {
     memberships,
     linkedClients,
@@ -308,9 +264,6 @@ export function useClientPortalData(authUserId) {
     milestones,
     reloadMilestones,
     applications,
-    tickets,
-    ticketComments,
-    reloadTickets,
     appScreenshots,
     annotationPins,
     markupSets,

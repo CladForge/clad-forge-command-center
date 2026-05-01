@@ -5,7 +5,7 @@ import OnboardingReview from '../components/OnboardingReview';
 import { resolveCardOrder, pickKpiColumns, colorFor, MAX_VISIBLE_KPI_CARDS, resolveDashboardPreferences } from '../lib/dashboardCards';
 import { isBillingActive } from '../lib/billing';
 
-export default function Dashboard({ clients, projects, sows, settings: rawSettings, invoices = [], tickets = [], applications = [], recurringExpenses = [], annotationPins = [], appScreenshots = [], setClients, addNotification }) {
+export default function Dashboard({ clients, projects, sows, settings: rawSettings, invoices = [], applications = [], recurringExpenses = [], annotationPins = [], appScreenshots = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
   const prefs = resolveDashboardPreferences(settings.dashboardPreferences);
   const sectionsOn = prefs.sections;
@@ -155,11 +155,10 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
     .slice(0, 6);
 
   // ── Action Items list (replacement for Top Clients ranking) ──
-  // Unified queue of "things waiting on you", pulled from three sources:
+  // Unified queue of "things waiting on you", pulled from two sources:
   //   - open markup pins (resolved through screenshot → app → client)
-  //   - urgent / high-priority tickets in open or in-progress state
-  //   - proposals still 'sent' more than 3 days after going out
-  // Each item has a uniform shape so the renderer is dumb.
+  //   - proposals still 'sent' more than N days after going out
+  // (Tickets used to be a third source but the feature was removed.)
   const STALE_PROPOSAL_DAYS = prefs.staleProposalDays;
   const pinItems = annotationPins
     .filter(p => p.status === 'open')
@@ -175,24 +174,6 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
         sub: client?.company || '',
         ageDays,
         onClick: () => navigate('/clients'),
-      };
-    });
-  const ticketItems = tickets
-    .filter(t =>
-      (t.priority === 'urgent' || t.priority === 'high') &&
-      (t.status === 'open' || t.status === 'in_progress' || t.status === 'in-progress')
-    )
-    .map(t => {
-      const client = clients.find(c => c.id === t.clientId);
-      const ageDays = t.createdAt ? Math.floor((now - new Date(t.createdAt)) / 86400000) : 0;
-      return {
-        type: 'ticket',
-        id: 'ticket-' + t.id,
-        title: t.subject || 'Ticket',
-        sub: client?.company || '',
-        ageDays,
-        priority: t.priority,
-        onClick: () => navigate('/tickets'),
       };
     });
   const staleProposalItems = sows
@@ -214,7 +195,7 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
         onClick: () => navigate('/proposals'),
       };
     });
-  const actionItems = [...pinItems, ...ticketItems, ...staleProposalItems]
+  const actionItems = [...pinItems, ...staleProposalItems]
     .sort((a, b) => b.ageDays - a.ageDays)
     .slice(0, 15);
 
@@ -233,14 +214,10 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
         if (e.frequency === 'yearly')  return s + (e.amount || 0) / 12;
         return s;
       }, 0);
-      const appOpenTickets = tickets.filter(t =>
-        t.applicationId === app.id &&
-        (t.status === 'open' || t.status === 'in_progress' || t.status === 'in-progress')
-      ).length;
       const client = clients.find(c => c.id === app.clientId);
-      return { app, monthlyContrib, openTickets: appOpenTickets, clientName: client?.company || '' };
+      return { app, monthlyContrib, clientName: client?.company || '' };
     })
-    .sort((a, b) => b.openTickets - a.openTickets || b.monthlyContrib - a.monthlyContrib)
+    .sort((a, b) => b.monthlyContrib - a.monthlyContrib)
     .slice(0, 12);
 
   // Monthly revenue (configurable trailing window). Window length pulls
@@ -493,7 +470,7 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
             {appHealth.length === 0 ? (
               <div className="dash__chart-empty">No applications tracked yet</div>
             ) : (
-              appHealth.map(({ app, monthlyContrib, openTickets, clientName }) => (
+              appHealth.map(({ app, monthlyContrib, clientName }) => (
                 <div
                   key={app.id}
                   className="dash__app-row"
@@ -505,12 +482,6 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
                   </div>
                   <span className={`status-pill status-pill--app-${app.status}`}>
                     {app.status === 'in-development' ? 'Dev' : app.status === 'maintenance' ? 'Maint' : app.status?.charAt(0).toUpperCase() + app.status?.slice(1)}
-                  </span>
-                  <span
-                    className={`dash__app-tickets ${openTickets > 0 ? 'dash__app-tickets--has' : ''}`}
-                    title={`${openTickets} open ticket${openTickets === 1 ? '' : 's'}`}
-                  >
-                    {openTickets > 0 ? `${openTickets} open` : '—'}
                   </span>
                   <span className="dash__app-mrr">
                     {monthlyContrib > 0 ? formatCurrency(monthlyContrib) + '/mo' : '—'}

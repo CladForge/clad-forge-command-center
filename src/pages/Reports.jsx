@@ -39,13 +39,6 @@ const APP_STATUS_DEFS = [
   { key: 'archived',       label: 'Archived',    color: '#6b7280' },
 ];
 
-const PRIORITY_COLORS = {
-  urgent: '#ef4444',
-  high:   '#f59e0b',
-  normal: '#3b82f6',
-  low:    '#9ca3af',
-};
-
 // ─────────────────────────────────────────────────────────────────────
 // Reports — the "company at a glance" page. Fully derived from the live
 // data (no separate query layer) so it always agrees with the dashboard.
@@ -65,7 +58,6 @@ export default function Reports({
   invoices = [],
   recurringExpenses = [],
   applications = [],
-  tickets = [],
   annotationPins = [],
   settings,
 }) {
@@ -197,19 +189,7 @@ export default function Reports({
   const totalMRR = appsByMrr.reduce((sum, a) => sum + a.mrr, 0);
 
   // ── Support / Operations ──
-  const openTickets = tickets.filter(t =>
-    t.status === 'open' || t.status === 'in_progress' || t.status === 'in-progress'
-  );
-  const resolvedInPeriod = tickets.filter(t =>
-    (t.status === 'resolved' || t.status === 'closed') && inRange(t.resolvedAt || t.closedAt || t.createdAt)
-  );
-  const ticketsByPriority = ['urgent', 'high', 'normal', 'low'].map(p => ({
-    priority: p,
-    count: openTickets.filter(t => (t.priority || 'normal') === p).length,
-    color: PRIORITY_COLORS[p],
-  }));
-  const maxPriorityCount = Math.max(...ticketsByPriority.map(p => p.count), 1);
-
+  // Tickets metrics removed when the Tickets feature was scrubbed.
   const openMarkupPins = annotationPins.filter(p => p.status === 'open');
   const resolvedMarkupPinsInPeriod = annotationPins.filter(p =>
     p.status === 'resolved' && inRange(p.resolvedAt || p.createdAt)
@@ -510,43 +490,10 @@ export default function Reports({
       <section className="report-section">
         <h3 className="report-section__title">Support & Operations</h3>
         <div className="report-mini-kpis">
-          <MiniStat label="Open Tickets" value={openTickets.length} tone={openTickets.length > 0 ? 'warning' : 'default'} />
-          <MiniStat label="Resolved (Period)" value={resolvedInPeriod.length} tone="success" />
           <MiniStat label="Open Markup Pins" value={openMarkupPins.length} tone={openMarkupPins.length > 0 ? 'brand' : 'default'} />
           <MiniStat label="Resolved Pins (Period)" value={resolvedMarkupPinsInPeriod.length} tone="success" />
           <MiniStat label="Recurring Expenses" value={fmtCompact(monthlyExpense) + '/mo'} />
           <MiniStat label="Active Recurring" value={activeRecurring.length} />
-        </div>
-
-        <div className="dash__card" style={{ marginTop: 16 }}>
-          <div className="dash__card-header">
-            <h3>Open Tickets by Priority</h3>
-            <span className="dash__card-badge">{openTickets.length} open</span>
-          </div>
-          {openTickets.length === 0 ? (
-            <div className="dash__chart-empty">No open tickets</div>
-          ) : (
-            <div className="dash__h-bars">
-              {ticketsByPriority.map(t => (
-                <div key={t.priority} className="dash__h-bar-row">
-                  <span className="dash__h-bar-label">
-                    <span className="dash__h-bar-dot" style={{ background: t.color }} />
-                    {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
-                  </span>
-                  <div className="dash__h-bar-track">
-                    <div
-                      className="dash__h-bar-fill"
-                      style={{
-                        width: `${(t.count / maxPriorityCount) * 100}%`,
-                        background: t.color,
-                      }}
-                    />
-                  </div>
-                  <span className="dash__h-bar-count">{t.count}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </section>
 

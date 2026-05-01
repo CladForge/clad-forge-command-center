@@ -11,7 +11,6 @@ import Pipeline from './pages/Pipeline';
 import ProjectDetail from './pages/ProjectDetail';
 import Proposals from './pages/Proposals';
 import Invoices from './pages/Invoices';
-import TimeTracker from './pages/TimeTracker';
 import BrandingGuide from './pages/BrandingGuide';
 import Reports from './pages/Reports';
 import Calendar from './pages/Calendar';
@@ -20,9 +19,7 @@ import Automations from './pages/Automations';
 import RecurringExpenses from './pages/RecurringExpenses';
 import Finances from './pages/Finances';
 import Settings from './pages/Settings';
-import Contractors from './pages/Contractors';
 import Documents from './pages/Documents';
-import Tickets from './pages/Tickets';
 import Onboarding from './pages/Onboarding';
 import OnboardingReview from './components/OnboardingReview';
 import ProposalSign from './pages/ProposalSign';
@@ -44,9 +41,7 @@ export default function App() {
     activities,
     settings, setSettings,
     invoices, setInvoices,
-    timeEntries, setTimeEntries,
     events, setEvents,
-    contractors, setContractors,
     documents, setDocuments,
     notifications, setNotifications,
     addNotification,
@@ -58,8 +53,6 @@ export default function App() {
     profiles, reloadProfiles,
     milestones, setMilestones,
     applications, setApplications,
-    tickets, setTickets,
-    ticketComments, setTicketComments,
     appScreenshots, annotationPins, markupSets, reloadAdminScreenshots,
     loading, connected,
   } = useSupabaseData();
@@ -187,20 +180,17 @@ export default function App() {
         <TopBar settings={settings} connected={connected} profile={profile} notifications={notifications} setNotifications={setNotifications} />
         <main className="app__content">
           <Routes>
-            <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} settings={settings} invoices={invoices} tickets={tickets} applications={applications} recurringExpenses={recurringExpenses} annotationPins={annotationPins} appScreenshots={appScreenshots} notifications={notifications} setClients={setClients} addNotification={addNotification} />} />
-            <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} timeEntries={timeEntries} clientUsers={clientUsers} setClientUsers={setClientUsers} reloadClientUsers={reloadClientUsers} profiles={profiles} reloadProfiles={reloadProfiles} applications={applications} setApplications={setApplications} appScreenshots={appScreenshots} annotationPins={annotationPins} markupSets={markupSets} recurringExpenses={recurringExpenses} setRecurringExpenses={setRecurringExpenses} reloadAdminScreenshots={reloadAdminScreenshots} profile={profile} />} />
+            <Route path="/" element={<Dashboard clients={clients} projects={projects} sows={sows} settings={settings} invoices={invoices} applications={applications} recurringExpenses={recurringExpenses} annotationPins={annotationPins} appScreenshots={appScreenshots} notifications={notifications} setClients={setClients} addNotification={addNotification} />} />
+            <Route path="/clients" element={<Clients clients={clients} setClients={setClients} projects={projects} sows={sows} settings={settings} invoices={invoices} clientUsers={clientUsers} setClientUsers={setClientUsers} reloadClientUsers={reloadClientUsers} profiles={profiles} reloadProfiles={reloadProfiles} applications={applications} setApplications={setApplications} appScreenshots={appScreenshots} annotationPins={annotationPins} markupSets={markupSets} recurringExpenses={recurringExpenses} setRecurringExpenses={setRecurringExpenses} reloadAdminScreenshots={reloadAdminScreenshots} profile={profile} />} />
             <Route path="/pipeline" element={<Pipeline projects={projects} setProjects={setProjects} clients={clients} sows={sows} setSOWs={setSOWs} />} />
-            <Route path="/projects/:id" element={<ProjectDetail projects={projects} setProjects={setProjects} clients={clients} sows={sows} invoices={invoices} timeEntries={timeEntries} documents={documents} milestones={milestones} setMilestones={setMilestones} />} />
+            <Route path="/projects/:id" element={<ProjectDetail projects={projects} setProjects={setProjects} clients={clients} sows={sows} invoices={invoices} documents={documents} milestones={milestones} setMilestones={setMilestones} />} />
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} setProjects={setProjects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} invoices={invoices} setInvoices={setInvoices} />} />
             <Route path="/recurring" element={<RecurringExpenses clients={clients} projects={projects} expenses={recurringExpenses} setExpenses={setRecurringExpenses} settings={settings} />} />
-            <Route path="/tickets" element={<Tickets clients={clients} applications={applications} tickets={tickets} setTickets={setTickets} ticketComments={ticketComments} setTicketComments={setTicketComments} profile={profile} />} />
             <Route path="/finances" element={<Finances clients={clients} projects={projects} settings={settings} entries={financeEntries} setEntries={setFinanceEntries} taxPayments={taxPayments} setTaxPayments={setTaxPayments} />} />
-            <Route path="/time" element={<TimeTracker projects={projects} clients={clients} entries={timeEntries} setEntries={setTimeEntries} />} />
-            <Route path="/reports" element={<Reports clients={clients} projects={projects} sows={sows} invoices={invoices} recurringExpenses={recurringExpenses} applications={applications} tickets={tickets} annotationPins={annotationPins} settings={settings} />} />
+            <Route path="/reports" element={<Reports clients={clients} projects={projects} sows={sows} invoices={invoices} recurringExpenses={recurringExpenses} applications={applications} annotationPins={annotationPins} settings={settings} />} />
             <Route path="/calendar" element={<Calendar events={events} setEvents={setEvents} projects={projects} invoices={invoices} sows={sows} recurringExpenses={recurringExpenses} milestones={milestones} markupSets={markupSets} clients={clients} settings={settings} setSettings={setSettings} />} />
             <Route path="/ai" element={<AIAssistant clients={clients} projects={projects} sows={sows} invoices={invoices} settings={settings} />} />
-            <Route path="/contractors" element={<Contractors contractors={contractors} setContractors={setContractors} projects={projects} />} />
             <Route path="/documents" element={<Documents documents={documents} setDocuments={setDocuments} clients={clients} projects={projects} />} />
             <Route path="/automations" element={<Automations automations={automations} setAutomations={setAutomations} />} />
             <Route path="/branding" element={<BrandingGuide settings={settings} />} />

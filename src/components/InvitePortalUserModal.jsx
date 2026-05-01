@@ -5,9 +5,9 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const ROLE_DESCRIPTIONS = {
-  owner: 'Sees everything, can pay invoices, approve milestones, submit tickets, invite teammates.',
+  owner: 'Sees everything, can pay invoices, approve milestones, invite teammates.',
   billing: 'Sees invoices and recurring expenses only. Can pay invoices.',
-  viewer: 'Read-only access to projects, proposals, and status. Can submit service tickets.',
+  viewer: 'Read-only access to projects, proposals, and status.',
 };
 
 // Modal for inviting a new user to a client's portal. Calls the

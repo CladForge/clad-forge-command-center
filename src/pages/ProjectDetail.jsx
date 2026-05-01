@@ -23,7 +23,7 @@ function daysUntil(dateStr) {
   return diff;
 }
 
-export default function ProjectDetail({ projects, setProjects, clients, sows, invoices, timeEntries, documents, milestones = [], setMilestones }) {
+export default function ProjectDetail({ projects, setProjects, clients, sows, invoices, documents, milestones = [], setMilestones }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const project = projects.find(p => p.id === id);
@@ -49,10 +49,6 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   const projectInvoices = useMemo(
     () => (invoices || []).filter(inv => inv.projectId === id),
     [invoices, id]
-  );
-  const projectTime = useMemo(
-    () => (timeEntries || []).filter(e => e.projectId === id),
-    [timeEntries, id]
   );
   const linkedProposal = useMemo(
     () => (sows || []).find(s => s.id === project?.proposalId) || null,
@@ -85,8 +81,6 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   const invoicedTotal = projectInvoices.reduce((s, inv) =>
     s + (inv.items || []).reduce((ss, item) => ss + (item.quantity || 0) * (item.rate || 0), 0), 0);
   const budgetUsed = project.budget > 0 ? Math.round((invoicedTotal / project.budget) * 100) : 0;
-
-  const totalHours = projectTime.reduce((s, e) => s + (e.hours || 0) + (e.minutes || 0) / 60, 0);
 
   const dday = daysUntil(project.deadline);
 
@@ -368,11 +362,6 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
           <span className="stat-card__label">Invoiced</span>
           <span className="stat-card__value">{formatCurrency(invoicedTotal)}</span>
           <span className="stat-card__trend">{projectInvoices.length} invoice{projectInvoices.length !== 1 ? 's' : ''}</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-card__label">Hours Logged</span>
-          <span className="stat-card__value">{totalHours.toFixed(1)}h</span>
-          <span className="stat-card__trend">{projectTime.length} entr{projectTime.length !== 1 ? 'ies' : 'y'}</span>
         </div>
         <div className="stat-card">
           <span className="stat-card__label">Deadline</span>
@@ -680,23 +669,8 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
             </div>
           </div>
 
-          {/* Recent Time */}
-          {projectTime.length > 0 && (
-            <div className="panel">
-              <div className="panel__header"><h3>Recent Time</h3></div>
-              <div style={{ padding: '12px 16px' }}>
-                {projectTime.slice(0, 5).map(e => (
-                  <div key={e.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: '0.85rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--slate)', fontSize: '0.75rem' }}>{e.date}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{e.hours}h {e.minutes}m</span>
-                    </div>
-                    {e.description && <div style={{ color: 'var(--slate)', fontSize: '0.8rem', marginTop: 2 }}>{e.description}</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Recent Time section removed when the Time Tracker
+              feature was scrubbed. */}
         </div>
       </div>
 

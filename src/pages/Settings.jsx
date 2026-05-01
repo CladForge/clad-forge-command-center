@@ -6,7 +6,6 @@ const TABS = [
   { id: 'company', label: 'Company', icon: '🏢' },
   { id: 'invoicing', label: 'Invoicing', icon: '📄' },
   { id: 'proposals', label: 'Proposals', icon: '📋' },
-  { id: 'time', label: 'Time Tracking', icon: '⏱' },
   { id: 'pipeline', label: 'Pipeline', icon: '📊' },
   { id: 'clients', label: 'Clients', icon: '👥' },
   { id: 'dashboard', label: 'Dashboard', icon: '🎛' },
@@ -265,38 +264,8 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
             </div>
           )}
 
-          {/* ═══ TIME TRACKING ═══ */}
-          {activeTab === 'time' && (
-            <div className="settings__panel">
-              <SettingsHeader
-                title="Time Tracking"
-                description="Configure how time is logged and calculated across projects"
-              />
-              <div className="settings__section">
-                <h4 className="settings__section-title">Rates & Hours</h4>
-                <div className="form-grid">
-                  <Field label="Default Hourly Rate ($)" type="number" value={settings.defaultHourlyRate} onChange={v => update('defaultHourlyRate', Number(v) || 0)}
-                    hint="Used for cost estimates and billing calculations" />
-                  <Field label="Work Hours per Day" type="number" value={settings.workHoursPerDay} onChange={v => update('workHoursPerDay', Number(v) || 8)}
-                    hint="Used for capacity planning" />
-                </div>
-              </div>
-
-              <div className="settings__section">
-                <h4 className="settings__section-title">Rounding</h4>
-                <SelectField label="Time Rounding" value={settings.timeRounding} onChange={v => update('timeRounding', v)}
-                  options={[
-                    { value: 'none', label: 'No rounding (exact time)' },
-                    { value: '5min', label: 'Nearest 5 minutes' },
-                    { value: '15min', label: 'Nearest 15 minutes' },
-                    { value: '30min', label: 'Nearest 30 minutes' },
-                  ]}
-                  hint="Applied when stopping the timer" />
-              </div>
-
-              <SaveBar saved={saved} onSave={showSaved} />
-            </div>
-          )}
+          {/* Time Tracking settings removed when the Time Tracker
+              feature was scrubbed. */}
 
           {/* ═══ PIPELINE ═══ */}
           {activeTab === 'pipeline' && (

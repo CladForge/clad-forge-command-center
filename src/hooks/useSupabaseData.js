@@ -7,9 +7,7 @@ import {
   initialActivities,
   initialSettings,
   initialInvoices,
-  initialTimeEntries,
   initialEvents,
-  initialContractors,
   initialDeals,
   initialCrmActivities,
   initialChannelPartners,
@@ -53,9 +51,7 @@ const TABLE_COLUMNS = {
   activities: ['id','type','message','icon','created_at','created_by'],
   settings: ['id','company_name','company_email','company_phone','company_address','company_website','tax_id','owner_name','owner_title','default_payment_terms','default_currency','default_tax_rate','invoice_prefix','invoice_next_number','default_invoice_notes','payment_instructions','auto_detect_overdue','invoice_email_subject','invoice_email_body','sow_prefix','sow_footer','default_sow_terms','default_payment_schedule','default_hourly_rate','time_rounding','work_hours_per_day','pipeline_stages','default_stage','theme','accent_color','date_format','sidebar_collapsed','invoice_reminder_days','client_follow_up_days','project_deadline_warning_days','default_industry','custom_industries','updated_at','bank_name','bank_account_name','bank_routing_number','bank_account_number','bank_wire_routing_number','bank_swift_code','bank_verification_note','sow_email_subject','sow_email_body','dashboard_kpi_cards','dashboard_preferences','external_calendars'],
   invoices: ['id','invoice_number','client_id','client_name','client_company','client_email','contact_person','project_id','project_title','items','tax_rate','discount','status','issue_date','due_date','sent_date','paid_date','paid_amount','payment_terms','notes','share_token','created_at','created_by','payment_number','payment_total','stripe_payment_intent_id','stripe_charge_id','payment_method'],
-  time_entries: ['id','project_id','description','hours','minutes','date','created_at','created_by'],
   events: ['id','title','description','date','time','end_time','type','color','entity_type','entity_id','created_at','created_by'],
-  contractors: ['id','first_name','last_name','company','email','phone','specialty','rate','status','website','notes','date_added','assigned_projects','created_at','created_by'],
   deals: ['id','title','company','contact_name','contact_title','contact_email','contact_phone','stage','source','value','probability','expected_close_date','client_id','priority','next_step','tags','won_at','lost_at','created_at','updated_at','created_by'],
   crm_activities: ['id','deal_id','title','type','description','activity_date','completed','created_at','created_by'],
   channel_partners: ['id','name','title','company','industry','email','phone','location','notes','created_at','created_by'],
@@ -68,8 +64,6 @@ const TABLE_COLUMNS = {
   client_users: ['id','auth_user_id','client_id','portal_role','invited_by','invited_at','accepted_at','last_seen_at','created_at'],
   project_milestones: ['id','project_id','title','description','target_date','status','client_comment','decided_by','decided_at','position','created_at','created_by'],
   applications: ['id','client_id','name','description','url','type','status','launched_at','monthly_cost','notes','thumbnail_url','metadata','created_at','created_by'],
-  service_tickets: ['id','client_id','application_id','project_id','subject','description','priority','status','submitted_by','assigned_to','resolved_at','closed_at','created_at'],
-  ticket_comments: ['id','ticket_id','body','author_id','is_internal','created_at'],
   app_screenshots: ['id','application_id','set_id','image_url','caption','captured_at','captured_by','created_at'],
   annotation_pins: ['id','screenshot_id','x_pct','y_pct','body','status','author_id','resolved_by','resolved_at','created_at'],
   markup_sets: ['id','application_id','name','description','target_date','status','completed_at','completed_by','created_at','created_by'],
@@ -150,9 +144,7 @@ export function useSupabaseData() {
   const [activities, setActivitiesState] = useState(initialActivities);
   const [settings, setSettingsState] = useState(initialSettings);
   const [invoices, setInvoicesState] = useState(initialInvoices);
-  const [timeEntries, setTimeEntriesState] = useState(initialTimeEntries);
   const [events, setEventsState] = useState(initialEvents);
-  const [contractors, setContractorsState] = useState(initialContractors);
   const [deals, setDealsState] = useState(initialDeals);
   const [crmActivities, setCrmActivitiesState] = useState(initialCrmActivities);
   const [channelPartners, setChannelPartnersState] = useState(initialChannelPartners);
@@ -166,8 +158,6 @@ export function useSupabaseData() {
   const [profiles, setProfilesState] = useState([]);
   const [milestones, setMilestonesState] = useState([]);
   const [applications, setApplicationsState] = useState([]);
-  const [tickets, setTicketsState] = useState([]);
-  const [ticketComments, setTicketCommentsState] = useState([]);
   const [appScreenshots, setAppScreenshotsState] = useState([]);
   const [annotationPins, setAnnotationPinsState] = useState([]);
   const [markupSets, setMarkupSetsState] = useState([]);
@@ -181,8 +171,8 @@ export function useSupabaseData() {
       try {
         const [
           clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
-          invoicesRes, timeEntriesRes, eventsRes, contractorsRes,
-          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, profilesRes, milestonesRes, applicationsRes, ticketsRes, ticketCommentsRes, screenshotsRes, pinsRes, markupSetsRes,
+          invoicesRes, eventsRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, profilesRes, milestonesRes, applicationsRes, screenshotsRes, pinsRes, markupSetsRes,
         ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
@@ -190,9 +180,7 @@ export function useSupabaseData() {
           supabase.from('activities').select('*').order('created_at', { ascending: false }),
           supabase.from('settings').select('*').eq('id', 'default').single(),
           supabase.from('invoices').select('*').order('created_at', { ascending: false }),
-          supabase.from('time_entries').select('*').order('created_at', { ascending: false }),
           supabase.from('events').select('*').order('created_at', { ascending: false }),
-          supabase.from('contractors').select('*').order('created_at', { ascending: false }),
           supabase.from('deals').select('*').order('created_at', { ascending: false }),
           supabase.from('crm_activities').select('*').order('created_at', { ascending: false }),
           supabase.from('channel_partners').select('*').order('created_at', { ascending: false }),
@@ -208,8 +196,6 @@ export function useSupabaseData() {
           supabase.from('profiles').select('id, full_name, role, avatar_url'),
           supabase.from('project_milestones').select('*').order('position', { ascending: true }),
           supabase.from('applications').select('*').order('created_at', { ascending: false }),
-          supabase.from('service_tickets').select('*').order('created_at', { ascending: false }),
-          supabase.from('ticket_comments').select('*').order('created_at', { ascending: true }),
           supabase.from('app_screenshots').select('*').order('created_at', { ascending: false }),
           supabase.from('annotation_pins').select('*').order('created_at', { ascending: true }),
           supabase.from('markup_sets').select('*').order('created_at', { ascending: false }),
@@ -234,9 +220,7 @@ export function useSupabaseData() {
         }
 
         if (invoicesRes.data) setInvoicesState(invoicesRes.data.map(snakeToCamel));
-        if (timeEntriesRes.data) setTimeEntriesState(timeEntriesRes.data.map(snakeToCamel));
         if (eventsRes.data) setEventsState(eventsRes.data.map(snakeToCamel));
-        if (contractorsRes.data) setContractorsState(contractorsRes.data.map(snakeToCamel));
         if (dealsRes.data) setDealsState(dealsRes.data.map(snakeToCamel));
         if (crmActivitiesRes.data) setCrmActivitiesState(crmActivitiesRes.data.map(snakeToCamel));
         if (channelPartnersRes.data) setChannelPartnersState(channelPartnersRes.data.map(snakeToCamel));
@@ -250,8 +234,6 @@ export function useSupabaseData() {
         if (profilesRes.data) setProfilesState(profilesRes.data.map(snakeToCamel));
         if (milestonesRes.data) setMilestonesState(milestonesRes.data.map(snakeToCamel));
         if (applicationsRes.data) setApplicationsState(applicationsRes.data.map(snakeToCamel));
-        if (ticketsRes.data) setTicketsState(ticketsRes.data.map(snakeToCamel));
-        if (ticketCommentsRes.data) setTicketCommentsState(ticketCommentsRes.data.map(snakeToCamel));
         if (screenshotsRes.data) setAppScreenshotsState(screenshotsRes.data.map(snakeToCamel));
         if (pinsRes.data) setAnnotationPinsState(pinsRes.data.map(snakeToCamel));
         if (markupSetsRes.data) setMarkupSetsState(markupSetsRes.data.map(snakeToCamel));
@@ -451,21 +433,9 @@ export function useSupabaseData() {
     [addActivity]
   );
 
-  // TIME ENTRY CRUD
-  const setTimeEntries = useCallback(
-    makeSetter(setTimeEntriesState, 'time_entries', { labelField: 'description', entityLabel: 'time entry', logActivity: false }),
-    [addActivity]
-  );
-
   // EVENT CRUD
   const setEvents = useCallback(
     makeSetter(setEventsState, 'events', { labelField: 'title', entityLabel: 'event', icon: 'calendar' }),
-    [addActivity]
-  );
-
-  // CONTRACTOR CRUD
-  const setContractors = useCallback(
-    makeSetter(setContractorsState, 'contractors', { labelField: 'firstName', entityLabel: 'contractor', icon: 'user-plus' }),
     [addActivity]
   );
 
@@ -544,17 +514,6 @@ export function useSupabaseData() {
     [addActivity]
   );
 
-  // SERVICE TICKETS — clients submit, admin replies. Comments setter
-  // intentionally skips activity logging (would be noisy on every reply).
-  const setTickets = useCallback(
-    makeSetter(setTicketsState, 'service_tickets', { labelField: 'subject', entityLabel: 'ticket', icon: 'message-square' }),
-    [addActivity]
-  );
-  const setTicketComments = useCallback(
-    makeSetter(setTicketCommentsState, 'ticket_comments', { labelField: 'body', entityLabel: 'comment', logActivity: false }),
-    [addActivity]
-  );
-
   // SCREENSHOTS + ANNOTATION PINS (Phase 5)
   const setAppScreenshots = useCallback(
     makeSetter(setAppScreenshotsState, 'app_screenshots', { labelField: 'caption', entityLabel: 'screenshot', icon: 'camera' }),
@@ -617,9 +576,7 @@ export function useSupabaseData() {
     activities,
     settings, setSettings,
     invoices, setInvoices,
-    timeEntries, setTimeEntries,
     events, setEvents,
-    contractors, setContractors,
     deals, setDeals,
     crmActivities, setCrmActivities,
     channelPartners, setChannelPartners,
@@ -634,8 +591,6 @@ export function useSupabaseData() {
     profiles, reloadProfiles,
     milestones, setMilestones,
     applications, setApplications,
-    tickets, setTickets,
-    ticketComments, setTicketComments,
     appScreenshots, setAppScreenshots,
     annotationPins, setAnnotationPins,
     markupSets, setMarkupSets,

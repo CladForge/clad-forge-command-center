@@ -13,8 +13,6 @@ import PortalDocuments from './pages/portal/PortalDocuments';
 import PortalAccount from './pages/portal/PortalAccount';
 import PortalApplications from './pages/portal/PortalApplications';
 import PortalApplicationDetail from './pages/portal/PortalApplicationDetail';
-import PortalTickets from './pages/portal/PortalTickets';
-import PortalTicketDetail from './pages/portal/PortalTicketDetail';
 import { CLAD_FORGE_LOGO_DATA_URI } from './lib/brand';
 
 // Top-level component for the client portal. Mounted by App.jsx when the
@@ -169,26 +167,6 @@ export default function ClientPortal({ profile, onSignOut }) {
               } />
               <Route path="/portal/expenses" element={
                 <PortalRecurring recurringExpenses={data.recurringExpenses} />
-              } />
-              <Route path="/portal/tickets" element={
-                <PortalTickets
-                  tickets={data.tickets}
-                  ticketComments={data.ticketComments}
-                  applications={data.applications}
-                  activeClient={data.activeClient}
-                  profile={profile}
-                  reloadTickets={data.reloadTickets}
-                />
-              } />
-              <Route path="/portal/tickets/:id" element={
-                <PortalTicketDetail
-                  tickets={data.tickets}
-                  ticketComments={data.ticketComments}
-                  applications={data.applications}
-                  activeClient={data.activeClient}
-                  profile={profile}
-                  reloadTickets={data.reloadTickets}
-                />
               } />
               <Route path="/portal/documents" element={
                 <PortalDocuments documents={data.documents} projects={data.projects} />

@@ -228,11 +228,6 @@ Best regards,
 {{company_email}}
 {{company_phone}}`,
 
-  // ── Time Tracking ──
-  defaultHourlyRate: 150,
-  timeRounding: 'none',
-  workHoursPerDay: 8,
-
   // ── Pipeline ──
   pipelineStages: 'Lead, Proposal, Active, Review, Completed',
   defaultStage: 'lead',
@@ -297,9 +292,7 @@ Best regards,
 };
 
 export const initialInvoices = [];
-export const initialTimeEntries = [];
 export const initialEvents = [];
-export const initialContractors = [];
 export const initialDeals = [];
 export const initialCrmActivities = [];
 export const initialChannelPartners = [];
