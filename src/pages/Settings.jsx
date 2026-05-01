@@ -632,76 +632,147 @@ function DashboardCardPicker({ value, onChange }) {
     setDropIndex(null);
   }
 
-  const defById = Object.fromEntries(KPI_CARD_DEFS.map(d => [d.id, d]));
-
   return (
     <div className="dash-pref-list">
-      {value.map((card, i) => {
-        const def = defById[card.id];
-        const enabled = card.enabled !== false;
-        const effectiveColor = colorFor(card);
-        const isCustomColor = !!card.color && card.color !== def?.defaultColor;
-        const isDragging = dragIndex === i;
-        const isDropTarget = dropIndex === i && dragIndex !== null && dragIndex !== i;
-        return (
-          <div
-            key={card.id}
-            className={[
-              'dash-pref-row',
-              !enabled && 'dash-pref-row--off',
-              isDragging && 'dash-pref-row--dragging',
-              isDropTarget && 'dash-pref-row--drop',
-            ].filter(Boolean).join(' ')}
-            draggable
-            onDragStart={e => handleDragStart(e, i)}
-            onDragOver={e => handleDragOver(e, i)}
-            onDrop={e => handleDrop(e, i)}
-            onDragEnd={handleDragEnd}
-          >
-            <span className="dash-pref-row__handle" aria-hidden="true">≡</span>
-            {/* Color swatch doubles as a label-for the hidden native picker.
-                onMouseDown stops the row's drag from initiating when the
-                user just wants to open the color dialog. */}
-            <label
-              className="dash-pref-row__swatch"
-              style={{ background: effectiveColor }}
-              onMouseDown={e => e.stopPropagation()}
-              title={`Card color: ${effectiveColor}${isCustomColor ? ' (custom)' : ' (default)'}`}
-            >
-              <input
-                type="color"
-                value={effectiveColor}
-                onChange={e => setColor(i, e.target.value)}
-              />
-            </label>
-            <span className="dash-pref-row__label">{def?.label || card.id}</span>
-            <span className="dash-pref-row__hex" title="Hex value">{effectiveColor}</span>
-            {isCustomColor && (
-              <button
-                type="button"
-                className="dash-pref-row__reset"
-                onClick={() => resetColor(i)}
-                onMouseDown={e => e.stopPropagation()}
-                title="Reset to default color"
-              >
-                Reset
-              </button>
-            )}
-            <button
-              className={`settings__toggle ${enabled ? 'settings__toggle--on' : ''}`}
-              onClick={() => toggle(i)}
-              onMouseDown={e => e.stopPropagation()}
-              role="switch"
-              aria-checked={enabled}
-              aria-label={`${enabled ? 'Hide' : 'Show'} ${def?.label}`}
-            >
-              <span className="settings__toggle-thumb" />
-            </button>
-          </div>
-        );
-      })}
+      {value.map((card, i) => (
+        <DashboardCardRow
+          key={card.id}
+          card={card}
+          index={i}
+          dragIndex={dragIndex}
+          dropIndex={dropIndex}
+          onToggle={() => toggle(i)}
+          onSetColor={hex => setColor(i, hex)}
+          onResetColor={() => resetColor(i)}
+          onDragStart={e => handleDragStart(e, i)}
+          onDragOver={e => handleDragOver(e, i)}
+          onDrop={e => handleDrop(e, i)}
+          onDragEnd={handleDragEnd}
+        />
+      ))}
     </div>
   );
+}
+
+// One row inside DashboardCardPicker. Owns the local hex-input text state
+// so the user can type freely without the parent committing intermediate,
+// invalid values to settings. The committed color only updates when the
+// typed text parses to a valid hex (#RGB or #RRGGBB, with or without the
+// leading #). Invalid input shows a red border and reverts on blur.
+function DashboardCardRow({
+  card, index, dragIndex, dropIndex,
+  onToggle, onSetColor, onResetColor,
+  onDragStart, onDragOver, onDrop, onDragEnd,
+}) {
+  const def = KPI_CARD_DEFS.find(d => d.id === card.id);
+  const enabled = card.enabled !== false;
+  const effectiveColor = colorFor(card);
+  const isCustomColor = !!card.color && card.color !== def?.defaultColor;
+  const isDragging = dragIndex === index;
+  const isDropTarget = dropIndex === index && dragIndex !== null && dragIndex !== index;
+
+  // Local input state: tracks what the user has typed. We snapshot the
+  // committed color in `lastCommitted` so we can detect when it changes
+  // externally (e.g. a Reset elsewhere) and snap the visible text back.
+  // This is React's recommended "adjusting state during rendering"
+  // pattern — cheaper than a useEffect, and avoids the cascading-render
+  // warning the compiler flags.
+  const [text, setText] = useState(effectiveColor);
+  const [lastCommitted, setLastCommitted] = useState(effectiveColor);
+  const [invalid, setInvalid] = useState(false);
+  if (lastCommitted !== effectiveColor) {
+    setLastCommitted(effectiveColor);
+    setText(effectiveColor);
+    setInvalid(false);
+  }
+
+  function handleChange(e) {
+    const raw = e.target.value;
+    setText(raw);
+    const hex = normalizeHex(raw);
+    if (hex) {
+      onSetColor(hex);
+      setInvalid(false);
+    } else {
+      setInvalid(true);
+    }
+  }
+  function handleBlur() {
+    // On blur, snap back to the committed color so we don't leave the
+    // input showing a half-typed invalid value.
+    setText(effectiveColor);
+    setInvalid(false);
+  }
+
+  return (
+    <div
+      className={[
+        'dash-pref-row',
+        !enabled && 'dash-pref-row--off',
+        isDragging && 'dash-pref-row--dragging',
+        isDropTarget && 'dash-pref-row--drop',
+      ].filter(Boolean).join(' ')}
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
+      <span className="dash-pref-row__handle" aria-hidden="true">≡</span>
+      {/* Static visual swatch — purely a preview of the current color. */}
+      <span
+        className="dash-pref-row__swatch"
+        style={{ background: effectiveColor }}
+        title={`Current: ${effectiveColor}${isCustomColor ? ' (custom)' : ' (default)'}`}
+      />
+      <span className="dash-pref-row__label">{def?.label || card.id}</span>
+      <input
+        type="text"
+        className={`dash-pref-row__hex-input ${invalid ? 'dash-pref-row__hex-input--invalid' : ''}`}
+        value={text}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onMouseDown={e => e.stopPropagation()}
+        spellCheck={false}
+        aria-label={`Hex color for ${def?.label}`}
+        placeholder="#rrggbb"
+        maxLength={7}
+      />
+      {isCustomColor && (
+        <button
+          type="button"
+          className="dash-pref-row__reset"
+          onClick={onResetColor}
+          onMouseDown={e => e.stopPropagation()}
+          title="Reset to default color"
+        >
+          Reset
+        </button>
+      )}
+      <button
+        className={`settings__toggle ${enabled ? 'settings__toggle--on' : ''}`}
+        onClick={onToggle}
+        onMouseDown={e => e.stopPropagation()}
+        role="switch"
+        aria-checked={enabled}
+        aria-label={`${enabled ? 'Hide' : 'Show'} ${def?.label}`}
+      >
+        <span className="settings__toggle-thumb" />
+      </button>
+    </div>
+  );
+}
+
+// Accept #RRGGBB, RRGGBB, #RGB, or RGB; case-insensitive. Returns the
+// normalized #rrggbb form, or null if the input doesn't parse.
+function normalizeHex(input) {
+  const s = (input || '').trim().replace(/^#/, '');
+  if (/^[0-9a-fA-F]{6}$/.test(s)) return '#' + s.toLowerCase();
+  if (/^[0-9a-fA-F]{3}$/.test(s)) {
+    const [r, g, b] = s;
+    return '#' + (r + r + g + g + b + b).toLowerCase();
+  }
+  return null;
 }
 
 function ToggleField({ label, description, value, onChange }) {
