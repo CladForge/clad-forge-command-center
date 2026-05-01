@@ -105,6 +105,22 @@ export default function Clients({ clients, setClients, projects, sows, settings:
       {/* Toolbar */}
       <div className="clients__toolbar">
         <div className="clients__search-wrapper">
+          {/* Magnifying-glass icon. The CSS leaves a 40px left padding on
+              the input for it via `.clients__search-icon`; without this
+              there's just an empty gap. */}
+          <svg
+            className="clients__search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
           <input type="text" className="clients__search" placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="clients__filters">
