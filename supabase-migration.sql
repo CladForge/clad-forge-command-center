@@ -947,3 +947,57 @@ CREATE POLICY annotation_pins_update ON annotation_pins FOR UPDATE TO authentica
   USING (auth_is_admin()) WITH CHECK (auth_is_admin());
 CREATE POLICY annotation_pins_delete ON annotation_pins FOR DELETE TO authenticated
   USING (auth_is_admin() OR author_id = auth.uid());
+
+-- ================================================================
+-- PHASE 5b — MARKUP SETS
+-- Groups screenshots into named "review packages" so old and new markups
+-- don't get mixed. Each set has a name, date, status, and (when complete)
+-- a completed_at/by audit trail. Existing screenshots without a set
+-- show as "Unfiled" in the UI.
+-- ================================================================
+CREATE TABLE IF NOT EXISTS markup_sets (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  application_id TEXT NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  target_date TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'active'
+    CHECK (status IN ('active','completed','archived')),
+  completed_at TIMESTAMPTZ,
+  completed_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_markup_sets_application ON markup_sets(application_id);
+CREATE INDEX IF NOT EXISTS idx_markup_sets_status ON markup_sets(status);
+ALTER TABLE markup_sets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS markup_sets_select ON markup_sets;
+DROP POLICY IF EXISTS markup_sets_insert ON markup_sets;
+DROP POLICY IF EXISTS markup_sets_update ON markup_sets;
+DROP POLICY IF EXISTS markup_sets_delete ON markup_sets;
+CREATE POLICY markup_sets_select ON markup_sets FOR SELECT TO authenticated
+  USING (
+    auth_is_admin() OR application_id IN (
+      SELECT id FROM applications WHERE client_id = ANY(auth_client_ids())
+    )
+  );
+-- Either side can create sets to organize their markups; admin can update/
+-- archive/complete; clients can delete their own (in case they create one
+-- by mistake) but can't change status or anyone else's set.
+CREATE POLICY markup_sets_insert ON markup_sets FOR INSERT TO authenticated
+  WITH CHECK (
+    auth_is_admin() OR application_id IN (
+      SELECT id FROM applications WHERE client_id = ANY(auth_client_ids())
+    )
+  );
+CREATE POLICY markup_sets_update ON markup_sets FOR UPDATE TO authenticated
+  USING (auth_is_admin()) WITH CHECK (auth_is_admin());
+CREATE POLICY markup_sets_delete ON markup_sets FOR DELETE TO authenticated
+  USING (auth_is_admin() OR created_by = auth.uid());
+
+-- Link screenshots to sets. Nullable so existing screenshots remain valid;
+-- they show as "Unfiled" in the UI until manually re-assigned.
+ALTER TABLE app_screenshots ADD COLUMN IF NOT EXISTS set_id TEXT
+  REFERENCES markup_sets(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_app_screenshots_set ON app_screenshots(set_id);

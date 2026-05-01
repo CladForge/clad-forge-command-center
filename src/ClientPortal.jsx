@@ -162,6 +162,7 @@ export default function ClientPortal({ profile, onSignOut }) {
                   invoices={data.invoices}
                   appScreenshots={data.appScreenshots}
                   annotationPins={data.annotationPins}
+                  markupSets={data.markupSets}
                   reloadScreenshots={data.reloadScreenshots}
                   profile={profile}
                 />

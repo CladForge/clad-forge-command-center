@@ -10,7 +10,7 @@ const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
 
 function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
 
-export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, appScreenshots = [], annotationPins = [], reloadAdminScreenshots, profile }) {
+export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
   const [search, setSearch] = useState('');
@@ -87,6 +87,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         setApplications={setApplications}
         appScreenshots={appScreenshots}
         annotationPins={annotationPins}
+        markupSets={markupSets}
         reloadAdminScreenshots={reloadAdminScreenshots}
         profile={profile}
         onBack={() => setViewClientId(null)}
@@ -219,7 +220,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    CLIENT PROFILE PAGE
    ═══════════════════════════════════════════ */
 
-function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, appScreenshots = [], annotationPins = [], reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
+function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
@@ -384,6 +385,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
   const markupsApp = markupsAppId ? clientApplications.find(a => a.id === markupsAppId) : null;
   const markupsScreenshots = markupsApp ? appScreenshots.filter(s => s.applicationId === markupsApp.id) : [];
   const markupsPins = markupsApp ? annotationPins.filter(p => markupsScreenshots.some(s => s.id === p.screenshotId)) : [];
+  const markupsSetsForApp = markupsApp ? markupSets.filter(s => s.applicationId === markupsApp.id) : [];
 
   return (
     <div className="cp">
@@ -785,6 +787,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                 applicationId={markupsApp.id}
                 screenshots={markupsScreenshots}
                 pins={markupsPins}
+                markupSets={markupsSetsForApp}
                 currentUserId={profile?.id}
                 isAdmin={true}
                 onChange={reloadAdminScreenshots}

@@ -39,6 +39,7 @@ export function useClientPortalData(authUserId) {
   const [ticketComments, setTicketComments] = useState([]);
   const [appScreenshots, setAppScreenshots] = useState([]);
   const [annotationPins, setAnnotationPins] = useState([]);
+  const [markupSets, setMarkupSets] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -162,16 +163,18 @@ export function useClientPortalData(authUserId) {
           setTicketComments([]);
         }
 
-        // Screenshots + pins for the client's applications.
+        // Screenshots + pins + sets for the client's applications.
         const appIds = (applicationsRes.data || []).map(a => a.id);
         if (appIds.length > 0) {
-          const { data: ssData } = await supabase
-            .from('app_screenshots')
-            .select('*')
-            .in('application_id', appIds)
-            .order('created_at', { ascending: false });
-          const screenshots = (ssData || []).map(snakeToCamel);
-          if (!cancelled) setAppScreenshots(screenshots);
+          const [ssRes, setsRes] = await Promise.all([
+            supabase.from('app_screenshots').select('*').in('application_id', appIds).order('created_at', { ascending: false }),
+            supabase.from('markup_sets').select('*').in('application_id', appIds).order('created_at', { ascending: false }),
+          ]);
+          const screenshots = (ssRes.data || []).map(snakeToCamel);
+          if (!cancelled) {
+            setAppScreenshots(screenshots);
+            setMarkupSets((setsRes.data || []).map(snakeToCamel));
+          }
           const ssIds = screenshots.map(s => s.id);
           if (ssIds.length > 0) {
             const { data: pinsData } = await supabase
@@ -186,6 +189,7 @@ export function useClientPortalData(authUserId) {
         } else {
           setAppScreenshots([]);
           setAnnotationPins([]);
+          setMarkupSets([]);
         }
 
         // Milestones: scoped to the active client's projects. Hide draft
@@ -247,12 +251,13 @@ export function useClientPortalData(authUserId) {
   const reloadScreenshots = useCallback(async () => {
     const appIds = applications.map(a => a.id);
     if (appIds.length === 0) return;
-    const { data: ssData } = await supabase
-      .from('app_screenshots').select('*')
-      .in('application_id', appIds)
-      .order('created_at', { ascending: false });
-    const screenshots = (ssData || []).map(snakeToCamel);
+    const [ssRes, setsRes] = await Promise.all([
+      supabase.from('app_screenshots').select('*').in('application_id', appIds).order('created_at', { ascending: false }),
+      supabase.from('markup_sets').select('*').in('application_id', appIds).order('created_at', { ascending: false }),
+    ]);
+    const screenshots = (ssRes.data || []).map(snakeToCamel);
     setAppScreenshots(screenshots);
+    setMarkupSets((setsRes.data || []).map(snakeToCamel));
     const ssIds = screenshots.map(s => s.id);
     if (ssIds.length > 0) {
       const { data: pinsData } = await supabase
@@ -308,6 +313,7 @@ export function useClientPortalData(authUserId) {
     reloadTickets,
     appScreenshots,
     annotationPins,
+    markupSets,
     reloadScreenshots,
     settings,
     loading,

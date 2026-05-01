@@ -24,7 +24,7 @@ const STATUS_LABELS = {
 
 export default function PortalApplicationDetail({
   applications, recurringExpenses, invoices,
-  appScreenshots = [], annotationPins = [], reloadScreenshots,
+  appScreenshots = [], annotationPins = [], markupSets = [], reloadScreenshots,
   profile,
 }) {
   const navigate = useNavigate();
@@ -32,6 +32,7 @@ export default function PortalApplicationDetail({
   const app = applications.find(a => a.id === id);
   const myScreenshots = appScreenshots.filter(s => s.applicationId === id);
   const myPins = annotationPins.filter(p => myScreenshots.some(s => s.id === p.screenshotId));
+  const mySets = markupSets.filter(s => s.applicationId === id);
 
   if (!app) {
     return (
@@ -183,6 +184,7 @@ export default function PortalApplicationDetail({
             applicationId={id}
             screenshots={myScreenshots}
             pins={myPins}
+            markupSets={mySets}
             currentUserId={profile?.id}
             isAdmin={false}
             onChange={reloadScreenshots}

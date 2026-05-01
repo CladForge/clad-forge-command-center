@@ -127,12 +127,29 @@ export interface TicketComment {
 export interface AppScreenshot {
   id: string;
   applicationId: string;
+  /** Optional grouping into a named markup_set so old + new reviews don't
+   *  mix. Null = "Unfiled" in the UI. */
+  setId?: string;
   /** Base64 data URI for now; will become Supabase Storage URL later. */
   imageUrl: string;
   caption?: string;
   capturedAt?: string;
   capturedBy?: string;
   createdAt?: string;
+}
+
+/** A named group of screenshots — a "review package" for one stage / phase. */
+export interface MarkupSet {
+  id: string;
+  applicationId: string;
+  name: string;
+  description?: string;
+  targetDate?: string;
+  status: 'active' | 'completed' | 'archived';
+  completedAt?: string;
+  completedBy?: string;
+  createdAt?: string;
+  createdBy?: string;
 }
 
 /** A pin dropped on a screenshot. x/y are percentages so the pin stays

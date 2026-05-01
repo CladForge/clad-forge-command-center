@@ -19,6 +19,10 @@ import { useState, useRef } from 'react';
 export default function AnnotatedScreenshot({
   screenshot, pins = [], currentUserId, isAdmin = false,
   onAddPin, onResolvePin, onDeletePin,
+  // Optional controlled mode: parent (e.g. MarkupSetWorkspace sidebar) can
+  // expand a specific pin by passing its id. forceExpandPinId overrides
+  // local state. onPinExpandChange fires when the user toggles via marker click.
+  forceExpandPinId, onPinExpandChange,
 }) {
   const imageRef = useRef(null);
   const containerRef = useRef(null);
@@ -26,8 +30,17 @@ export default function AnnotatedScreenshot({
   const [draftPin, setDraftPin] = useState(null);
   const [draftBody, setDraftBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  // Currently expanded pin id (null = none)
-  const [expandedPinId, setExpandedPinId] = useState(null);
+  // Currently expanded pin id (null = none). When parent passes
+  // forceExpandPinId, that wins.
+  const [internalExpandedPinId, setInternalExpandedPinId] = useState(null);
+  const expandedPinId = forceExpandPinId !== undefined ? forceExpandPinId : internalExpandedPinId;
+  function setExpandedPinId(id) {
+    if (forceExpandPinId !== undefined && onPinExpandChange) {
+      onPinExpandChange(id);
+    } else {
+      setInternalExpandedPinId(id);
+    }
+  }
 
   function handleImageClick(e) {
     if (submitting) return;

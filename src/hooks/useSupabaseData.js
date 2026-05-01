@@ -70,8 +70,9 @@ const TABLE_COLUMNS = {
   applications: ['id','client_id','name','description','url','type','status','launched_at','monthly_cost','notes','thumbnail_url','metadata','created_at','created_by'],
   service_tickets: ['id','client_id','application_id','project_id','subject','description','priority','status','submitted_by','assigned_to','resolved_at','closed_at','created_at'],
   ticket_comments: ['id','ticket_id','body','author_id','is_internal','created_at'],
-  app_screenshots: ['id','application_id','image_url','caption','captured_at','captured_by','created_at'],
+  app_screenshots: ['id','application_id','set_id','image_url','caption','captured_at','captured_by','created_at'],
   annotation_pins: ['id','screenshot_id','x_pct','y_pct','body','status','author_id','resolved_by','resolved_at','created_at'],
+  markup_sets: ['id','application_id','name','description','target_date','status','completed_at','completed_by','created_at','created_by'],
 };
 
 // Strip fields not in the DB table before sending to Supabase
@@ -168,6 +169,7 @@ export function useSupabaseData() {
   const [ticketComments, setTicketCommentsState] = useState([]);
   const [appScreenshots, setAppScreenshotsState] = useState([]);
   const [annotationPins, setAnnotationPinsState] = useState([]);
+  const [markupSets, setMarkupSetsState] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const connectedRef = useRef(false);
@@ -179,7 +181,7 @@ export function useSupabaseData() {
         const [
           clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
           invoicesRes, timeEntriesRes, eventsRes, contractorsRes,
-          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, milestonesRes, applicationsRes, ticketsRes, ticketCommentsRes, screenshotsRes, pinsRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, milestonesRes, applicationsRes, ticketsRes, ticketCommentsRes, screenshotsRes, pinsRes, markupSetsRes,
         ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
@@ -206,6 +208,7 @@ export function useSupabaseData() {
           supabase.from('ticket_comments').select('*').order('created_at', { ascending: true }),
           supabase.from('app_screenshots').select('*').order('created_at', { ascending: false }),
           supabase.from('annotation_pins').select('*').order('created_at', { ascending: true }),
+          supabase.from('markup_sets').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (clientsRes.error) throw clientsRes.error;
@@ -246,6 +249,7 @@ export function useSupabaseData() {
         if (ticketCommentsRes.data) setTicketCommentsState(ticketCommentsRes.data.map(snakeToCamel));
         if (screenshotsRes.data) setAppScreenshotsState(screenshotsRes.data.map(snakeToCamel));
         if (pinsRes.data) setAnnotationPinsState(pinsRes.data.map(snakeToCamel));
+        if (markupSetsRes.data) setMarkupSetsState(markupSetsRes.data.map(snakeToCamel));
 
         connectedRef.current = true;
         setConnected(true);
@@ -555,18 +559,24 @@ export function useSupabaseData() {
     makeSetter(setAnnotationPinsState, 'annotation_pins', { labelField: 'body', entityLabel: 'markup pin', logActivity: false }),
     [addActivity]
   );
+  const setMarkupSets = useCallback(
+    makeSetter(setMarkupSetsState, 'markup_sets', { labelField: 'name', entityLabel: 'markup set', icon: 'layers' }),
+    [addActivity]
+  );
 
   // After AppScreenshotsSection performs its own inserts/updates/deletes
   // directly via supabase (so it can be shared with the portal), we need
   // a way to refresh admin state without going through the setter.
   const reloadAdminScreenshots = useCallback(async () => {
     if (!connectedRef.current) return;
-    const [{ data: ssData }, { data: pinsData }] = await Promise.all([
+    const [{ data: ssData }, { data: pinsData }, { data: setsData }] = await Promise.all([
       supabase.from('app_screenshots').select('*').order('created_at', { ascending: false }),
       supabase.from('annotation_pins').select('*').order('created_at', { ascending: true }),
+      supabase.from('markup_sets').select('*').order('created_at', { ascending: false }),
     ]);
     if (ssData) setAppScreenshotsState(ssData.map(snakeToCamel));
     if (pinsData) setAnnotationPinsState(pinsData.map(snakeToCamel));
+    if (setsData) setMarkupSetsState(setsData.map(snakeToCamel));
   }, []);
 
   // CLIENT_USERS — admin-side state for the Portal Access tab. Inserts and
@@ -614,6 +624,7 @@ export function useSupabaseData() {
     ticketComments, setTicketComments,
     appScreenshots, setAppScreenshots,
     annotationPins, setAnnotationPins,
+    markupSets, setMarkupSets,
     reloadAdminScreenshots,
     loading,
     connected,

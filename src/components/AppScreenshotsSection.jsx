@@ -1,261 +1,341 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateId } from '../data/initialData';
-import AnnotatedScreenshot from './AnnotatedScreenshot';
+import MarkupSetWorkspace from './MarkupSetWorkspace';
 
-// A self-contained screenshot management section for an application.
-// Renders a list of screenshots, an upload control, and the annotation
-// viewer for the selected screenshot. Used in both admin and portal
-// application detail pages — same UX, different role context.
+// Top-level entry to the per-application markup feature. Two modes:
+//   1. "list"      — shows all markup sets as cards + an "Unfiled" group
+//                    if any screenshots have no set. User picks one to enter.
+//   2. "workspace" — shows MarkupSetWorkspace for the selected set. Sidebar
+//                    + viewer + prev/next nav + mark-complete.
 //
-// Props:
-//   applicationId   string
-//   screenshots     AppScreenshot[] for this app
-//   pins            AnnotationPin[] across all screenshots for this app
-//   currentUserId   auth user id
-//   isAdmin         boolean
-//   onChange()      callback to reload data after mutations
+// Used in both admin (via Clients > Applications > Markups modal) and
+// portal (via PortalApplicationDetail). Same component, isAdmin flag
+// gates admin-only affordances (mark complete, resolve any pin).
 
 export default function AppScreenshotsSection({
-  applicationId, screenshots = [], pins = [], currentUserId, isAdmin = false, onChange,
+  applicationId,
+  screenshots = [],
+  pins = [],
+  markupSets = [],
+  currentUserId,
+  isAdmin = false,
+  onChange,
 }) {
-  const [selectedId, setSelectedId] = useState(screenshots[0]?.id || null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
+  const [activeSetId, setActiveSetId] = useState(null);
+  // Special token for the "Unfiled" pseudo-set (screenshots with set_id=null)
+  const UNFILED = '__unfiled__';
+  const isUnfiledMode = activeSetId === UNFILED;
 
-  const selected = screenshots.find(s => s.id === selectedId) || screenshots[0] || null;
-  const selectedPins = selected ? pins.filter(p => p.screenshotId === selected.id) : [];
-
-  // Shared upload pipeline — used by file picker, paste handler, drag-drop.
-  // Takes a File or Blob, validates, encodes as data URI, inserts row.
-  async function uploadFile(file, suggestedCaption) {
-    if (!file) return;
-    if (!file.type || !file.type.startsWith('image/')) {
-      setUploadError('That doesn\'t look like an image.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Image must be under 5MB.');
-      return;
-    }
-    setUploading(true);
-    setUploadError('');
-    const reader = new FileReader();
-    reader.onload = async ev => {
-      const dataUri = ev.target.result;
-      const newId = generateId();
-      // Pasted images land as `image.png` (no useful filename) — fall back to
-      // a timestamped caption so it's not just a generic name in the picker.
-      const fallbackCaption = suggestedCaption || (file.name && file.name !== 'image.png'
-        ? file.name.replace(/\.[^.]+$/, '')
-        : `Screenshot ${new Date().toLocaleString()}`);
-      const { error } = await supabase.from('app_screenshots').insert({
-        id: newId,
-        application_id: applicationId,
-        image_url: dataUri,
-        caption: fallbackCaption,
-        captured_by: currentUserId,
-      });
-      if (error) {
-        setUploadError(error.message);
-      } else {
-        if (onChange) await onChange();
-        setSelectedId(newId);
-      }
-      setUploading(false);
-    };
-    reader.readAsDataURL(file);
+  // ── List mode ────────────────────────────────────────────────────────
+  if (!activeSetId) {
+    return (
+      <SetList
+        applicationId={applicationId}
+        screenshots={screenshots}
+        pins={pins}
+        markupSets={markupSets}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+        onChange={onChange}
+        onOpenSet={setActiveSetId}
+        unfiledToken={UNFILED}
+      />
+    );
   }
 
-  function handleFileInputChange(e) {
-    const file = e.target.files?.[0];
-    if (file) uploadFile(file);
-    // Reset input so user can re-upload the same filename
-    e.target.value = '';
-  }
-
-  // Paste support — listen on window so the user can paste from anywhere on
-  // the page. We ignore paste events originating from text inputs / textareas
-  // / contentEditable elements so typing-paste in those still works normally.
-  useEffect(() => {
-    function handlePaste(e) {
-      const target = e.target;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-        return;
-      }
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.type && item.type.startsWith('image/')) {
-          e.preventDefault();
-          const blob = item.getAsFile();
-          if (blob) uploadFile(blob);
-          break;
-        }
-      }
-    }
-    window.addEventListener('paste', handlePaste);
-    return () => window.removeEventListener('paste', handlePaste);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [applicationId, currentUserId]);
-
-  // Drag-and-drop support
-  function handleDragOver(e) {
-    e.preventDefault();
-    setIsDragging(true);
-  }
-  function handleDragLeave(e) {
-    // Only clear if leaving the dropzone entirely (not its children)
-    if (e.currentTarget === e.target) setIsDragging(false);
-  }
-  function handleDrop(e) {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) uploadFile(file);
-  }
-
-  async function handleAddPin(xPct, yPct, body) {
-    if (!selected) return false;
-    const { error } = await supabase.from('annotation_pins').insert({
-      id: generateId(),
-      screenshot_id: selected.id,
-      x_pct: xPct,
-      y_pct: yPct,
-      body,
-      author_id: currentUserId,
-      status: 'open',
-    });
-    if (error) {
-      alert('Could not add pin: ' + error.message);
-      return false;
-    }
-    if (onChange) await onChange();
-    return true;
-  }
-
-  async function handleResolvePin(pinId) {
-    const { error } = await supabase
-      .from('annotation_pins')
-      .update({ status: 'resolved', resolved_by: currentUserId, resolved_at: new Date().toISOString() })
-      .eq('id', pinId);
-    if (error) { alert('Could not mark resolved: ' + error.message); return; }
-    if (onChange) await onChange();
-  }
-
-  async function handleDeletePin(pinId) {
-    const { error } = await supabase.from('annotation_pins').delete().eq('id', pinId);
-    if (error) { alert('Could not delete: ' + error.message); return; }
-    if (onChange) await onChange();
-  }
-
-  async function handleDeleteScreenshot() {
-    if (!selected) return;
-    if (!window.confirm(`Delete this screenshot and all ${selectedPins.length} pin${selectedPins.length !== 1 ? 's' : ''} on it? This cannot be undone.`)) return;
-    const { error } = await supabase.from('app_screenshots').delete().eq('id', selected.id);
-    if (error) { alert('Delete failed: ' + error.message); return; }
-    setSelectedId(screenshots.find(s => s.id !== selected.id)?.id || null);
-    if (onChange) await onChange();
-  }
-
-  const canDeleteSelected = selected && (isAdmin || selected.capturedBy === currentUserId);
+  // ── Workspace mode ──────────────────────────────────────────────────
+  const activeSet = isUnfiledMode ? null : markupSets.find(s => s.id === activeSetId);
+  const setScreenshots = isUnfiledMode
+    ? screenshots.filter(s => !s.setId)
+    : screenshots.filter(s => s.setId === activeSetId);
+  const ssIds = setScreenshots.map(s => s.id);
+  const setPins = pins.filter(p => ssIds.includes(p.screenshotId));
 
   return (
-    <div
-      className={`app-screenshots ${isDragging ? 'app-screenshots--dragging' : ''}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      {/* Drop overlay shown while dragging a file over the section */}
-      {isDragging && (
-        <div className="app-screenshots__drop-overlay">
-          <div className="app-screenshots__drop-overlay-text">
-            Drop image to upload
-          </div>
-        </div>
-      )}
+    <MarkupSetWorkspace
+      set={activeSet}
+      screenshots={setScreenshots}
+      pins={setPins}
+      currentUserId={currentUserId}
+      isAdmin={isAdmin}
+      onChange={onChange}
+      onBack={() => setActiveSetId(null)}
+      applicationId={applicationId}
+    />
+  );
+}
 
-      {/* Top bar: upload + screenshot picker */}
-      <div className="app-screenshots__bar">
-        <div className="app-screenshots__list">
-          {screenshots.length === 0 ? (
-            <span className="app-screenshots__empty-label">No screenshots yet</span>
-          ) : (
-            screenshots.map(s => {
-              const pinCount = pins.filter(p => p.screenshotId === s.id).length;
-              const openCount = pins.filter(p => p.screenshotId === s.id && p.status === 'open').length;
-              return (
-                <button
-                  key={s.id}
-                  className={`app-screenshots__chip ${selectedId === s.id ? 'app-screenshots__chip--active' : ''}`}
-                  onClick={() => setSelectedId(s.id)}
-                  title={s.caption || 'Untitled'}
-                >
-                  <span className="app-screenshots__chip-name">
-                    {s.caption || 'Untitled'}
-                  </span>
-                  {pinCount > 0 && (
-                    <span className={`app-screenshots__chip-count ${openCount > 0 ? 'app-screenshots__chip-count--open' : ''}`}>
-                      {pinCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })
-          )}
+// ─────────────────────────────────────────────────────────────────────
+// Sets list view — cards for each set + "+ New Set" + Unfiled group
+// ─────────────────────────────────────────────────────────────────────
+
+function SetList({
+  applicationId, screenshots, pins, markupSets, currentUserId, isAdmin,
+  onChange, onOpenSet, unfiledToken,
+}) {
+  const [showNewModal, setShowNewModal] = useState(false);
+
+  const unfiledScreenshots = screenshots.filter(s => !s.setId);
+
+  // Group sets by status for visual ordering: active first, then completed
+  const activeSets = markupSets.filter(s => s.status === 'active');
+  const completedSets = markupSets.filter(s => s.status === 'completed' || s.status === 'archived');
+
+  function pinCountsForSet(setId) {
+    const ssIds = screenshots.filter(s => s.setId === setId).map(s => s.id);
+    const set = pins.filter(p => ssIds.includes(p.screenshotId));
+    return {
+      total: set.length,
+      open: set.filter(p => p.status === 'open').length,
+      resolved: set.filter(p => p.status === 'resolved').length,
+      screenshotCount: ssIds.length,
+    };
+  }
+
+  function pinCountsForUnfiled() {
+    const ssIds = unfiledScreenshots.map(s => s.id);
+    const set = pins.filter(p => ssIds.includes(p.screenshotId));
+    return {
+      total: set.length,
+      open: set.filter(p => p.status === 'open').length,
+      resolved: set.filter(p => p.status === 'resolved').length,
+      screenshotCount: ssIds.length,
+    };
+  }
+
+  return (
+    <div className="markup-sets-list">
+      <div className="markup-sets-list__header">
+        <div>
+          <p className="markup-sets-list__hint">
+            Sets group screenshots into a review package — e.g. "Pre-launch QA" or "Phase 2 review".
+          </p>
         </div>
-        <div className="app-screenshots__actions">
-          <label className="btn btn--primary btn--sm" style={{ cursor: 'pointer' }}>
-            {uploading ? 'Uploading...' : '+ Upload Screenshot'}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileInputChange}
-              style={{ display: 'none' }}
-              disabled={uploading}
-            />
-          </label>
-          {selected && canDeleteSelected && (
-            <button
-              className="btn btn--ghost btn--sm btn--danger-hover"
-              onClick={handleDeleteScreenshot}
-              title="Delete screenshot"
-            >
-              Delete
-            </button>
-          )}
-        </div>
+        <button className="btn btn--primary" onClick={() => setShowNewModal(true)}>
+          + New Set
+        </button>
       </div>
 
-      <p className="app-screenshots__paste-hint">
-        Paste an image with <kbd>Ctrl+V</kbd> · drop a file anywhere in this area · or click Upload Screenshot
-      </p>
-
-      {uploadError && <div className="modal__error" style={{ marginTop: 8 }}>{uploadError}</div>}
-
-      {/* Viewer */}
-      {selected ? (
-        <div className="app-screenshots__viewer">
-          <AnnotatedScreenshot
-            screenshot={selected}
-            pins={selectedPins}
-            currentUserId={currentUserId}
-            isAdmin={isAdmin}
-            onAddPin={handleAddPin}
-            onResolvePin={handleResolvePin}
-            onDeletePin={handleDeletePin}
-          />
+      {markupSets.length === 0 && unfiledScreenshots.length === 0 ? (
+        <div className="empty-state">
+          <span className="empty-state__icon">📦</span>
+          <h3>No markup sets yet</h3>
+          <p>Create your first set to start collecting screenshots and pins.</p>
         </div>
       ) : (
-        <div className="empty-state" style={{ padding: 40 }}>
-          <span className="empty-state__icon">📸</span>
-          <h3>No screenshots yet</h3>
-          <p>Paste an image, drop one here, or click Upload Screenshot to get started.</p>
-        </div>
+        <>
+          {activeSets.length > 0 && (
+            <div className="markup-sets-list__group">
+              <h4 className="markup-sets-list__group-title">Active</h4>
+              <div className="markup-sets-grid">
+                {activeSets.map(set => (
+                  <SetCard
+                    key={set.id}
+                    set={set}
+                    counts={pinCountsForSet(set.id)}
+                    isAdmin={isAdmin}
+                    currentUserId={currentUserId}
+                    onOpen={() => onOpenSet(set.id)}
+                    onChange={onChange}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {completedSets.length > 0 && (
+            <div className="markup-sets-list__group">
+              <h4 className="markup-sets-list__group-title">Completed</h4>
+              <div className="markup-sets-grid">
+                {completedSets.map(set => (
+                  <SetCard
+                    key={set.id}
+                    set={set}
+                    counts={pinCountsForSet(set.id)}
+                    isAdmin={isAdmin}
+                    currentUserId={currentUserId}
+                    onOpen={() => onOpenSet(set.id)}
+                    onChange={onChange}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {unfiledScreenshots.length > 0 && (
+            <div className="markup-sets-list__group">
+              <h4 className="markup-sets-list__group-title">Unfiled</h4>
+              <div className="markup-sets-grid">
+                <button
+                  className="markup-set-card markup-set-card--unfiled"
+                  onClick={() => onOpenSet(unfiledToken)}
+                >
+                  <div className="markup-set-card__top">
+                    <span className="markup-set-card__name">Unfiled screenshots</span>
+                    <span className="status-pill status-pill--mset-archived">Legacy</span>
+                  </div>
+                  <p className="markup-set-card__sub">
+                    {unfiledScreenshots.length} screenshot{unfiledScreenshots.length !== 1 ? 's' : ''} not in a set
+                  </p>
+                  <SetCardCounts counts={pinCountsForUnfiled()} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
+
+      {showNewModal && (
+        <NewSetModal
+          applicationId={applicationId}
+          currentUserId={currentUserId}
+          onClose={() => setShowNewModal(false)}
+          onCreated={async (newSetId) => {
+            setShowNewModal(false);
+            if (onChange) await onChange();
+            if (newSetId) onOpenSet(newSetId);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// One card per set
+// ─────────────────────────────────────────────────────────────────────
+
+function SetCard({ set, counts, isAdmin, currentUserId, onOpen, onChange }) {
+  async function handleDelete(e) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete set "${set.name}" and ALL its screenshots and pins? This cannot be undone.`)) return;
+    const { error } = await supabase.from('markup_sets').delete().eq('id', set.id);
+    if (error) { alert('Delete failed: ' + error.message); return; }
+    if (onChange) await onChange();
+  }
+
+  const canDelete = isAdmin || set.createdBy === currentUserId;
+
+  return (
+    <div className="markup-set-card" onClick={onOpen} role="button" tabIndex={0}>
+      <div className="markup-set-card__top">
+        <span className="markup-set-card__name">{set.name}</span>
+        <span className={`status-pill status-pill--mset-${set.status}`}>
+          {set.status === 'completed' ? '✓ Complete' : set.status === 'archived' ? 'Archived' : 'Active'}
+        </span>
+      </div>
+      {set.description && <p className="markup-set-card__desc">{set.description}</p>}
+      {set.targetDate && (
+        <p className="markup-set-card__sub">Target: {set.targetDate}</p>
+      )}
+      <SetCardCounts counts={counts} />
+      {canDelete && set.status !== 'completed' && (
+        <button
+          className="markup-set-card__delete"
+          onClick={handleDelete}
+          aria-label="Delete set"
+          title="Delete set"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SetCardCounts({ counts }) {
+  return (
+    <div className="markup-set-card__counts">
+      <span><strong>{counts.screenshotCount}</strong> screenshot{counts.screenshotCount !== 1 ? 's' : ''}</span>
+      <span><strong>{counts.total}</strong> pin{counts.total !== 1 ? 's' : ''}</span>
+      {counts.open > 0 && (
+        <span className="markup-set-card__open">
+          <strong>{counts.open}</strong> open
+        </span>
+      )}
+      {counts.total > 0 && counts.open === 0 && (
+        <span className="markup-set-card__resolved">All resolved</span>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// New Set modal
+// ─────────────────────────────────────────────────────────────────────
+
+function NewSetModal({ applicationId, currentUserId, onClose, onCreated }) {
+  const [form, setForm] = useState({ name: '', description: '', targetDate: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!form.name.trim()) { setError('Please give this set a name.'); return; }
+    setSubmitting(true);
+    setError('');
+    const newId = generateId();
+    const { error: insertErr } = await supabase.from('markup_sets').insert({
+      id: newId,
+      application_id: applicationId,
+      name: form.name.trim(),
+      description: form.description.trim(),
+      target_date: form.targetDate,
+      status: 'active',
+      created_by: currentUserId,
+    });
+    if (insertErr) { setError(insertErr.message); setSubmitting(false); return; }
+    if (onCreated) await onCreated(newId);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+        <div className="modal__header">
+          <h2>New Markup Set</h2>
+          <button className="modal__close" onClick={onClose}>×</button>
+        </div>
+        <form onSubmit={submit} className="modal__body">
+          <div className="form-group">
+            <label>Name *</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              placeholder="e.g. Pre-launch QA, Phase 2 review"
+              autoFocus
+              disabled={submitting}
+            />
+          </div>
+          <div className="form-group" style={{ marginTop: 12 }}>
+            <label>Description (optional)</label>
+            <textarea
+              value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              placeholder="What's this set for? Specific area? Phase?"
+              rows={2}
+              disabled={submitting}
+            />
+          </div>
+          <div className="form-group" style={{ marginTop: 12 }}>
+            <label>Target date (optional)</label>
+            <input
+              type="date"
+              value={form.targetDate}
+              onChange={e => setForm(f => ({ ...f, targetDate: e.target.value }))}
+              disabled={submitting}
+            />
+          </div>
+          {error && <div className="modal__error">{error}</div>}
+          <div className="modal__footer" style={{ marginTop: 16 }}>
+            <button type="button" className="btn btn--ghost" onClick={onClose} disabled={submitting}>Cancel</button>
+            <button type="submit" className="btn btn--primary" disabled={submitting || !form.name.trim()}>
+              {submitting ? 'Creating…' : 'Create Set'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

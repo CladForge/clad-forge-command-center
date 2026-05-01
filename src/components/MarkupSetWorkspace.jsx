@@ -1,0 +1,377 @@
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabase';
+import { generateId } from '../data/initialData';
+import AnnotatedScreenshot from './AnnotatedScreenshot';
+
+// Workspace for reviewing a single markup set. Layout:
+//   [Sidebar: pin summary, color-coded, click to jump]   [Viewer: prev/next + screenshot]
+//
+// Props:
+//   set                MarkupSet | null  (null = "Unfiled" pseudo-set)
+//   screenshots        AppScreenshot[] for this set (already filtered)
+//   pins               AnnotationPin[] across this set's screenshots
+//   currentUserId      string
+//   isAdmin            boolean
+//   onChange()         reload data after mutations
+//   onBack             return to sets list
+//   applicationId      needed when uploading new screenshots
+
+export default function MarkupSetWorkspace({
+  set, screenshots = [], pins = [], currentUserId, isAdmin = false,
+  onChange, onBack, applicationId,
+}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [expandedPinId, setExpandedPinId] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef(null);
+
+  // Clamp activeIndex when screenshots change
+  useEffect(() => {
+    if (activeIndex >= screenshots.length && screenshots.length > 0) {
+      setActiveIndex(screenshots.length - 1);
+    } else if (screenshots.length === 0 && activeIndex !== 0) {
+      setActiveIndex(0);
+    }
+  }, [screenshots.length, activeIndex]);
+
+  const active = screenshots[activeIndex] || null;
+  const activePins = active ? pins.filter(p => p.screenshotId === active.id) : [];
+
+  // Pin counts for the whole set (across all screenshots)
+  const totalPins = pins.length;
+  const openPins = pins.filter(p => p.status === 'open').length;
+  const allResolved = totalPins > 0 && openPins === 0;
+  const isCompletedSet = set?.status === 'completed';
+
+  // ── Keyboard nav (left/right arrows) ─────────────────────────────────
+  useEffect(() => {
+    function onKey(e) {
+      // Don't hijack arrow keys when typing in a text field
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (screenshots.length < 2) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setActiveIndex(i => (i - 1 + screenshots.length) % screenshots.length);
+        setExpandedPinId(null);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setActiveIndex(i => (i + 1) % screenshots.length);
+        setExpandedPinId(null);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [screenshots.length]);
+
+  // ── Upload (paste / drop / picker) ──────────────────────────────────
+  async function uploadFile(file) {
+    if (!file || !file.type?.startsWith('image/')) {
+      setUploadError('Please provide an image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image must be under 5MB.');
+      return;
+    }
+    setUploading(true);
+    setUploadError('');
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const dataUri = ev.target.result;
+      const newId = generateId();
+      const fallbackCaption = (file.name && file.name !== 'image.png'
+        ? file.name.replace(/\.[^.]+$/, '')
+        : `Screenshot ${new Date().toLocaleString()}`);
+      const { error } = await supabase.from('app_screenshots').insert({
+        id: newId,
+        application_id: applicationId,
+        set_id: set?.id || null,
+        image_url: dataUri,
+        caption: fallbackCaption,
+        captured_by: currentUserId,
+      });
+      if (error) {
+        setUploadError(error.message);
+      } else if (onChange) {
+        await onChange();
+        // Jump to the newly uploaded screenshot
+        setActiveIndex(0);
+      }
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  useEffect(() => {
+    function handlePaste(e) {
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type?.startsWith('image/')) {
+          e.preventDefault();
+          const blob = items[i].getAsFile();
+          if (blob) uploadFile(blob);
+          break;
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [set?.id, applicationId]);
+
+  function handleFileInput(e) {
+    const f = e.target.files?.[0];
+    if (f) uploadFile(f);
+    e.target.value = '';
+  }
+  function handleDragOver(e) { e.preventDefault(); setIsDragging(true); }
+  function handleDragLeave(e) { if (e.currentTarget === e.target) setIsDragging(false); }
+  function handleDrop(e) {
+    e.preventDefault(); setIsDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) uploadFile(f);
+  }
+
+  // ── Pin actions (delegated from AnnotatedScreenshot) ────────────────
+  async function handleAddPin(xPct, yPct, body) {
+    if (!active) return false;
+    const { error } = await supabase.from('annotation_pins').insert({
+      id: generateId(), screenshot_id: active.id,
+      x_pct: xPct, y_pct: yPct, body,
+      author_id: currentUserId, status: 'open',
+    });
+    if (error) { alert('Could not add pin: ' + error.message); return false; }
+    if (onChange) await onChange();
+    return true;
+  }
+  async function handleResolvePin(pinId) {
+    const { error } = await supabase
+      .from('annotation_pins')
+      .update({ status: 'resolved', resolved_by: currentUserId, resolved_at: new Date().toISOString() })
+      .eq('id', pinId);
+    if (error) { alert('Could not mark resolved: ' + error.message); return; }
+    if (onChange) await onChange();
+  }
+  async function handleDeletePin(pinId) {
+    const { error } = await supabase.from('annotation_pins').delete().eq('id', pinId);
+    if (error) { alert('Could not delete: ' + error.message); return; }
+    if (onChange) await onChange();
+  }
+  async function handleDeleteScreenshot() {
+    if (!active) return;
+    if (!window.confirm(`Delete this screenshot and all ${activePins.length} pin${activePins.length !== 1 ? 's' : ''} on it? This cannot be undone.`)) return;
+    const { error } = await supabase.from('app_screenshots').delete().eq('id', active.id);
+    if (error) { alert('Delete failed: ' + error.message); return; }
+    if (onChange) await onChange();
+  }
+
+  // ── Mark set complete (admin only) ──────────────────────────────────
+  async function markSetComplete() {
+    if (!set) return;
+    if (!window.confirm(`Mark "${set.name}" as complete? You can reopen it later if needed.`)) return;
+    const { error } = await supabase.from('markup_sets')
+      .update({ status: 'completed', completed_at: new Date().toISOString(), completed_by: currentUserId })
+      .eq('id', set.id);
+    if (error) { alert('Could not mark complete: ' + error.message); return; }
+    if (onChange) await onChange();
+  }
+  async function reopenSet() {
+    if (!set) return;
+    const { error } = await supabase.from('markup_sets')
+      .update({ status: 'active', completed_at: null, completed_by: null })
+      .eq('id', set.id);
+    if (error) { alert('Could not reopen: ' + error.message); return; }
+    if (onChange) await onChange();
+  }
+
+  // Click sidebar pin → jump to screenshot + expand
+  function jumpToPin(pin) {
+    const idx = screenshots.findIndex(s => s.id === pin.screenshotId);
+    if (idx === -1) return;
+    setActiveIndex(idx);
+    setExpandedPinId(pin.id);
+    // Scroll viewer to top so pin is visible
+    setTimeout(() => {
+      containerRef.current?.querySelector('.markup-workspace__viewer')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
+  }
+
+  const setName = set?.name || 'Unfiled Screenshots';
+  const setDate = set?.targetDate;
+  const setStatus = set?.status || 'active';
+
+  return (
+    <div
+      className={`markup-workspace ${isDragging ? 'markup-workspace--dragging' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      ref={containerRef}
+    >
+      {isDragging && (
+        <div className="app-screenshots__drop-overlay">
+          <div className="app-screenshots__drop-overlay-text">Drop image to upload</div>
+        </div>
+      )}
+
+      {/* Top bar */}
+      <div className="markup-workspace__topbar">
+        <button className="btn btn--ghost btn--sm" onClick={onBack} title="Back to sets">
+          ← Sets
+        </button>
+        <div className="markup-workspace__title">
+          <h3>{setName}</h3>
+          <div className="markup-workspace__meta">
+            {set && (
+              <span className={`status-pill status-pill--mset-${setStatus}`}>
+                {setStatus === 'completed' ? '✓ Completed' : setStatus === 'archived' ? 'Archived' : 'Active'}
+              </span>
+            )}
+            {setDate && <span>Target: {setDate}</span>}
+            <span>
+              {totalPins} pin{totalPins !== 1 ? 's' : ''}
+              {totalPins > 0 && ` · ${openPins} open`}
+            </span>
+          </div>
+        </div>
+        <div className="markup-workspace__actions">
+          {!isCompletedSet && set && (
+            <label className="btn btn--ghost btn--sm" style={{ cursor: 'pointer' }}>
+              {uploading ? 'Uploading…' : '+ Screenshot'}
+              <input type="file" accept="image/*" onChange={handleFileInput} style={{ display: 'none' }} disabled={uploading} />
+            </label>
+          )}
+          {isAdmin && set && !isCompletedSet && (
+            <button
+              className="btn btn--primary btn--sm"
+              onClick={markSetComplete}
+              disabled={!allResolved}
+              title={allResolved ? 'Mark this set as complete' : `${openPins} pin${openPins !== 1 ? 's' : ''} still open`}
+            >
+              {allResolved ? '✓ Mark Complete' : `${openPins} open`}
+            </button>
+          )}
+          {isAdmin && set && isCompletedSet && (
+            <button className="btn btn--ghost btn--sm" onClick={reopenSet}>
+              Reopen
+            </button>
+          )}
+        </div>
+      </div>
+
+      {uploadError && <div className="modal__error">{uploadError}</div>}
+
+      {/* Body: sidebar + viewer */}
+      <div className="markup-workspace__body">
+        {/* Sidebar */}
+        <aside className="markup-workspace__sidebar">
+          <div className="markup-workspace__sidebar-header">
+            <span>Pins ({totalPins})</span>
+          </div>
+          {totalPins === 0 ? (
+            <p className="markup-workspace__empty-sidebar">
+              No pins yet. Drop a pin on a screenshot to get started.
+            </p>
+          ) : (
+            <ul className="markup-pin-list">
+              {screenshots.map((s, ssIdx) => {
+                const sPins = pins.filter(p => p.screenshotId === s.id);
+                if (sPins.length === 0) return null;
+                return (
+                  <li key={s.id} className="markup-pin-list__group">
+                    <div className="markup-pin-list__group-header">
+                      <span className="markup-pin-list__group-name">{s.caption || `Screenshot ${ssIdx + 1}`}</span>
+                      <span className="markup-pin-list__group-count">{sPins.length}</span>
+                    </div>
+                    <ul className="markup-pin-list__items">
+                      {sPins.map((p, pIdx) => (
+                        <li key={p.id}>
+                          <button
+                            className={`markup-pin-list__item markup-pin-list__item--${p.status} ${expandedPinId === p.id && active?.id === s.id ? 'markup-pin-list__item--active' : ''}`}
+                            onClick={() => jumpToPin(p)}
+                            title={p.body || ''}
+                          >
+                            <span className="markup-pin-list__num">{pIdx + 1}</span>
+                            <span className="markup-pin-list__body">
+                              {p.body ? (p.body.length > 80 ? p.body.slice(0, 80) + '…' : p.body) : <em>(no comment)</em>}
+                            </span>
+                            <span className="markup-pin-list__dot" aria-hidden="true" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </aside>
+
+        {/* Viewer */}
+        <div className="markup-workspace__viewer">
+          {!active ? (
+            <div className="empty-state" style={{ padding: 60 }}>
+              <span className="empty-state__icon">📸</span>
+              <h3>No screenshots in this set yet</h3>
+              <p>Paste an image (Ctrl+V), drop a file, or click "+ Screenshot" to add one.</p>
+            </div>
+          ) : (
+            <>
+              {/* Nav bar */}
+              <div className="markup-workspace__navbar">
+                <button
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => { setActiveIndex(i => (i - 1 + screenshots.length) % screenshots.length); setExpandedPinId(null); }}
+                  disabled={screenshots.length < 2}
+                >
+                  ← Prev
+                </button>
+                <div className="markup-workspace__nav-indicator">
+                  <span className="markup-workspace__nav-name">{active.caption || `Screenshot ${activeIndex + 1}`}</span>
+                  <span className="markup-workspace__nav-counter">
+                    {activeIndex + 1} of {screenshots.length}
+                  </span>
+                </div>
+                <button
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => { setActiveIndex(i => (i + 1) % screenshots.length); setExpandedPinId(null); }}
+                  disabled={screenshots.length < 2}
+                >
+                  Next →
+                </button>
+                <div style={{ flex: 1 }} />
+                {(isAdmin || active.capturedBy === currentUserId) && (
+                  <button
+                    className="btn btn--ghost btn--sm btn--danger-hover"
+                    onClick={handleDeleteScreenshot}
+                    title="Delete this screenshot"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+
+              <AnnotatedScreenshot
+                screenshot={active}
+                pins={activePins}
+                currentUserId={currentUserId}
+                isAdmin={isAdmin}
+                onAddPin={handleAddPin}
+                onResolvePin={handleResolvePin}
+                onDeletePin={handleDeletePin}
+                forceExpandPinId={expandedPinId}
+                onPinExpandChange={setExpandedPinId}
+              />
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
