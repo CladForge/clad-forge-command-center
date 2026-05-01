@@ -1,7 +1,20 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { generateId, initialSettings } from '../data/initialData';
 
-const INCOME_CATEGORIES = ['Client Payment', 'Retainer', 'Consulting', 'Hosting', 'Maintenance', 'Interest', 'Other Income'];
+// ─────────────────────────────────────────────────────────────────────
+// Finances — QuickBooks-style P&L + tax tracker.
+//
+// Income is computed from paid invoices, NOT manually entered. Mark an
+// invoice paid in the Invoices page and it shows up here automatically.
+// Expenses still require manual entry today; bank-link via Plaid (or
+// CSV import) is a Phase 2 follow-up — see reference_finances_phase2.md.
+//
+// All metrics scope to a single calendar year (filterYear) so the
+// quarterly tax estimator and YTD numbers always agree. Tax rate pulls
+// from settings.defaultTaxRate; default 25%.
+// ─────────────────────────────────────────────────────────────────────
+
 const EXPENSE_CATEGORIES = ['Software', 'Hosting', 'Advertising', 'Office Supplies', 'Equipment', 'Travel', 'Meals', 'Insurance', 'Professional Services', 'Education', 'Subscriptions', 'Utilities', 'Rent', 'Vehicle', 'Phone', 'Internet', 'Bank Fees', 'Taxes Paid', 'Other'];
 const TAX_WRITE_OFF_CATEGORIES = ['Business Use of Home', 'Vehicle/Mileage', 'Office Supplies', 'Software & Tools', 'Professional Development', 'Marketing & Advertising', 'Insurance Premiums', 'Travel & Meals (50%)', 'Professional Services', 'Equipment (Section 179)', 'Internet & Phone', 'Subscriptions', 'Other Deduction'];
 const PAYMENT_METHODS = ['Bank Transfer', 'Credit Card', 'PayPal', 'Stripe', 'Check', 'Cash', 'Zelle', 'Other'];
@@ -9,12 +22,29 @@ const PAYMENT_METHODS = ['Bank Transfer', 'Credit Card', 'PayPal', 'Stripe', 'Ch
 function fmt(n) { return '$' + Math.abs(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
 
-export default function Finances({ clients, projects, settings: rawSettings, entries, setEntries, taxPayments, setTaxPayments }) {
+// Compute the dollar total of a single invoice from its line items,
+// tax rate, and discount. Mirrors the calculation used everywhere else
+// (Dashboard, Reports) so the numbers always reconcile.
+function invoiceTotal(items, taxRate = 0, discount = 0) {
+  const sub = (items || []).reduce((s, i) => s + (i.quantity || 0) * (i.rate || 0), 0);
+  return Math.max(sub + sub * ((taxRate || 0) / 100) - (discount || 0), 0);
+}
+
+export default function Finances({
+  clients = [],
+  projects = [],
+  invoices = [],
+  settings: rawSettings,
+  entries,
+  setEntries,
+  taxPayments,
+  setTaxPayments,
+}) {
+  const navigate = useNavigate();
   const settings = { ...initialSettings, ...rawSettings };
   const [tab, setTab] = useState('overview');
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [showTaxModal, setShowTaxModal] = useState(false);
-  const [entryType, setEntryType] = useState('income');
   const [editId, setEditId] = useState(null);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [filterMonth, setFilterMonth] = useState('all');
@@ -22,7 +52,9 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
   const taxRate = (settings.defaultTaxRate || 25) / 100;
 
   const emptyEntry = {
-    type: 'income', date: new Date().toISOString().split('T')[0], amount: 0,
+    type: 'expense',
+    date: new Date().toISOString().split('T')[0],
+    amount: 0,
     category: '', description: '', clientId: '', projectId: '', invoiceId: '',
     taxDeductible: false, taxCategory: '', paymentMethod: '', notes: '',
   };
@@ -31,24 +63,64 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
   const emptyTax = { date: '', quarter: 'Q1', amount: 0, paymentMethod: 'Bank Transfer', confirmation: '', notes: '', year: filterYear };
   const [taxForm, setTaxForm] = useState(emptyTax);
 
-  // ═══ FILTERED DATA ═══
-  const yearEntries = useMemo(() =>
-    entries.filter(e => {
+  // ── Auto-derived income from paid invoices ──────────────────────
+  // Each paid invoice within the filter year becomes one income row.
+  // Uses paidDate when set (true cash event), falls back to issueDate
+  // for older paid invoices where paidDate wasn't recorded.
+  const incomeRows = useMemo(() => {
+    return invoices
+      .filter(i => i.status === 'paid')
+      .map(i => {
+        const dateStr = (i.paidDate || i.issueDate || '').slice(0, 10);
+        if (!dateStr) return null;
+        const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return null;
+        if (d.getFullYear() !== filterYear) return null;
+        const client = clients.find(c => c.id === i.clientId);
+        const project = projects.find(p => p.id === i.projectId);
+        return {
+          id: 'invoice-' + i.id,
+          invoiceId: i.id,
+          invoiceNumber: i.invoiceNumber,
+          date: dateStr,
+          month: d.getMonth(),
+          amount: invoiceTotal(i.items, i.taxRate, i.discount),
+          clientId: i.clientId,
+          clientName: client?.company || i.clientCompany || '—',
+          projectId: i.projectId,
+          projectTitle: project?.title || i.projectTitle || '',
+          paymentMethod: i.paymentMethod || '',
+        };
+      })
+      .filter(Boolean);
+  }, [invoices, clients, projects, filterYear]);
+
+  // ── Manual expense entries (kept) ────────────────────────────────
+  // We still let admins enter expenses by hand. Phase 2 (bank-link)
+  // will append rows to the same finance_entries table from a Plaid
+  // sync; nothing on this page needs to change when that lands.
+  const yearExpenses = useMemo(
+    () => entries.filter(e => {
+      if (e.type !== 'expense') return false;
       const d = new Date(e.date);
       return d.getFullYear() === filterYear;
     }),
-  [entries, filterYear]);
+    [entries, filterYear]
+  );
 
-  const filteredEntries = useMemo(() => {
-    if (filterMonth === 'all') return yearEntries;
-    return yearEntries.filter(e => new Date(e.date).getMonth() === parseInt(filterMonth));
-  }, [yearEntries, filterMonth]);
+  const filteredIncome = useMemo(() => {
+    if (filterMonth === 'all') return incomeRows;
+    return incomeRows.filter(r => r.month === parseInt(filterMonth));
+  }, [incomeRows, filterMonth]);
 
-  // ═══ METRICS ═══
-  const income = yearEntries.filter(e => e.type === 'income');
-  const expenses = yearEntries.filter(e => e.type === 'expense');
-  const totalIncome = income.reduce((s, e) => s + (e.amount || 0), 0);
-  const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const filteredExpenses = useMemo(() => {
+    if (filterMonth === 'all') return yearExpenses;
+    return yearExpenses.filter(e => new Date(e.date).getMonth() === parseInt(filterMonth));
+  }, [yearExpenses, filterMonth]);
+
+  // ── Aggregate metrics ────────────────────────────────────────────
+  const totalIncome = incomeRows.reduce((s, r) => s + r.amount, 0);
+  const totalExpenses = yearExpenses.reduce((s, e) => s + (e.amount || 0), 0);
   const netProfit = totalIncome - totalExpenses;
   const profitMargin = totalIncome > 0 ? netProfit / totalIncome : 0;
   const estimatedTax = Math.max(netProfit * taxRate, 0);
@@ -57,15 +129,17 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
   const totalTaxPaid = yearTaxPayments.reduce((s, t) => s + (t.amount || 0), 0);
   const taxRemaining = estimatedTax - totalTaxPaid;
 
-  const deductibleExpenses = expenses.filter(e => e.taxDeductible);
+  const deductibleExpenses = yearExpenses.filter(e => e.taxDeductible);
   const totalDeductions = deductibleExpenses.reduce((s, e) => s + (e.amount || 0), 0);
 
-  // Monthly breakdown
+  // Monthly breakdown (Jan..Dec, current filter year).
   const monthlyData = useMemo(() => {
     const months = [];
     for (let m = 0; m < 12; m++) {
-      const monthIncome = yearEntries.filter(e => e.type === 'income' && new Date(e.date).getMonth() === m).reduce((s, e) => s + (e.amount || 0), 0);
-      const monthExpense = yearEntries.filter(e => e.type === 'expense' && new Date(e.date).getMonth() === m).reduce((s, e) => s + (e.amount || 0), 0);
+      const monthIncome = incomeRows.filter(r => r.month === m).reduce((s, r) => s + r.amount, 0);
+      const monthExpense = yearExpenses
+        .filter(e => new Date(e.date).getMonth() === m)
+        .reduce((s, e) => s + (e.amount || 0), 0);
       months.push({
         label: new Date(filterYear, m).toLocaleString('en-US', { month: 'short' }),
         income: monthIncome,
@@ -74,59 +148,70 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
       });
     }
     return months;
-  }, [yearEntries, filterYear]);
-
+  }, [incomeRows, yearExpenses, filterYear]);
   const maxMonthly = Math.max(...monthlyData.map(m => Math.max(m.income, m.expenses)), 1);
 
-  // Category breakdowns
-  const incomeByCategory = useMemo(() => {
+  // Income by client (the most useful breakdown — invoices don't have
+  // free-form categories like manual income did).
+  const incomeByClient = useMemo(() => {
     const map = {};
-    income.forEach(e => { map[e.category || 'Other'] = (map[e.category || 'Other'] || 0) + (e.amount || 0); });
+    incomeRows.forEach(r => {
+      const key = r.clientName || '—';
+      map[key] = (map[key] || 0) + r.amount;
+    });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [income]);
+  }, [incomeRows]);
 
   const expenseByCategory = useMemo(() => {
     const map = {};
-    expenses.forEach(e => { map[e.category || 'Other'] = (map[e.category || 'Other'] || 0) + (e.amount || 0); });
+    yearExpenses.forEach(e => {
+      map[e.category || 'Other'] = (map[e.category || 'Other'] || 0) + (e.amount || 0);
+    });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [expenses]);
+  }, [yearExpenses]);
 
-  // Quarterly tax data
+  // Quarterly tax data — IRS estimated quarterly schedule.
   const quarters = [
-    { id: 'Q1', period: 'Jan 1 — Mar 31', months: [0, 1, 2], due: `Apr 15, ${filterYear}` },
-    { id: 'Q2', period: 'Apr 1 — May 31', months: [3, 4], due: `Jun 15, ${filterYear}` },
-    { id: 'Q3', period: 'Jun 1 — Aug 31', months: [5, 6, 7], due: `Sep 15, ${filterYear}` },
+    { id: 'Q1', period: 'Jan 1 — Mar 31', months: [0, 1, 2],     due: `Apr 15, ${filterYear}` },
+    { id: 'Q2', period: 'Apr 1 — May 31', months: [3, 4],         due: `Jun 15, ${filterYear}` },
+    { id: 'Q3', period: 'Jun 1 — Aug 31', months: [5, 6, 7],      due: `Sep 15, ${filterYear}` },
     { id: 'Q4', period: 'Sep 1 — Dec 31', months: [8, 9, 10, 11], due: `Jan 15, ${filterYear + 1}` },
   ];
-
   const quarterData = quarters.map(q => {
-    const qIncome = yearEntries.filter(e => e.type === 'income' && q.months.includes(new Date(e.date).getMonth())).reduce((s, e) => s + (e.amount || 0), 0);
-    const qExpense = yearEntries.filter(e => e.type === 'expense' && q.months.includes(new Date(e.date).getMonth())).reduce((s, e) => s + (e.amount || 0), 0);
+    const qIncome = incomeRows
+      .filter(r => q.months.includes(r.month))
+      .reduce((s, r) => s + r.amount, 0);
+    const qExpense = yearExpenses
+      .filter(e => q.months.includes(new Date(e.date).getMonth()))
+      .reduce((s, e) => s + (e.amount || 0), 0);
     const qProfit = qIncome - qExpense;
     const qTax = Math.max(qProfit * taxRate, 0);
     const qPaid = yearTaxPayments.filter(t => t.quarter === q.id).reduce((s, t) => s + (t.amount || 0), 0);
     return { ...q, income: qIncome, expenses: qExpense, profit: qProfit, taxOwed: qTax, taxPaid: qPaid };
   });
 
-  // ═══ CRUD ═══
-  function openAddEntry(type) {
-    setEntryType(type);
+  // ── Expense CRUD ─────────────────────────────────────────────────
+  function openAddExpense({ deductible = false } = {}) {
     setEditId(null);
-    setForm({ ...emptyEntry, type, category: type === 'income' ? 'Client Payment' : 'Software' });
+    setForm({
+      ...emptyEntry,
+      type: 'expense',
+      category: 'Software',
+      taxDeductible: deductible,
+    });
     setShowEntryModal(true);
   }
 
-  function openEditEntry(entry) {
-    setEntryType(entry.type);
+  function openEditExpense(entry) {
     setEditId(entry.id);
-    setForm({ ...entry });
+    setForm({ ...entry, type: 'expense' });
     setShowEntryModal(true);
   }
 
-  function saveEntry() {
+  function saveExpense() {
     if (!form.amount || !form.date) return;
     const d = new Date(form.date);
-    const record = { ...form, year: d.getFullYear(), month: d.getMonth() + 1 };
+    const record = { ...form, type: 'expense', year: d.getFullYear(), month: d.getMonth() + 1 };
     if (editId) {
       setEntries(prev => prev.map(e => e.id === editId ? { ...record, id: editId } : e));
     } else {
@@ -135,11 +220,12 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
     setShowEntryModal(false);
   }
 
-  function deleteEntry(id) {
-    if (!window.confirm('Delete this entry?')) return;
+  function deleteExpense(id) {
+    if (!window.confirm('Delete this expense?')) return;
     setEntries(prev => prev.filter(e => e.id !== id));
   }
 
+  // ── Tax payment CRUD ─────────────────────────────────────────────
   function saveTaxPayment() {
     if (!taxForm.amount || !taxForm.date) return;
     setTaxPayments(prev => [...prev, { ...taxForm, id: generateId(), createdAt: new Date().toISOString() }]);
@@ -153,13 +239,12 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
   }
 
   const TABS = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'income', label: 'Income' },
-    { id: 'expenses', label: 'Expenses' },
+    { id: 'overview',   label: 'Overview' },
+    { id: 'income',     label: 'Income' },
+    { id: 'expenses',   label: 'Expenses' },
     { id: 'deductions', label: 'Write-Offs' },
-    { id: 'taxes', label: 'Taxes' },
+    { id: 'taxes',      label: 'Taxes' },
   ];
-
   const MONTHS = [
     { value: 'all', label: 'All Months' },
     ...Array.from({ length: 12 }, (_, i) => ({
@@ -170,7 +255,7 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
 
   return (
     <div className="fin">
-      {/* Year selector + tabs */}
+      {/* Year + Month selectors */}
       <div className="fin__header">
         <div className="fin__tabs">
           {TABS.map(t => (
@@ -190,13 +275,39 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
       {/* ═══ OVERVIEW TAB ═══ */}
       {tab === 'overview' && (
         <>
-          {/* KPIs */}
           <div className="fin__kpis">
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--success)' }} /><span className="stat-card__label">Total Income</span><span className="stat-card__value">{fmt(totalIncome)}</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--danger)' }} /><span className="stat-card__label">Total Expenses</span><span className="stat-card__value">{fmt(totalExpenses)}</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--brand)' }} /><span className="stat-card__label">Net Profit</span><span className="stat-card__value" style={{ color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>{netProfit < 0 ? '-' : ''}{fmt(netProfit)}</span><span className="stat-card__sub">{fmtPct(profitMargin)} margin</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--purple)' }} /><span className="stat-card__label">Est. Tax Owed</span><span className="stat-card__value">{fmt(estimatedTax)}</span><span className="stat-card__sub">{fmt(totalTaxPaid)} paid · {fmt(Math.max(taxRemaining, 0))} remaining</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--info)' }} /><span className="stat-card__label">Write-Offs</span><span className="stat-card__value">{fmt(totalDeductions)}</span><span className="stat-card__sub">{deductibleExpenses.length} deductible items</span></div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--success)' }} />
+              <span className="stat-card__label">Total Income</span>
+              <span className="stat-card__value">{fmt(totalIncome)}</span>
+              <span className="stat-card__sub">{incomeRows.length} paid invoice{incomeRows.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--danger)' }} />
+              <span className="stat-card__label">Total Expenses</span>
+              <span className="stat-card__value">{fmt(totalExpenses)}</span>
+              <span className="stat-card__sub">{yearExpenses.length} entries</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--brand)' }} />
+              <span className="stat-card__label">Net Profit</span>
+              <span className="stat-card__value" style={{ color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                {netProfit < 0 ? '-' : ''}{fmt(netProfit)}
+              </span>
+              <span className="stat-card__sub">{fmtPct(profitMargin)} margin</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--purple)' }} />
+              <span className="stat-card__label">Est. Tax Owed</span>
+              <span className="stat-card__value">{fmt(estimatedTax)}</span>
+              <span className="stat-card__sub">{fmt(totalTaxPaid)} paid · {fmt(Math.max(taxRemaining, 0))} remaining</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--info)' }} />
+              <span className="stat-card__label">Write-Offs</span>
+              <span className="stat-card__value">{fmt(totalDeductions)}</span>
+              <span className="stat-card__sub">{deductibleExpenses.length} deductible items</span>
+            </div>
           </div>
 
           {/* Monthly Chart */}
@@ -221,12 +332,14 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
             </div>
           </div>
 
-          {/* Category Breakdowns side by side */}
+          {/* Side-by-side breakdowns */}
           <div className="fin__row">
             <div className="panel">
-              <div className="panel__header"><h3>Income by Category</h3></div>
+              <div className="panel__header"><h3>Income by Client</h3></div>
               <div style={{ padding: '12px 22px' }}>
-                {incomeByCategory.length === 0 ? <p style={{ fontSize: '0.82rem', color: 'var(--slate)' }}>No income recorded</p> : incomeByCategory.map(([cat, amt]) => (
+                {incomeByClient.length === 0 ? (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--slate)' }}>No paid invoices yet this year.</p>
+                ) : incomeByClient.map(([cat, amt]) => (
                   <div key={cat} className="fin__cat-row">
                     <span>{cat}</span>
                     <span className="fin__cat-amount" style={{ color: 'var(--success)' }}>{fmt(amt)}</span>
@@ -237,7 +350,9 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
             <div className="panel">
               <div className="panel__header"><h3>Expenses by Category</h3></div>
               <div style={{ padding: '12px 22px' }}>
-                {expenseByCategory.length === 0 ? <p style={{ fontSize: '0.82rem', color: 'var(--slate)' }}>No expenses recorded</p> : expenseByCategory.map(([cat, amt]) => (
+                {expenseByCategory.length === 0 ? (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--slate)' }}>No expenses recorded yet.</p>
+                ) : expenseByCategory.map(([cat, amt]) => (
                   <div key={cat} className="fin__cat-row">
                     <span>{cat}</span>
                     <span className="fin__cat-amount" style={{ color: 'var(--danger)' }}>{fmt(amt)}</span>
@@ -249,34 +364,125 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
         </>
       )}
 
-      {/* ═══ INCOME / EXPENSES TAB ═══ */}
-      {(tab === 'income' || tab === 'expenses') && (
+      {/* ═══ INCOME TAB — auto-derived, read-only ═══ */}
+      {tab === 'income' && (
         <>
-          <div className="toolbar">
-            <div className="toolbar__left" />
-            <button className="btn btn--primary" onClick={() => openAddEntry(tab)}>
-              + Add {tab === 'income' ? 'Income' : 'Expense'}
-            </button>
+          <div className="panel" style={{ marginBottom: 16, padding: '14px 18px', background: 'var(--brand-wash)', border: '1px dashed var(--brand-mid)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.88rem', color: 'var(--slate)', lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 600, color: 'var(--brand)' }}>Auto-tracked from invoices.</span>
+              <span>
+                Income flows here when you mark an invoice paid in
+                {' '}<button type="button" onClick={() => navigate('/invoices')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--brand)', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>Invoices</button>.
+                Manual entry isn&apos;t needed.
+              </span>
+            </div>
           </div>
+
           <div className="panel">
-            {filteredEntries.filter(e => e.type === tab).length === 0 ? (
-              <div className="empty-state"><span className="empty-state__icon">{tab === 'income' ? '💰' : '💸'}</span><h3>No {tab} entries</h3><p>Add your first {tab} entry to start tracking</p></div>
+            <div className="panel__header">
+              <h3>Income — {filterYear}{filterMonth !== 'all' ? `, ${MONTHS.find(m => m.value === filterMonth)?.label}` : ''}</h3>
+              <span className="data-table__mono" style={{ color: 'var(--success)', fontWeight: 700 }}>
+                {fmt(filteredIncome.reduce((s, r) => s + r.amount, 0))}
+              </span>
+            </div>
+            {filteredIncome.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-state__icon">💰</span>
+                <h3>No income for this period</h3>
+                <p>Mark an invoice paid and it&apos;ll appear here automatically.</p>
+              </div>
             ) : (
               <table className="data-table">
-                <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Client</th>{tab === 'expenses' && <th>Deductible</th>}<th>Method</th><th></th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Date Paid</th>
+                    <th>Invoice #</th>
+                    <th>Client</th>
+                    <th>Project</th>
+                    <th>Method</th>
+                    <th style={{ textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {filteredEntries.filter(e => e.type === tab).sort((a, b) => new Date(b.date) - new Date(a.date)).map(entry => {
+                  {filteredIncome.sort((a, b) => (b.date > a.date ? 1 : -1)).map(row => (
+                    <tr
+                      key={row.id}
+                      className="data-table__clickable"
+                      onClick={() => navigate('/invoices')}
+                      title="Open in Invoices"
+                    >
+                      <td className="data-table__muted">{row.date}</td>
+                      <td className="data-table__bold">{row.invoiceNumber || '—'}</td>
+                      <td>{row.clientName}</td>
+                      <td className="data-table__muted">{row.projectTitle || '—'}</td>
+                      <td className="data-table__muted">{row.paymentMethod || '—'}</td>
+                      <td className="data-table__mono data-table__bold" style={{ color: 'var(--success)', textAlign: 'right' }}>
+                        {fmt(row.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ═══ EXPENSES TAB — manual + bank-link stub ═══ */}
+      {tab === 'expenses' && (
+        <>
+          {/* Phase 2 stub explaining the planned bank-link flow. */}
+          <div className="panel" style={{ marginBottom: 16, padding: '14px 18px', background: 'var(--brand-wash)', border: '1px dashed var(--brand-mid)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.88rem', color: 'var(--slate)', lineHeight: 1.5, flex: 1, minWidth: 280 }}>
+                <strong style={{ color: 'var(--brand)' }}>Bank-linked expenses — coming soon.</strong>
+                {' '}Connect your business bank or upload a transaction CSV and we&apos;ll
+                auto-categorize and import everything. For now, log expenses manually below.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn--ghost btn--sm" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+                  Connect bank
+                </button>
+                <button className="btn btn--ghost btn--sm" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+                  Import CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="toolbar">
+            <div className="toolbar__left" />
+            <button className="btn btn--primary" onClick={() => openAddExpense()}>+ Add Expense</button>
+          </div>
+
+          <div className="panel">
+            {filteredExpenses.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-state__icon">💸</span>
+                <h3>No expenses for this period</h3>
+                <p>Add your first expense to start tracking.</p>
+              </div>
+            ) : (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Category</th><th>Description</th><th>Client</th>
+                    <th>Deductible</th><th>Method</th><th style={{ textAlign: 'right' }}>Amount</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredExpenses.sort((a, b) => new Date(b.date) - new Date(a.date)).map(entry => {
                     const client = clients.find(c => c.id === entry.clientId);
                     return (
-                      <tr key={entry.id} className="data-table__clickable" onClick={() => openEditEntry(entry)}>
+                      <tr key={entry.id} className="data-table__clickable" onClick={() => openEditExpense(entry)}>
                         <td className="data-table__muted">{entry.date}</td>
                         <td>{entry.category || '—'}</td>
                         <td>{entry.description || '—'}</td>
-                        <td className="data-table__mono data-table__bold" style={{ color: tab === 'income' ? 'var(--success)' : 'var(--danger)' }}>{fmt(entry.amount)}</td>
                         <td className="data-table__muted">{client?.company || '—'}</td>
-                        {tab === 'expenses' && <td>{entry.taxDeductible ? <span className="freq-badge freq-badge--annual">Yes</span> : '—'}</td>}
+                        <td>{entry.taxDeductible ? <span className="freq-badge freq-badge--annual">Yes</span> : '—'}</td>
                         <td className="data-table__muted">{entry.paymentMethod || '—'}</td>
-                        <td><div className="action-btns" onClick={e => e.stopPropagation()}><button className="btn btn--ghost btn--sm btn--danger-hover" onClick={() => deleteEntry(entry.id)}>×</button></div></td>
+                        <td className="data-table__mono data-table__bold" style={{ color: 'var(--danger)', textAlign: 'right' }}>{fmt(entry.amount)}</td>
+                        <td><div className="action-btns" onClick={e => e.stopPropagation()}><button className="btn btn--ghost btn--sm btn--danger-hover" onClick={() => deleteExpense(entry.id)}>×</button></div></td>
                       </tr>
                     );
                   })}
@@ -291,26 +497,46 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
       {tab === 'deductions' && (
         <>
           <div className="fin__kpis" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--success)' }} /><span className="stat-card__label">Total Deductions</span><span className="stat-card__value">{fmt(totalDeductions)}</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--brand)' }} /><span className="stat-card__label">Tax Savings (est.)</span><span className="stat-card__value">{fmt(totalDeductions * taxRate)}</span><span className="stat-card__sub">at {(taxRate * 100).toFixed(0)}% rate</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--info)' }} /><span className="stat-card__label">Deductible Items</span><span className="stat-card__value">{deductibleExpenses.length}</span></div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--success)' }} />
+              <span className="stat-card__label">Total Deductions</span>
+              <span className="stat-card__value">{fmt(totalDeductions)}</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--brand)' }} />
+              <span className="stat-card__label">Tax Savings (est.)</span>
+              <span className="stat-card__value">{fmt(totalDeductions * taxRate)}</span>
+              <span className="stat-card__sub">at {(taxRate * 100).toFixed(0)}% rate</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--info)' }} />
+              <span className="stat-card__label">Deductible Items</span>
+              <span className="stat-card__value">{deductibleExpenses.length}</span>
+            </div>
           </div>
-          <div className="toolbar"><div className="toolbar__left" /><button className="btn btn--primary" onClick={() => { openAddEntry('expense'); setForm(f => ({ ...f, taxDeductible: true })); }}>+ Add Write-Off</button></div>
+          <div className="toolbar">
+            <div className="toolbar__left" />
+            <button className="btn btn--primary" onClick={() => openAddExpense({ deductible: true })}>+ Add Write-Off</button>
+          </div>
           <div className="panel">
             {deductibleExpenses.length === 0 ? (
-              <div className="empty-state"><span className="empty-state__icon">📋</span><h3>No write-offs recorded</h3><p>Mark expenses as tax-deductible when adding them</p></div>
+              <div className="empty-state">
+                <span className="empty-state__icon">📋</span>
+                <h3>No write-offs recorded</h3>
+                <p>Mark expenses as tax-deductible when adding them.</p>
+              </div>
             ) : (
               <table className="data-table">
-                <thead><tr><th>Date</th><th>Tax Category</th><th>Description</th><th>Amount</th><th>Category</th><th></th></tr></thead>
+                <thead><tr><th>Date</th><th>Tax Category</th><th>Description</th><th>Category</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr></thead>
                 <tbody>
                   {deductibleExpenses.sort((a, b) => new Date(b.date) - new Date(a.date)).map(entry => (
-                    <tr key={entry.id} className="data-table__clickable" onClick={() => openEditEntry(entry)}>
+                    <tr key={entry.id} className="data-table__clickable" onClick={() => openEditExpense(entry)}>
                       <td className="data-table__muted">{entry.date}</td>
                       <td><span className="freq-badge freq-badge--annual">{entry.taxCategory || entry.category}</span></td>
                       <td>{entry.description || '—'}</td>
-                      <td className="data-table__mono data-table__bold">{fmt(entry.amount)}</td>
                       <td className="data-table__muted">{entry.category}</td>
-                      <td><div className="action-btns" onClick={e => e.stopPropagation()}><button className="btn btn--ghost btn--sm btn--danger-hover" onClick={() => deleteEntry(entry.id)}>×</button></div></td>
+                      <td className="data-table__mono data-table__bold" style={{ textAlign: 'right' }}>{fmt(entry.amount)}</td>
+                      <td><div className="action-btns" onClick={e => e.stopPropagation()}><button className="btn btn--ghost btn--sm btn--danger-hover" onClick={() => deleteExpense(entry.id)}>×</button></div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -324,15 +550,35 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
       {tab === 'taxes' && (
         <>
           <div className="fin__kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--warning)' }} /><span className="stat-card__label">Est. Taxes Owed</span><span className="stat-card__value">{fmt(estimatedTax)}</span><span className="stat-card__sub">{(taxRate * 100).toFixed(0)}% of {fmt(netProfit)} profit</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--success)' }} /><span className="stat-card__label">Taxes Paid</span><span className="stat-card__value">{fmt(totalTaxPaid)}</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: taxRemaining > 0 ? 'var(--danger)' : 'var(--success)' }} /><span className="stat-card__label">Remaining</span><span className="stat-card__value" style={{ color: taxRemaining > 0 ? 'var(--danger)' : 'var(--success)' }}>{fmt(Math.max(taxRemaining, 0))}</span></div>
-            <div className="stat-card"><div className="stat-card__accent" style={{ background: 'var(--info)' }} /><span className="stat-card__label">Deduction Savings</span><span className="stat-card__value">{fmt(totalDeductions * taxRate)}</span></div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--warning)' }} />
+              <span className="stat-card__label">Est. Taxes Owed</span>
+              <span className="stat-card__value">{fmt(estimatedTax)}</span>
+              <span className="stat-card__sub">{(taxRate * 100).toFixed(0)}% of {fmt(netProfit)} profit</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--success)' }} />
+              <span className="stat-card__label">Taxes Paid</span>
+              <span className="stat-card__value">{fmt(totalTaxPaid)}</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: taxRemaining > 0 ? 'var(--danger)' : 'var(--success)' }} />
+              <span className="stat-card__label">Remaining</span>
+              <span className="stat-card__value" style={{ color: taxRemaining > 0 ? 'var(--danger)' : 'var(--success)' }}>{fmt(Math.max(taxRemaining, 0))}</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--info)' }} />
+              <span className="stat-card__label">Deduction Savings</span>
+              <span className="stat-card__value">{fmt(totalDeductions * taxRate)}</span>
+            </div>
           </div>
 
           {/* Quarterly Breakdown */}
           <div className="panel" style={{ marginBottom: 20 }}>
-            <div className="panel__header"><h3>Quarterly Tax Schedule — {filterYear}</h3></div>
+            <div className="panel__header">
+              <h3>Quarterly Tax Schedule — {filterYear}</h3>
+              <span style={{ fontSize: '0.78rem', color: 'var(--slate-light)' }}>Income from paid invoices · expenses from this page</span>
+            </div>
             <table className="data-table">
               <thead><tr><th>Quarter</th><th>Period</th><th>Income</th><th>Expenses</th><th>Profit</th><th>Est. Tax</th><th>Paid</th><th>Due Date</th></tr></thead>
               <tbody>
@@ -354,18 +600,23 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
 
           {/* Tax Payment Log */}
           <div className="panel">
-            <div className="panel__header"><h3>Tax Payment Log</h3><button className="btn btn--primary btn--sm" onClick={() => { setTaxForm({ ...emptyTax, year: filterYear }); setShowTaxModal(true); }}>+ Log Payment</button></div>
+            <div className="panel__header">
+              <h3>Tax Payment Log</h3>
+              <button className="btn btn--primary btn--sm" onClick={() => { setTaxForm({ ...emptyTax, year: filterYear }); setShowTaxModal(true); }}>+ Log Payment</button>
+            </div>
             {yearTaxPayments.length === 0 ? (
-              <div className="empty-state" style={{ padding: '32px 20px' }}><p>No tax payments recorded for {filterYear}</p></div>
+              <div className="empty-state" style={{ padding: '32px 20px' }}>
+                <p>No tax payments recorded for {filterYear}</p>
+              </div>
             ) : (
               <table className="data-table">
-                <thead><tr><th>Date</th><th>Quarter</th><th>Amount</th><th>Method</th><th>Confirmation #</th><th>Notes</th><th></th></tr></thead>
+                <thead><tr><th>Date</th><th>Quarter</th><th style={{ textAlign: 'right' }}>Amount</th><th>Method</th><th>Confirmation #</th><th>Notes</th><th></th></tr></thead>
                 <tbody>
                   {yearTaxPayments.sort((a, b) => new Date(b.date) - new Date(a.date)).map(tp => (
                     <tr key={tp.id}>
                       <td className="data-table__muted">{tp.date}</td>
                       <td className="data-table__bold">{tp.quarter}</td>
-                      <td className="data-table__mono data-table__bold">{fmt(tp.amount)}</td>
+                      <td className="data-table__mono data-table__bold" style={{ textAlign: 'right' }}>{fmt(tp.amount)}</td>
                       <td>{tp.paymentMethod || '—'}</td>
                       <td className="data-table__mono data-table__muted">{tp.confirmation || '—'}</td>
                       <td className="data-table__muted">{tp.notes || '—'}</td>
@@ -379,42 +630,38 @@ export default function Finances({ clients, projects, settings: rawSettings, ent
         </>
       )}
 
-      {/* ═══ ENTRY MODAL ═══ */}
+      {/* ═══ EXPENSE MODAL ═══ */}
       {showEntryModal && (
         <div className="modal-overlay" onClick={() => setShowEntryModal(false)}>
           <div className="modal modal--wide" onClick={e => e.stopPropagation()}>
             <div className="modal__header">
-              <h2>{editId ? 'Edit' : 'Add'} {entryType === 'income' ? 'Income' : 'Expense'}</h2>
+              <h2>{editId ? 'Edit Expense' : 'Add Expense'}</h2>
               <button className="modal__close" onClick={() => setShowEntryModal(false)}>×</button>
             </div>
             <div className="modal__body">
               <div className="form-grid">
                 <div className="form-group"><label>Date *</label><input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
                 <div className="form-group"><label>Amount *</label><input type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) || 0 }))} /></div>
-                <div className="form-group"><label>Category</label><select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}><option value="">Select...</option>{(entryType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div className="form-group"><label>Category</label><select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}><option value="">Select...</option>{EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                 <div className="form-group"><label>Payment Method</label><select value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))}><option value="">Select...</option>{PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                <div className="form-group form-group--full"><label>Description</label><input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder={entryType === 'income' ? 'e.g., TradeLink 30% deposit' : 'e.g., Proton Mail subscription'} /></div>
+                <div className="form-group form-group--full"><label>Description</label><input type="text" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="e.g., Adobe Creative Cloud subscription" /></div>
                 <div className="form-group"><label>Client (optional)</label><select value={form.clientId || ''} onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))}><option value="">None</option>{clients.map(c => <option key={c.id} value={c.id}>{c.company}</option>)}</select></div>
                 <div className="form-group"><label>Project (optional)</label><select value={form.projectId || ''} onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))}><option value="">None</option>{projects.filter(p => !form.clientId || p.clientId === form.clientId).map(p => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
-                {entryType === 'expense' && (
-                  <>
-                    <div className="form-group form-group--full" style={{ display: 'flex', alignItems: 'center', gap: 12, flexDirection: 'row' }}>
-                      <label style={{ margin: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input type="checkbox" checked={form.taxDeductible} onChange={e => setForm(f => ({ ...f, taxDeductible: e.target.checked }))} style={{ width: 'auto', accentColor: 'var(--brand)' }} />
-                        Tax-deductible write-off
-                      </label>
-                    </div>
-                    {form.taxDeductible && (
-                      <div className="form-group form-group--full"><label>Tax Write-Off Category</label><select value={form.taxCategory} onChange={e => setForm(f => ({ ...f, taxCategory: e.target.value }))}><option value="">Select IRS category...</option>{TAX_WRITE_OFF_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                    )}
-                  </>
+                <div className="form-group form-group--full" style={{ display: 'flex', alignItems: 'center', gap: 12, flexDirection: 'row' }}>
+                  <label style={{ margin: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="checkbox" checked={form.taxDeductible} onChange={e => setForm(f => ({ ...f, taxDeductible: e.target.checked }))} style={{ width: 'auto', accentColor: 'var(--brand)' }} />
+                    Tax-deductible write-off
+                  </label>
+                </div>
+                {form.taxDeductible && (
+                  <div className="form-group form-group--full"><label>Tax Write-Off Category</label><select value={form.taxCategory} onChange={e => setForm(f => ({ ...f, taxCategory: e.target.value }))}><option value="">Select IRS category...</option>{TAX_WRITE_OFF_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                 )}
-                <div className="form-group form-group--full"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Additional notes, receipt details..." rows={2} /></div>
+                <div className="form-group form-group--full"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Receipt details, vendor, etc." rows={2} /></div>
               </div>
             </div>
             <div className="modal__footer">
               <button className="btn btn--ghost" onClick={() => setShowEntryModal(false)}>Cancel</button>
-              <button className="btn btn--primary" onClick={saveEntry}>{editId ? 'Save Changes' : `Add ${entryType === 'income' ? 'Income' : 'Expense'}`}</button>
+              <button className="btn btn--primary" onClick={saveExpense}>{editId ? 'Save Changes' : 'Add Expense'}</button>
             </div>
           </div>
         </div>

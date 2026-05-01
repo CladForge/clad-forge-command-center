@@ -187,7 +187,7 @@ export default function App() {
             <Route path="/proposals" element={<Proposals clients={clients} projects={projects} setProjects={setProjects} sows={sows} setSOWs={setSOWs} settings={settings} />} />
             <Route path="/invoices" element={<Invoices clients={clients} projects={projects} settings={settings} invoices={invoices} setInvoices={setInvoices} />} />
             <Route path="/recurring" element={<RecurringExpenses clients={clients} projects={projects} expenses={recurringExpenses} setExpenses={setRecurringExpenses} settings={settings} />} />
-            <Route path="/finances" element={<Finances clients={clients} projects={projects} settings={settings} entries={financeEntries} setEntries={setFinanceEntries} taxPayments={taxPayments} setTaxPayments={setTaxPayments} />} />
+            <Route path="/finances" element={<Finances clients={clients} projects={projects} invoices={invoices} settings={settings} entries={financeEntries} setEntries={setFinanceEntries} taxPayments={taxPayments} setTaxPayments={setTaxPayments} />} />
             <Route path="/reports" element={<Reports clients={clients} projects={projects} sows={sows} invoices={invoices} recurringExpenses={recurringExpenses} applications={applications} annotationPins={annotationPins} settings={settings} />} />
             <Route path="/calendar" element={<Calendar events={events} setEvents={setEvents} projects={projects} invoices={invoices} sows={sows} recurringExpenses={recurringExpenses} milestones={milestones} markupSets={markupSets} clients={clients} settings={settings} setSettings={setSettings} />} />
             <Route path="/ai" element={<AIAssistant clients={clients} projects={projects} sows={sows} invoices={invoices} settings={settings} />} />
