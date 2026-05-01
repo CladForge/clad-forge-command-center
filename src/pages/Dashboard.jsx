@@ -104,11 +104,10 @@ export default function Dashboard({ clients, projects, sows, activities, setting
       <div className="dash__welcome">
         <div className="dash__welcome-content">
           <h2>Welcome back, {settings.ownerName?.split(' ')[0] || 'there'}</h2>
-          <p>Here's how {settings.companyName || 'your business'} is performing</p>
         </div>
         <div className="dash__welcome-actions">
           <button className="btn btn--primary" onClick={() => navigate('/proposals')}>+ New Proposal</button>
-          <button className="btn btn--secondary" onClick={() => navigate('/invoices')}>+ New Invoice</button>
+          <button className="btn btn--primary" onClick={() => navigate('/invoices')}>+ New Invoice</button>
         </div>
       </div>
 
