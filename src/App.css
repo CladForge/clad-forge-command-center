@@ -903,7 +903,7 @@
    ugly leftovers like 6/1 or 5/2. The fallback (5) covers the default
    visible-count of 5; the inline style sets --kpi-cols dynamically.
    minmax(0, 1fr) lets cells shrink instead of overflowing on narrow widths. */
-.dash__kpis { display: grid; grid-template-columns: repeat(var(--kpi-cols, 5), minmax(0, 1fr)); gap: 14px; margin-bottom: 24px; }
+.dash__kpis { display: grid; grid-template-columns: repeat(var(--kpi-cols, 5), minmax(0, 1fr)); gap: 20px; margin-bottom: 20px; }
 
 /* Card visual is driven by --card-color (set inline per-card from JS).
    Treatments stacked: 3px top accent in card color, soft tinted background
