@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { initialSettings } from '../data/initialData';
 import { KPI_CARD_DEFS, resolveCardOrder, colorFor, MAX_VISIBLE_KPI_CARDS, resolveDashboardPreferences } from '../lib/dashboardCards';
 
@@ -865,21 +865,41 @@ function DashboardCardRow({
     setInvalid(false);
   }
 
+  // Only the ≡ handle initiates a drag now. The row itself isn't draggable
+  // — that lets users click into the hex input or the toggle without
+  // accidentally starting a drag. We still set the row as the drag image
+  // (via setDragImage) so the visual ghost feels right when reordering.
+  const rowRef = useRef(null);
+  function handleHandleDragStart(e) {
+    if (rowRef.current) {
+      // Offset roughly to where the handle is so the ghost doesn't jump.
+      e.dataTransfer.setDragImage(rowRef.current, 24, 18);
+    }
+    onDragStart(e);
+  }
+
   return (
     <div
+      ref={rowRef}
       className={[
         'dash-pref-row',
         !enabled && 'dash-pref-row--off',
         isDragging && 'dash-pref-row--dragging',
         isDropTarget && 'dash-pref-row--drop',
       ].filter(Boolean).join(' ')}
-      draggable
-      onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
     >
-      <span className="dash-pref-row__handle" aria-hidden="true">≡</span>
+      <span
+        className="dash-pref-row__handle"
+        draggable
+        onDragStart={handleHandleDragStart}
+        title="Drag to reorder"
+        aria-label="Drag to reorder"
+      >
+        ≡
+      </span>
       {/* Static visual swatch — purely a preview of the current color. */}
       <span
         className="dash-pref-row__swatch"
@@ -893,7 +913,6 @@ function DashboardCardRow({
         value={text}
         onChange={handleChange}
         onBlur={handleBlur}
-        onMouseDown={e => e.stopPropagation()}
         spellCheck={false}
         aria-label={`Hex color for ${def?.label}`}
         placeholder="#rrggbb"
@@ -904,7 +923,6 @@ function DashboardCardRow({
           type="button"
           className="dash-pref-row__reset"
           onClick={onResetColor}
-          onMouseDown={e => e.stopPropagation()}
           title="Reset to default color"
         >
           Reset
@@ -913,7 +931,6 @@ function DashboardCardRow({
       <button
         className={`settings__toggle ${enabled ? 'settings__toggle--on' : ''} ${toggleLocked ? 'settings__toggle--locked' : ''}`}
         onClick={onToggle}
-        onMouseDown={e => e.stopPropagation()}
         disabled={toggleLocked}
         role="switch"
         aria-checked={enabled}
