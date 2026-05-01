@@ -197,7 +197,7 @@ export default function App() {
             <Route path="/tickets" element={<Tickets clients={clients} applications={applications} tickets={tickets} setTickets={setTickets} ticketComments={ticketComments} setTicketComments={setTicketComments} profile={profile} />} />
             <Route path="/finances" element={<Finances clients={clients} projects={projects} settings={settings} entries={financeEntries} setEntries={setFinanceEntries} taxPayments={taxPayments} setTaxPayments={setTaxPayments} />} />
             <Route path="/time" element={<TimeTracker projects={projects} clients={clients} entries={timeEntries} setEntries={setTimeEntries} />} />
-            <Route path="/reports" element={<Reports clients={clients} projects={projects} invoices={invoices} timeEntries={timeEntries} settings={settings} />} />
+            <Route path="/reports" element={<Reports clients={clients} projects={projects} sows={sows} invoices={invoices} recurringExpenses={recurringExpenses} applications={applications} tickets={tickets} annotationPins={annotationPins} settings={settings} />} />
             <Route path="/calendar" element={<Calendar events={events} setEvents={setEvents} projects={projects} invoices={invoices} clients={clients} />} />
             <Route path="/ai" element={<AIAssistant clients={clients} projects={projects} sows={sows} invoices={invoices} settings={settings} />} />
             <Route path="/contractors" element={<Contractors contractors={contractors} setContractors={setContractors} projects={projects} />} />

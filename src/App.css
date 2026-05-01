@@ -2972,24 +2972,318 @@ mark.code-highlight {
 .ai-send:hover { background: var(--brand-mid); transform: translateY(-1px); }
 
 /* ===== REPORTS ===== */
-.reports-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-.reports-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; color: var(--ink); }
-.reports-subtitle { font-size: 0.85rem; color: var(--slate); margin-top: 2px; }
-.reports-period { display: flex; gap: 4px; }
-.reports-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-.reports-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
-.reports-chart { display: flex; align-items: flex-end; gap: 8px; height: 140px; padding: 8px 0 20px; }
-.reports-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
-.reports-bar { width: 100%; background: rgba(255,140,0,0.15); border-radius: 4px 4px 0 0; transition: background 0.2s; cursor: pointer; min-height: 4px; }
-.reports-bar:hover { background: rgba(255,140,0,0.35); }
-.reports-bar-val { font-size: 0.68rem; color: var(--brand); font-weight: 600; margin-bottom: 4px; font-family: var(--font-mono); }
-.reports-bar-label { font-size: 0.65rem; color: var(--slate-light); margin-top: 6px; }
-.reports-breakdown { display: flex; flex-direction: column; gap: 12px; }
-.reports-breakdown-item { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; }
-.reports-breakdown-item strong { margin-left: auto; color: var(--ink); }
-.reports-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.reports-breakdown-bar { height: 6px; background: var(--surface-elevated); border-radius: 6px; overflow: hidden; }
-.reports-breakdown-bar div { height: 100%; border-radius: 6px; }
+/* ═══════════════════════════════════════════════════════════════════
+   REPORTS PAGE
+   Designed to mirror the dashboard's visual language (reuses .dash__card,
+   .dash__kpi, .dash__h-bars, etc.) plus a few report-specific blocks.
+   The print stylesheet at the bottom strips out chrome and inserts a
+   cover/footer so the page can be saved as a PDF or printed straight.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.report { display: flex; flex-direction: column; gap: 4px; }
+
+/* Screen-only header — hidden when printing. */
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.report-header__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.report-header__sub {
+  font-size: 0.88rem;
+  color: var(--slate);
+  margin-top: 4px;
+}
+.report-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.report-period { display: flex; gap: 4px; }
+
+/* Print-only cover page. Shown via @media print at the bottom of this
+   block; hidden on screen. */
+.report-cover { display: none; }
+
+/* Section wrapping — adds vertical rhythm and a subtle title rule.
+   page-break-inside hint helps printed reports keep sections together. */
+.report-section {
+  margin-bottom: 32px;
+  break-inside: avoid-page;
+}
+.report-section__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* KPI strip at the top of each section (or on its own). Uses the same
+   .dash__kpi child class as the dashboard for visual parity. */
+.report-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.report-grid { display: grid; gap: 20px; }
+.report-grid--2 { grid-template-columns: 1fr 1fr; }
+
+/* Generic ranked-list block used by Top Clients, Apps by MRR. */
+.report-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 280px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.report-list__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.report-list__row:last-child { border-bottom: none; }
+.report-list__rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--stone);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--slate);
+  flex-shrink: 0;
+}
+.report-list__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.report-list__title { font-size: 0.88rem; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.report-list__sub { font-size: 0.72rem; color: var(--slate-light); }
+.report-list__value {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+/* Inline KPI strip with smaller, denser cells. Used for cash-flow,
+   operations summary — the bigger ReportKpi cards are top-of-section. */
+.report-mini-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.report-ministat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.report-ministat__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--slate);
+  font-weight: 600;
+}
+.report-ministat__value {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* Proposal funnel — stacked rows with dot, label, count, dollar value;
+   plus a "Win rate" callout at the bottom. */
+.report-funnel { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.report-funnel__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.report-funnel__row:last-of-type { border-bottom: none; }
+.report-funnel__dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.report-funnel__label { font-size: 0.88rem; color: var(--ink); flex: 1; }
+.report-funnel__count {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 32px;
+  text-align: right;
+}
+.report-funnel__value {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--slate-light);
+  min-width: 64px;
+  text-align: right;
+}
+.report-funnel__rate {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--brand-pale);
+  border-radius: var(--radius);
+}
+.report-funnel__rate > span:first-child {
+  font-size: 0.78rem;
+  color: var(--slate);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.report-funnel__rate strong {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--brand);
+}
+.report-funnel__rate-detail {
+  font-size: 0.78rem;
+  color: var(--slate-light);
+  margin-left: auto;
+}
+
+/* Footer line at the bottom of the report. Mostly meaningful in print —
+   on screen it just sits there as a subtle attribution. */
+.report-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--slate-light);
+  padding-top: 16px;
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1100px) {
+  .report-kpis { grid-template-columns: repeat(2, 1fr); }
+  .report-grid--2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .report-kpis { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRINT — strip the app chrome, force a clean light layout, show the
+   cover page. Tested against Chrome's "Save as PDF" output.
+   ═══════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Force a printable color scheme regardless of the user's data-theme. */
+  body, .app, .app__main, .app__content {
+    background: #fff !important;
+    color: #111 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  /* Hide the app shell and any interactive controls. */
+  .sidebar,
+  .topbar,
+  .report-header,
+  .dash__card-link,
+  button,
+  .filter-chip { display: none !important; }
+  /* Show the print cover. */
+  .report-cover {
+    display: block !important;
+    text-align: center;
+    padding: 40px 0 32px;
+    border-bottom: 2px solid #111;
+    margin-bottom: 32px;
+    page-break-after: avoid;
+  }
+  .report-cover h1 {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .report-cover h2 {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: #555;
+    margin-bottom: 24px;
+  }
+  .report-cover__period {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: #111;
+    margin-bottom: 4px;
+  }
+  .report-cover__meta {
+    font-size: 0.82rem;
+    color: #666;
+  }
+  /* Compact layout for paper. */
+  .report-section { margin-bottom: 22px; page-break-inside: avoid; }
+  .report-section__title {
+    color: #111 !important;
+    border-bottom-color: #111 !important;
+  }
+  .dash__card,
+  .report-ministat {
+    background: #fff !important;
+    border-color: #ccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  .dash__kpi {
+    background: #fff !important;
+    border-color: #ccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  .dash__kpi::before { display: none !important; }
+  .dash__kpi-label,
+  .dash__kpi-sub,
+  .report-ministat__label { color: #555 !important; }
+  .dash__kpi-value,
+  .report-ministat__value { color: #111 !important; }
+  /* Lists/tables inside the report — let them grow naturally on paper. */
+  .report-list,
+  .dash__actions-list,
+  .dash__app-health,
+  .dash__deadlines {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .data-table th { background: #eee !important; color: #111 !important; }
+  .data-table td { color: #111 !important; }
+  /* Page break hints. */
+  h2, h3 { break-after: avoid; }
+  table { break-inside: auto; }
+  tr { break-inside: avoid; }
+  /* Footer always at the very bottom on screen, repeats on each printed
+     page only if you want — leave default for now. */
+  .report-footer { color: #666 !important; border-top-color: #ccc !important; }
+}
 
 /* ===== CALENDAR ===== */
 .calendar-page { display: flex; flex-direction: column; flex: 1; min-height: 0; }
