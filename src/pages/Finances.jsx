@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateId, initialSettings } from '../data/initialData';
+import { isBillingActive, monthlyEquivalent, effectiveNextDue } from '../lib/billing';
 
 // ─────────────────────────────────────────────────────────────────────
 // Finances — QuickBooks-style P&L + tax tracker.
@@ -34,6 +35,8 @@ export default function Finances({
   clients = [],
   projects = [],
   invoices = [],
+  recurringExpenses = [],
+  applications = [],
   settings: rawSettings,
   entries,
   setEntries,
@@ -131,6 +134,18 @@ export default function Finances({
 
   const deductibleExpenses = yearExpenses.filter(e => e.taxDeductible);
   const totalDeductions = deductibleExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+
+  // ── Recurring revenue (MRR / contracted revenue) ────────────────
+  // Tracked separately from collected income because tax is on cash
+  // actually received, not on what's contractually owed. Surfacing
+  // this lets the admin see what they SHOULD be invoicing for vs.
+  // what's actually been collected.
+  const activeRecurringItems = recurringExpenses.filter(isBillingActive);
+  const monthlyRecurring = activeRecurringItems.reduce(
+    (s, e) => s + monthlyEquivalent(e.amount, e.frequency),
+    0
+  );
+  const yearlyRecurring = monthlyRecurring * 12;
 
   // Monthly breakdown (Jan..Dec, current filter year).
   const monthlyData = useMemo(() => {
@@ -278,9 +293,15 @@ export default function Finances({
           <div className="fin__kpis">
             <div className="stat-card">
               <div className="stat-card__accent" style={{ background: 'var(--success)' }} />
-              <span className="stat-card__label">Total Income</span>
+              <span className="stat-card__label">Total Income (Collected)</span>
               <span className="stat-card__value">{fmt(totalIncome)}</span>
               <span className="stat-card__sub">{incomeRows.length} paid invoice{incomeRows.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card__accent" style={{ background: 'var(--info)' }} />
+              <span className="stat-card__label">Recurring Revenue</span>
+              <span className="stat-card__value">{fmt(monthlyRecurring)}/mo</span>
+              <span className="stat-card__sub">{activeRecurringItems.length} active · {fmt(yearlyRecurring)}/yr forecast</span>
             </div>
             <div className="stat-card">
               <div className="stat-card__accent" style={{ background: 'var(--danger)' }} />
@@ -425,6 +446,72 @@ export default function Finances({
               </table>
             )}
           </div>
+
+          {/* ── Recurring Revenue Schedule ──
+              Lists every active billing item across all applications.
+              Shows the monthly-equivalent contribution and the next-due
+              date so the admin can see what they SHOULD be invoicing
+              for. Tax calc still uses cash collected (above) — this is
+              accrual-style visibility. */}
+          {activeRecurringItems.length > 0 && (
+            <div className="panel" style={{ marginTop: 20 }}>
+              <div className="panel__header">
+                <div>
+                  <h3>Recurring Revenue Schedule</h3>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--slate-light)', margin: '4px 0 0 0' }}>
+                    Active billing contracts across your applications. Counts toward income only when invoiced and paid.
+                  </p>
+                </div>
+                <span className="data-table__mono" style={{ color: 'var(--info)', fontWeight: 700 }}>
+                  {fmt(monthlyRecurring)}/mo · {fmt(yearlyRecurring)}/yr
+                </span>
+              </div>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Application</th>
+                    <th>Client</th>
+                    <th>Frequency</th>
+                    <th>Next Due</th>
+                    <th style={{ textAlign: 'right' }}>Per Cycle</th>
+                    <th style={{ textAlign: 'right' }}>Monthly Equiv.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeRecurringItems
+                    .map(e => {
+                      const app = applications.find(a => a.id === e.applicationId);
+                      const client = clients.find(c => c.id === e.clientId);
+                      return {
+                        ...e,
+                        appName: app?.name || '—',
+                        clientName: client?.company || '—',
+                        nextDue: effectiveNextDue(e),
+                        mo: monthlyEquivalent(e.amount, e.frequency),
+                      };
+                    })
+                    .sort((a, b) => b.mo - a.mo)
+                    .map(e => (
+                      <tr key={e.id} className="data-table__clickable" onClick={() => navigate('/clients')} title="Manage in Clients → Applications → Billing">
+                        <td className="data-table__bold">{e.title}</td>
+                        <td>{e.appName}</td>
+                        <td className="data-table__muted">{e.clientName}</td>
+                        <td className="data-table__muted">{e.frequency}</td>
+                        <td className="data-table__muted">{e.nextDue || '—'}</td>
+                        <td className="data-table__mono" style={{ textAlign: 'right' }}>{fmt(e.amount)}</td>
+                        <td className="data-table__mono data-table__bold" style={{ color: 'var(--info)', textAlign: 'right' }}>{fmt(e.mo)}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+              <div style={{ padding: '10px 14px', fontSize: '0.78rem', color: 'var(--slate-light)', borderTop: '1px solid var(--border)' }}>
+                <strong style={{ color: 'var(--ink)' }}>Note:</strong> Recurring totals here are projected. Actual income for tax purposes is cash collected (paid invoices, above). Generate an invoice in
+                {' '}<button type="button" onClick={() => navigate('/invoices')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--brand)', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>Invoices</button>
+                {' '}for each cycle, mark it paid, and it&apos;ll appear in the income table above.
+              </div>
+            </div>
+          )}
         </>
       )}
 
