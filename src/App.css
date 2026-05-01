@@ -3043,14 +3043,14 @@ mark.code-highlight {
 .report-grid { display: grid; gap: 20px; }
 .report-grid--2 { grid-template-columns: 1fr 1fr; }
 
-/* Generic ranked-list block used by Top Clients, Apps by MRR. */
+/* Generic ranked-list block used by Top Clients, Apps by MRR.
+   No internal scroll caps — reports are meant to flow as one long
+   document, with the page (.app__content) handling vertical scroll.
+   An inner scroll here was capturing wheel events from the page. */
 .report-list {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 280px;
-  max-height: 400px;
-  overflow-y: auto;
 }
 .report-list__row {
   display: flex;
@@ -3195,13 +3195,25 @@ mark.code-highlight {
    cover page. Tested against Chrome's "Save as PDF" output.
    ═══════════════════════════════════════════════════════════════════ */
 @media print {
+  /* Reset every block that could scope scroll/height. The screen layout
+     uses overflow:auto on .app__content so the body itself doesn't scroll;
+     for print we want the content to flow as one tall document, paginated
+     by the printer. height: auto and overflow: visible at every level
+     prevent the preview from clipping to a single page. */
+  html, body, .app, .app__main, .app__content {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
   /* Force a printable color scheme regardless of the user's data-theme. */
   body, .app, .app__main, .app__content {
     background: #fff !important;
     color: #111 !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
+  .app__content { padding: 16px 18px !important; }
   /* Hide the app shell and any interactive controls. */
   .sidebar,
   .topbar,
