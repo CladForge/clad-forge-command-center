@@ -1227,10 +1227,11 @@
 .cp__hero-meta > span:not(.status-pill) { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
 
 .cp__hero-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-.cp__hero-btn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.15); font-size: 0.78rem; padding: 5px 12px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: all 0.14s; cursor: pointer; font-family: var(--font-body); }
-.cp__hero-btn:hover { background: rgba(255,255,255,0.2); }
-.cp__hero-btn--danger { border-color: rgba(220,38,38,0.3); color: rgba(255,200,200,0.8); }
-.cp__hero-btn--danger:hover { background: rgba(220,38,38,0.2); }
+/* .cp__hero-btn used to be a custom translucent-white button style
+   that gave Email / Call / Edit / Delete a "frosted glass" look —
+   different from every other button in the app. Replaced with the
+   standard .btn--ghost + .btn--danger-hover pattern; the rule is
+   gone since nothing references it. */
 
 /* Stats bar */
 .cp__hero-stats { display: flex; background: var(--surface); padding: 16px 36px; gap: 0; flex-wrap: wrap; }

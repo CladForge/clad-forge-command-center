@@ -453,10 +453,10 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
               {client.website && <a href={client.website.startsWith('http') ? client.website : `https://${client.website}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand)' }}>{client.website.replace(/^https?:\/\//, '')}</a>}
             </div>
             <div className="cp__hero-actions">
-              {client.email && <a href={`mailto:${client.email}`} className="btn btn--sm cp__hero-btn">✉ Email</a>}
-              {client.phone && <a href={`tel:${client.phone}`} className="btn btn--sm cp__hero-btn">📞 Call</a>}
-              <button className="btn btn--sm cp__hero-btn" onClick={onEdit}>✎ Edit</button>
-              <button className="btn btn--sm cp__hero-btn cp__hero-btn--danger" onClick={onDelete}>✕ Delete</button>
+              {client.email && <a href={`mailto:${client.email}`} className="btn btn--ghost btn--sm">✉ Email</a>}
+              {client.phone && <a href={`tel:${client.phone}`} className="btn btn--ghost btn--sm">📞 Call</a>}
+              <button className="btn btn--ghost btn--sm" onClick={onEdit}>✎ Edit</button>
+              <button className="btn btn--ghost btn--sm btn--danger-hover" onClick={onDelete}>✕ Delete</button>
             </div>
           </div>
         </div>
