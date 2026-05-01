@@ -3195,12 +3195,16 @@ mark.code-highlight {
    cover page. Tested against Chrome's "Save as PDF" output.
    ═══════════════════════════════════════════════════════════════════ */
 @media print {
-  /* Reset every block that could scope scroll/height. The screen layout
-     uses overflow:auto on .app__content so the body itself doesn't scroll;
-     for print we want the content to flow as one tall document, paginated
-     by the printer. height: auto and overflow: visible at every level
-     prevent the preview from clipping to a single page. */
-  html, body, .app, .app__main, .app__content {
+  /* Reset every ancestor that scopes scroll/height/flex. The screen
+     layout pins #root and .app to 100vh with `overflow: hidden`, and
+     .app__content is the actual scroll container. For print we need
+     ALL of those to drop their height/overflow constraints AND fall
+     out of flex so children flow as a single tall document the
+     printer can paginate naturally. The previous version missed
+     #root, which clipped the print preview to a single page. */
+  html, body, #root, .app, .app__main, .app__content {
+    display: block !important;
+    width: auto !important;
     height: auto !important;
     max-height: none !important;
     min-height: 0 !important;
