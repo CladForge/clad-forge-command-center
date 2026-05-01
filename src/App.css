@@ -3205,6 +3205,50 @@ mark.code-highlight {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  /* ── Variable overrides for print ─────────────────────────────────
+     The whole app uses CSS vars (var(--ink), var(--surface), etc.)
+     that resolve to dark-theme values like white text on dark
+     backgrounds. Per-element overrides further down this stylesheet
+     would have to enumerate every place those vars are used; cleaner
+     to flip the vars themselves to print-friendly values once and let
+     the cascade do the work. Brand/orange tokens stay so accents are
+     still on-brand. Targets every theme attribute so the override
+     wins regardless of what the user has data-theme set to. */
+  :root,
+  [data-theme="dark"],
+  [data-theme="light"] {
+    /* --stone keeps a subtle gray rather than pure white so elements that
+       layer on it (rank circles, h-bar tracks, mini-pills) remain visible
+       against the forced-white body. */
+    --stone: #f3f4f6 !important;
+    --stone-dark: #e5e7eb !important;
+    --ink: #1a1b27 !important;
+    --slate: #4b5563 !important;
+    --slate-light: #9ca3af !important;
+    --white: #ffffff !important;
+    --surface: #ffffff !important;
+    --surface-elevated: #f9fafb !important;
+    --border: #d4d4d8 !important;
+    --border-light: #e5e7eb !important;
+    --glass-bg: #ffffff !important;
+    --glass-border: #d4d4d8 !important;
+    --shadow-sm: none !important;
+    --shadow: none !important;
+    --shadow-lg: none !important;
+    --shadow-xl: none !important;
+    --glass-shadow: none !important;
+    /* Soft brand washes — still orange, just visible on white paper. */
+    --brand-pale: rgba(255, 140, 0, 0.12) !important;
+    --brand-wash: rgba(255, 140, 0, 0.04) !important;
+    /* Status backgrounds — soften so they read on paper without
+       printing big colored blocks. */
+    --success-bg: rgba(16, 185, 129, 0.1) !important;
+    --warning-bg: rgba(245, 158, 11, 0.1) !important;
+    --danger-bg: rgba(239, 68, 68, 0.1) !important;
+    --info-bg: rgba(59, 130, 246, 0.1) !important;
+    --purple-bg: rgba(168, 85, 247, 0.1) !important;
+  }
   /* Reset every ancestor that scopes scroll/height/flex. The screen
      layout pins #root and .app to 100vh with overflow: hidden, and
      .app__content is the actual scroll container. For print we drop
@@ -3356,6 +3400,18 @@ mark.code-highlight {
     max-height: none !important;
     min-height: 0 !important;
     overflow: visible !important;
+  }
+  /* Empty-state messages — make sure they're visible on white paper. */
+  .dash__chart-empty {
+    color: #6b7280 !important;
+    background: transparent !important;
+  }
+  /* Status pills used inside the App Health table; force their colored
+     backgrounds to print so the status reads at a glance. */
+  .status-pill,
+  [class*="status-pill--"] {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
   }
   .report-list__title,
   .report-list__rank { color: #1a1b27 !important; }
