@@ -163,6 +163,7 @@ export function useSupabaseData() {
   const [financeEntries, setFinanceEntriesState] = useState(initialFinanceEntries);
   const [taxPayments, setTaxPaymentsState] = useState(initialTaxPayments);
   const [clientUsers, setClientUsersState] = useState([]);
+  const [profiles, setProfilesState] = useState([]);
   const [milestones, setMilestonesState] = useState([]);
   const [applications, setApplicationsState] = useState([]);
   const [tickets, setTicketsState] = useState([]);
@@ -181,7 +182,7 @@ export function useSupabaseData() {
         const [
           clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
           invoicesRes, timeEntriesRes, eventsRes, contractorsRes,
-          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, milestonesRes, applicationsRes, ticketsRes, ticketCommentsRes, screenshotsRes, pinsRes, markupSetsRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, profilesRes, milestonesRes, applicationsRes, ticketsRes, ticketCommentsRes, screenshotsRes, pinsRes, markupSetsRes,
         ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
@@ -202,6 +203,9 @@ export function useSupabaseData() {
           supabase.from('finance_entries').select('*').order('date', { ascending: false }),
           supabase.from('tax_payments').select('*').order('date', { ascending: false }),
           supabase.from('client_users').select('*').order('invited_at', { ascending: false }),
+          // profiles: read-only here — RLS allows authenticated users to SELECT all rows.
+          // Used to resolve auth_user_id → full_name for the Portal Access UI.
+          supabase.from('profiles').select('id, full_name, role, avatar_url'),
           supabase.from('project_milestones').select('*').order('position', { ascending: true }),
           supabase.from('applications').select('*').order('created_at', { ascending: false }),
           supabase.from('service_tickets').select('*').order('created_at', { ascending: false }),
@@ -243,6 +247,7 @@ export function useSupabaseData() {
         if (financeEntriesRes.data) setFinanceEntriesState(financeEntriesRes.data.map(snakeToCamel));
         if (taxPaymentsRes.data) setTaxPaymentsState(taxPaymentsRes.data.map(snakeToCamel));
         if (clientUsersRes.data) setClientUsersState(clientUsersRes.data.map(snakeToCamel));
+        if (profilesRes.data) setProfilesState(profilesRes.data.map(snakeToCamel));
         if (milestonesRes.data) setMilestonesState(milestonesRes.data.map(snakeToCamel));
         if (applicationsRes.data) setApplicationsState(applicationsRes.data.map(snakeToCamel));
         if (ticketsRes.data) setTicketsState(ticketsRes.data.map(snakeToCamel));
@@ -597,6 +602,14 @@ export function useSupabaseData() {
     if (!error && data) setClientUsersState(data.map(snakeToCamel));
   }, []);
 
+  // Refresh profiles — call this after an invite is accepted so the Portal
+  // Access table flips from the placeholder name to the real one.
+  const reloadProfiles = useCallback(async () => {
+    if (!connectedRef.current) return;
+    const { data, error } = await supabase.from('profiles').select('id, full_name, role, avatar_url');
+    if (!error && data) setProfilesState(data.map(snakeToCamel));
+  }, []);
+
   return {
     clients, setClients,
     projects, setProjects,
@@ -618,6 +631,7 @@ export function useSupabaseData() {
     financeEntries, setFinanceEntries,
     taxPayments, setTaxPayments,
     clientUsers, setClientUsers, reloadClientUsers,
+    profiles, reloadProfiles,
     milestones, setMilestones,
     applications, setApplications,
     tickets, setTickets,

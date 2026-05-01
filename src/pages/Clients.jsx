@@ -10,7 +10,7 @@ const STATUS_OPTIONS = ['active', 'prospect', 'on-hold', 'inactive'];
 
 function formatCurrency(n) { return '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
 
-export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile }) {
+export default function Clients({ clients, setClients, projects, sows, settings: rawSettings, invoices = [], timeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile }) {
   const settings = { ...initialSettings, ...rawSettings };
   const [viewClientId, setViewClientId] = useState(null);
   const [search, setSearch] = useState('');
@@ -83,6 +83,8 @@ export default function Clients({ clients, setClients, projects, sows, settings:
         clientUsers={clientUsers}
         setClientUsers={setClientUsers}
         reloadClientUsers={reloadClientUsers}
+        profiles={profiles}
+        reloadProfiles={reloadProfiles}
         applications={applications}
         setApplications={setApplications}
         appScreenshots={appScreenshots}
@@ -220,7 +222,7 @@ export default function Clients({ clients, setClients, projects, sows, settings:
    CLIENT PROFILE PAGE
    ═══════════════════════════════════════════ */
 
-function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
+function ClientProfile({ client, setClients, projects, sows, invoices: allInvoices = [], timeEntries: allTimeEntries = [], clientUsers = [], setClientUsers, reloadClientUsers, profiles = [], reloadProfiles, applications = [], setApplications, appScreenshots = [], annotationPins = [], markupSets = [], reloadAdminScreenshots, profile, onBack, onEdit, onDelete }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('projects');
   const [showContactModal, setShowContactModal] = useState(false);
@@ -704,7 +706,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>User ID</th>
+                      <th>Name</th>
                       <th>Role</th>
                       <th>Invited</th>
                       <th>Accepted</th>
@@ -713,10 +715,36 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                     </tr>
                   </thead>
                   <tbody>
-                    {portalUsersForClient.map(cu => (
+                    {portalUsersForClient.map(cu => {
+                      // Look up the name from the profiles table. The profile row
+                      // is created by the on_auth_user_created trigger with a
+                      // placeholder ('User'); AcceptInvite replaces it with the
+                      // real name once the invitee finishes signup.
+                      const userProfile = profiles.find(p => p.id === cu.authUserId);
+                      const rawName = userProfile?.fullName || '';
+                      const isPlaceholder = !rawName || rawName === 'User';
+                      const idShort = (cu.authUserId || '').slice(0, 8);
+                      return (
                       <tr key={cu.id}>
-                        <td className="data-table__mono" style={{ fontSize: '0.78rem' }}>
-                          {(cu.authUserId || '').slice(0, 8)}…
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {isPlaceholder ? (
+                              <span style={{ color: 'var(--slate-light)', fontStyle: 'italic' }}>
+                                Awaiting registration
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--ink)', fontWeight: 500 }}>
+                                {rawName}
+                              </span>
+                            )}
+                            <span
+                              className="data-table__mono"
+                              style={{ fontSize: '0.7rem', color: 'var(--slate-light)' }}
+                              title={cu.authUserId}
+                            >
+                              {idShort}…
+                            </span>
+                          </div>
                         </td>
                         <td>
                           <select
@@ -751,7 +779,8 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
@@ -765,7 +794,12 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
         <InvitePortalUserModal
           client={client}
           onClose={() => setShowInviteModal(false)}
-          onInvited={reloadClientUsers}
+          onInvited={async () => {
+            // After an invite, reload both — the new client_users row plus
+            // the freshly-created profile (so the name column populates).
+            await reloadClientUsers?.();
+            await reloadProfiles?.();
+          }}
         />
       )}
 
