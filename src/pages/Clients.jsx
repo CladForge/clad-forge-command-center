@@ -769,11 +769,24 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
         />
       )}
 
-      {/* Markups modal — admin reviews + resolves client-submitted markup pins */}
+      {/* Markups modal — admin reviews + resolves client-submitted markup pins.
+          Sized to nearly fill the viewport so the screenshot + sidebar have
+          real estate to breathe. */}
       {markupsApp && (
         <div className="modal-overlay" onClick={() => setMarkupsAppId(null)}>
-          <div className="modal modal--wide" onClick={e => e.stopPropagation()} style={{ maxWidth: 1100, maxHeight: '90vh' }}>
-            <div className="modal__header">
+          <div
+            className="modal modal--wide modal--markups"
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '95vw',
+              maxWidth: 1600,
+              height: '94vh',
+              maxHeight: '94vh',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div className="modal__header" style={{ flexShrink: 0 }}>
               <div>
                 <h2>Markups — {markupsApp.name}</h2>
                 <span className="modal__subtitle">
@@ -782,7 +795,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
               </div>
               <button className="modal__close" onClick={() => setMarkupsAppId(null)}>×</button>
             </div>
-            <div className="modal__body" style={{ overflow: 'auto' }}>
+            <div className="modal__body" style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
               <AppScreenshotsSection
                 applicationId={markupsApp.id}
                 screenshots={markupsScreenshots}

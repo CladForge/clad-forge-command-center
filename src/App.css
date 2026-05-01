@@ -2959,10 +2959,18 @@ mark.code-highlight {
 .markup-workspace__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.78rem; color: var(--slate); }
 .markup-workspace__actions { display: flex; gap: 6px; align-items: center; }
 
-.markup-workspace__body { display: grid; grid-template-columns: 280px 1fr; gap: 16px; min-height: 500px; }
+.markup-workspace__body { display: grid; grid-template-columns: 320px 1fr; gap: 16px; min-height: 600px; }
+
+/* When the workspace lives inside the markups modal it can claim much
+   more room. The modal is sized to 94vh so the body fills available
+   space and the sidebar/viewer stretch to match. */
+.modal--markups .markup-workspace { height: 100%; }
+.modal--markups .markup-workspace__body { flex: 1; min-height: 0; }
+.modal--markups .markup-workspace__sidebar,
+.modal--markups .markup-workspace__viewer { max-height: 100%; }
 
 /* Sidebar */
-.markup-workspace__sidebar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 70vh; overflow-y: auto; }
+.markup-workspace__sidebar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 80vh; overflow-y: auto; }
 .markup-workspace__sidebar-header { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-light); padding: 4px 6px; }
 .markup-workspace__empty-sidebar { font-size: 0.82rem; color: var(--slate-light); font-style: italic; padding: 12px 6px; margin: 0; }
 
@@ -2984,7 +2992,7 @@ mark.code-highlight {
 .markup-pin-list__item--resolved .markup-pin-list__dot { background: var(--success); }
 
 /* Viewer */
-.markup-workspace__viewer { background: var(--stone); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; max-height: 70vh; overflow-y: auto; }
+.markup-workspace__viewer { background: var(--stone); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; max-height: 80vh; overflow-y: auto; }
 .markup-workspace__navbar { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
 .markup-workspace__nav-indicator { display: flex; flex-direction: column; align-items: center; min-width: 0; }
 .markup-workspace__nav-name { font-size: 0.85rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
