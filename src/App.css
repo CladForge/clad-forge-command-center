@@ -3264,8 +3264,14 @@ mark.code-highlight {
     margin: 0 !important;
     padding: 0 !important;
   }
-  body, .app, .app__main, .app__content {
-    background: #fff !important;
+  /* Backgrounds — force every layer up through the html element to
+     pure white. Without `html` and `#root` in this list, those elements
+     inherit `background: var(--stone)` (now #f3f4f6 gray), and with
+     print-color-adjust: exact the printer fills the entire page with
+     that gray below the actual report content — which produced the
+     huge gray block on the final sheet. */
+  html, body, #root, .app, .app__main, .app__content {
+    background: #ffffff !important;
     color: #1a1b27 !important;
   }
   .app__content { padding: 14px 18px 24px !important; }
