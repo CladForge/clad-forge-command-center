@@ -65,12 +65,8 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
   const winRate = decidedProposals.length === 0 ? 0
     : Math.round((acceptedProposals.length / decidedProposals.length) * 100);
 
-  // Open tickets = anything pre-resolved. Counted across all clients since
-  // this is the admin dashboard.
-  const openTickets = tickets.filter(t => t.status === 'open' || t.status === 'in_progress' || t.status === 'in-progress');
-  // Subset of open tickets that are urgent or high priority — what should
-  // get touched today, separate from the broader queue size.
-  const urgentTickets = openTickets.filter(t => t.priority === 'urgent' || t.priority === 'high');
+  // openTickets / urgentTickets calculations removed — Tickets feature
+  // is hidden so these were unused. Re-add if Tickets is reinstated.
 
   // Live applications = currently running deliverables. Includes 'live' and
   // 'maintenance' since both represent apps in production.
@@ -318,8 +314,8 @@ export default function Dashboard({ clients, projects, sows, settings: rawSettin
           projectsDueSoon:     { label: 'Projects Due Soon',  value: projectsDueSoon.length, sub: projectsOverdue.length > 0 ? `${projectsOverdue.length} overdue` : 'next 14 days', onClick: () => navigate('/pipeline') },
           newClientsThisMonth: { label: 'New Clients (Month)',value: newClientsThisMonth.length, sub: clients.length === 0 ? 'no clients yet' : `${clients.length} all-time`, onClick: () => navigate('/clients') },
           avgDaysToPay:        { label: 'Avg Days to Pay',    value: avgDaysToPay, sub: paidWithDates.length === 0 ? 'no paid invoices yet' : `across ${paidWithDates.length} paid`, onClick: () => navigate('/invoices') },
-          openTickets:         { label: 'Open Tickets',       value: openTickets.length, sub: `${tickets.length} total`, onClick: () => navigate('/tickets') },
-          urgentTickets:       { label: 'Urgent Tickets',     value: urgentTickets.length, sub: urgentTickets.length === 0 ? 'all clear' : 'high or urgent priority', onClick: () => navigate('/tickets') },
+          // openTickets / urgentTickets cards removed alongside the
+          // Tickets feature hide — see lib/dashboardCards.js.
           openMarkupPins:      { label: 'Open Markup Pins',   value: openMarkupPins.length, sub: openMarkupPins.length === 0 ? 'caught up' : 'awaiting your response', onClick: () => navigate('/clients') },
           liveApplications:    { label: 'Live Apps',          value: liveApplications.length, sub: `${applications.length} total`, onClick: () => navigate('/clients') },
           monthlyRecurring:    { label: 'Monthly Recurring',  value: formatCurrency(monthlyRecurring), sub: `${activeRecurring.length} active`, onClick: () => navigate('/recurring') },

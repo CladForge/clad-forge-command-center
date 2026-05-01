@@ -39,8 +39,9 @@ export const KPI_CARD_DEFS = [
   { id: 'projectsDueSoon',     label: 'Projects Due Soon',     defaultEnabled: false, defaultColor: '#f59e0b' },
   { id: 'newClientsThisMonth', label: 'New Clients (Month)',   defaultEnabled: false, defaultColor: '#10b981' },
   { id: 'avgDaysToPay',        label: 'Avg Days to Pay',       defaultEnabled: false, defaultColor: '#10b981' },
-  { id: 'openTickets',         label: 'Open Tickets',          defaultEnabled: false, defaultColor: '#f59e0b' },
-  { id: 'urgentTickets',       label: 'Urgent Tickets',        defaultEnabled: false, defaultColor: '#ef4444' },
+  // openTickets / urgentTickets removed when the Tickets feature was
+  // hidden — would always read 0 since no new tickets are being made.
+  // Re-add here if Tickets is reinstated.
   { id: 'openMarkupPins',      label: 'Open Markup Pins',      defaultEnabled: false, defaultColor: '#ff8c00' },
   { id: 'liveApplications',    label: 'Live Applications',     defaultEnabled: false, defaultColor: '#a855f7' },
   { id: 'monthlyRecurring',    label: 'Monthly Recurring',     defaultEnabled: false, defaultColor: '#14b8a6' },

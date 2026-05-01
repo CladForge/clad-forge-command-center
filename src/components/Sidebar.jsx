@@ -18,7 +18,6 @@ const navSections = [
       { path: '/proposals', label: 'Proposals', icon: 'sow' },
       { path: '/invoices', label: 'Invoices', icon: 'invoices' },
       { path: '/recurring', label: 'Recurring', icon: 'recurring' },
-      { path: '/tickets', label: 'Tickets', icon: 'tickets' },
       { path: '/finances', label: 'Finances', icon: 'finances' },
       { path: '/documents', label: 'Documents', icon: 'documents' },
     ],

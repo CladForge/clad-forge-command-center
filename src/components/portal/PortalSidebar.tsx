@@ -30,7 +30,6 @@ const NAV: NavItem[] = [
   { to: '/portal/invoices', label: 'Invoices', icon: 'file' },
   { to: '/portal/proposals', label: 'Proposals', icon: 'send' },
   { to: '/portal/expenses', label: 'Recurring', icon: 'repeat' },
-  { to: '/portal/tickets', label: 'Tickets', icon: 'message' },
   { to: '/portal/documents', label: 'Documents', icon: 'paperclip' },
   { to: '/portal/account', label: 'Account', icon: 'user' },
 ];
