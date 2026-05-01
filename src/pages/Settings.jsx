@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { initialSettings } from '../data/initialData';
+import { KPI_CARD_DEFS, resolveCardOrder } from '../lib/dashboardCards';
 
 const TABS = [
   { id: 'company', label: 'Company', icon: '🏢' },
@@ -8,6 +9,7 @@ const TABS = [
   { id: 'time', label: 'Time Tracking', icon: '⏱' },
   { id: 'pipeline', label: 'Pipeline', icon: '📊' },
   { id: 'clients', label: 'Clients', icon: '👥' },
+  { id: 'dashboard', label: 'Dashboard', icon: '🎛' },
   { id: 'appearance', label: 'Appearance', icon: '🎨' },
   { id: 'notifications', label: 'Notifications', icon: '🔔' },
   { id: 'data', label: 'Data', icon: '💾' },
@@ -356,6 +358,24 @@ export default function Settings({ settings: rawSettings, setSettings, profile, 
             </div>
           )}
 
+          {/* ═══ DASHBOARD ═══ */}
+          {activeTab === 'dashboard' && (
+            <div className="settings__panel">
+              <SettingsHeader
+                title="Dashboard"
+                description="Show, hide, and reorder the KPI cards on your home dashboard. Cards stretch to fill the row and wrap to a new row if there are too many."
+              />
+              <div className="settings__section">
+                <h4 className="settings__section-title">KPI Cards</h4>
+                <DashboardCardPicker
+                  value={resolveCardOrder(settings.dashboardKpiCards)}
+                  onChange={next => update('dashboardKpiCards', next)}
+                />
+              </div>
+              <SaveBar saved={saved} onSave={showSaved} />
+            </div>
+          )}
+
           {/* ═══ APPEARANCE ═══ */}
           {activeTab === 'appearance' && (
             <div className="settings__panel">
@@ -530,6 +550,50 @@ function SelectField({ label, value, onChange, options, hint = '' }) {
         })}
       </select>
       {hint && <span className="settings__hint">{hint}</span>}
+    </div>
+  );
+}
+
+// Reorder + show/hide picker for dashboard KPI cards. value is the resolved
+// array from resolveCardOrder() — a stable list of { id, enabled } in the
+// user's chosen order. onChange receives the next array; the parent persists
+// it via setSettings.
+function DashboardCardPicker({ value, onChange }) {
+  function move(index, dir) {
+    const target = index + dir;
+    if (target < 0 || target >= value.length) return;
+    const next = [...value];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  }
+  function toggle(index) {
+    const next = value.map((c, i) => i === index ? { ...c, enabled: !(c.enabled !== false) } : c);
+    onChange(next);
+  }
+  const labelById = Object.fromEntries(KPI_CARD_DEFS.map(d => [d.id, d.label]));
+  return (
+    <div className="dash-pref-list">
+      {value.map((card, i) => {
+        const enabled = card.enabled !== false;
+        return (
+          <div key={card.id} className={`dash-pref-row ${!enabled ? 'dash-pref-row--off' : ''}`}>
+            <div className="dash-pref-row__nudge">
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">▲</button>
+              <button type="button" onClick={() => move(i, +1)} disabled={i === value.length - 1} aria-label="Move down">▼</button>
+            </div>
+            <span className="dash-pref-row__label">{labelById[card.id] || card.id}</span>
+            <button
+              className={`settings__toggle ${enabled ? 'settings__toggle--on' : ''}`}
+              onClick={() => toggle(i)}
+              role="switch"
+              aria-checked={enabled}
+              aria-label={`${enabled ? 'Hide' : 'Show'} ${labelById[card.id]}`}
+            >
+              <span className="settings__toggle-thumb" />
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }

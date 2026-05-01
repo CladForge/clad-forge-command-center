@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { initialSettings } from '../data/initialData';
 import OnboardingReview from '../components/OnboardingReview';
+import { resolveCardOrder } from '../lib/dashboardCards';
 
 export default function Dashboard({ clients, projects, sows, activities, settings: rawSettings, invoices = [], setClients, addNotification }) {
   const settings = { ...initialSettings, ...rawSettings };
@@ -112,14 +113,27 @@ export default function Dashboard({ clients, projects, sows, activities, setting
       {/* ═══ PENDING ONBOARDING ═══ */}
       {setClients && <OnboardingReview setClients={setClients} addNotification={addNotification} />}
 
-      {/* ═══ KPI CARDS ═══ */}
-      <div className="dash__kpis">
-        <KpiCard label="Total Revenue" value={formatCurrency(totalRevenue)} sub={`${paidInvoices.length} paid invoices`} color="var(--success)" onClick={() => navigate('/invoices')} />
-        <KpiCard label="Outstanding" value={formatCurrency(totalOutstanding)} sub={totalOverdue > 0 ? `${formatCurrency(totalOverdue)} overdue` : `${outstandingInvoices.length} invoices`} color={totalOverdue > 0 ? 'var(--danger)' : 'var(--warning)'} onClick={() => navigate('/invoices')} />
-        <KpiCard label="Active Clients" value={activeClients} sub={`${prospects} prospects`} color="var(--brand)" onClick={() => navigate('/clients')} />
-        <KpiCard label="Active Projects" value={activeProjects} sub={formatCurrency(totalProjectBudget) + ' total budget'} color="var(--info)" onClick={() => navigate('/pipeline')} />
-        <KpiCard label="Proposals" value={sows.length} sub={`${formatCurrency(pendingValue)} pending`} color="var(--purple)" onClick={() => navigate('/proposals')} />
-      </div>
+      {/* ═══ KPI CARDS ═══
+           Built from a registry so Settings > Dashboard can toggle / reorder.
+           The card props are computed up-front so the render below stays a
+           dumb lookup-and-render. */}
+      {(() => {
+        const cardProps = {
+          totalRevenue:   { label: 'Total Revenue',   value: formatCurrency(totalRevenue), sub: `${paidInvoices.length} paid invoices`, color: 'var(--success)', onClick: () => navigate('/invoices') },
+          outstanding:    { label: 'Outstanding',     value: formatCurrency(totalOutstanding), sub: totalOverdue > 0 ? `${formatCurrency(totalOverdue)} overdue` : `${outstandingInvoices.length} invoices`, color: totalOverdue > 0 ? 'var(--danger)' : 'var(--warning)', onClick: () => navigate('/invoices') },
+          activeClients:  { label: 'Active Clients',  value: activeClients, sub: `${prospects} prospects`, color: 'var(--brand)', onClick: () => navigate('/clients') },
+          activeProjects: { label: 'Active Projects', value: activeProjects, sub: formatCurrency(totalProjectBudget) + ' total budget', color: 'var(--info)', onClick: () => navigate('/pipeline') },
+          proposals:      { label: 'Proposals',       value: sows.length, sub: `${formatCurrency(pendingValue)} pending`, color: 'var(--purple)', onClick: () => navigate('/proposals') },
+        };
+        const order = resolveCardOrder(settings.dashboardKpiCards);
+        const visible = order.filter(c => c.enabled !== false && cardProps[c.id]);
+        if (visible.length === 0) return null;
+        return (
+          <div className="dash__kpis">
+            {visible.map(c => <KpiCard key={c.id} {...cardProps[c.id]} />)}
+          </div>
+        );
+      })()}
 
       {/* ═══ CHARTS ROW 1 ═══ */}
       <div className="dash__row">

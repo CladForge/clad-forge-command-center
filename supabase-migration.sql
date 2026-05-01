@@ -1001,3 +1001,11 @@ CREATE POLICY markup_sets_delete ON markup_sets FOR DELETE TO authenticated
 ALTER TABLE app_screenshots ADD COLUMN IF NOT EXISTS set_id TEXT
   REFERENCES markup_sets(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_app_screenshots_set ON app_screenshots(set_id);
+
+
+-- ============= PHASE 6a: Customizable Dashboard KPI cards =============
+-- Stores the user's preferred order + visibility for the dashboard KPI
+-- cards so they can show/hide/reorder them via Settings > Dashboard.
+-- Format: [{ "id": "totalRevenue", "enabled": true }, ...]
+-- The app falls back to defaults (all cards, default order) if NULL or empty.
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS dashboard_kpi_cards JSONB;

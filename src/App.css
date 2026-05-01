@@ -898,7 +898,10 @@
 .dash__welcome-actions { display: flex; gap: 8px; }
 
 /* KPI Cards */
-.dash__kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+/* Auto-fits cards in a row and wraps when too narrow. minmax floor keeps
+   cards readable; auto-fit lets them stretch to fill the row when only a few
+   are enabled, so toggling one off doesn't leave a gap. */
+.dash__kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
 
 .dash__kpi { background: var(--surface); border-radius: var(--radius-lg); padding: 18px 20px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); position: relative; overflow: hidden; cursor: pointer; transition: all 0.18s; animation: fadeInUp 0.3s var(--ease) both; }
 .dash__kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
@@ -2479,10 +2482,59 @@ mark.code-highlight {
 .settings__storage-fill { height: 100%; background: linear-gradient(90deg, var(--brand), var(--brand-soft)); border-radius: 3px; }
 .settings__storage-text { font-family: var(--font-mono); font-size: 0.72rem; color: var(--slate-light); }
 
+/* Dashboard customization picker (Settings > Dashboard).
+   One row per KPI card: ↑/↓ to reorder, label, toggle to show/hide. */
+.dash-pref-list { display: flex; flex-direction: column; gap: 8px; }
+.dash-pref-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: background 0.15s;
+}
+.dash-pref-row:hover { background: var(--border-light); }
+.dash-pref-row__nudge {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dash-pref-row__nudge button {
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  background: var(--border-light);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--slate);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  line-height: 1;
+}
+.dash-pref-row__nudge button:hover:not(:disabled) {
+  background: var(--brand-pale);
+  color: var(--brand);
+  border-color: var(--brand);
+}
+.dash-pref-row__nudge button:disabled { opacity: 0.3; cursor: not-allowed; }
+.dash-pref-row__label {
+  flex: 1;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+.dash-pref-row--off .dash-pref-row__label { color: var(--slate-light); }
+
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 1200px) {
-  .dash__kpis { grid-template-columns: repeat(3, 1fr); }
+  /* .dash__kpis intentionally not overridden here — auto-fit + minmax(200px)
+     handles the wrap natively, and a fixed column count fights it. */
   .dash__row--3 { grid-template-columns: 1fr 1fr; }
   .invoices__summary, .proposals__summary { grid-template-columns: repeat(2, 1fr); }
   .prop-builder__body { flex-direction: column; }
@@ -2498,7 +2550,8 @@ mark.code-highlight {
   .app__content { padding: 16px; }
   .topbar { padding: 0 16px; }
   .topbar__status, .topbar__clock { display: none; }
-  .dash__kpis { grid-template-columns: repeat(2, 1fr); }
+  /* .dash__kpis: auto-fit handles wrap; minmax floor at 200px guarantees a
+     reasonable cell width on phones (will go to 1 column when too narrow). */
   .dash__row, .dash__row--3 { grid-template-columns: 1fr; }
   .dash__welcome { text-align: center; }
   .dash__welcome-actions { justify-content: center; }

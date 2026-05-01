@@ -251,6 +251,19 @@ Best regards,
   // ── Client Defaults ──
   defaultIndustry: 'Construction',
   customIndustries: 'Construction, Energy & Utilities, Manufacturing, Logistics, Oil & Gas, Engineering Services, Telecommunications, Other',
+
+  // ── Dashboard KPI cards ──
+  // Order + visibility for the cards on the admin dashboard. The id strings
+  // match KPI_CARD_DEFS in src/pages/Dashboard.jsx; the app falls back to
+  // defaults for any registry entries missing here, so adding a new card
+  // later doesn't require migrating user data.
+  dashboardKpiCards: [
+    { id: 'totalRevenue',   enabled: true },
+    { id: 'outstanding',    enabled: true },
+    { id: 'activeClients',  enabled: true },
+    { id: 'activeProjects', enabled: true },
+    { id: 'proposals',      enabled: true },
+  ],
 };
 
 export const initialInvoices = [];
