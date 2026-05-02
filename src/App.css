@@ -3899,36 +3899,70 @@ mark.code-highlight {
 
 /* Public markup review (mounted at /review/:token) — shown to end customers
    without a portal account. Layout fills the viewport like the admin
-   workspace but without the sidebar/topbar shell. */
-.public-review { flex: 1; width: 100%; min-height: 100vh; display: flex; flex-direction: column; background: var(--stone); }
+   workspace but without the sidebar/topbar shell. The header is laid out
+   in two rows so the brand, identity, status, and actions each get
+   breathing room instead of mashing into a single line. */
+.public-review { flex: 1; width: 100%; min-height: 100vh; display: flex; flex-direction: column; background: var(--stone); position: relative; }
 .public-review__center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; }
-.public-review__center h1 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 400; color: var(--ink); margin: 0 0 12px 0; letter-spacing: -0.01em; }
+.public-review__center h1 { font-family: var(--font-display); font-size: 1.8rem; font-weight: 400; color: var(--ink); margin: 0 0 12px 0; letter-spacing: -0.01em; }
 .public-review__logo { width: 56px; height: 56px; margin-bottom: 18px; filter: drop-shadow(0 2px 8px rgba(255,140,0,0.25)); }
+
 .public-review__header {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; flex-wrap: wrap;
-  padding: 14px 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  padding: 16px 28px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.public-review__header-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.public-review__header-brand img { width: 32px; height: 32px; flex-shrink: 0; }
-.public-review__header-brand > div { display: flex; flex-direction: column; min-width: 0; }
-.public-review__app-name { font-size: 0.95rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.public-review__set-name { font-size: 0.78rem; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.public-review__header-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.public-review__header-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.public-review__header-row--top { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+
+.public-review__header-brand { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; }
+.public-review__header-brand img { width: 40px; height: 40px; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(255,140,0,0.18)); }
+.public-review__header-brand-text { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.public-review__app-name { font-family: var(--font-display); font-size: 1.15rem; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
+.public-review__set-name { font-size: 0.82rem; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.public-review__header-identity {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 6px 6px 14px;
+  background: var(--stone);
+  border: 1px solid var(--border-light);
+  border-radius: 100px;
+  flex-shrink: 0;
+}
+.public-review__identity-label { font-size: 0.75rem; color: var(--slate-light); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.public-review__identity-name { font-size: 0.88rem; font-weight: 600; color: var(--ink); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.public-review__header-stats { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.public-review__header-count { font-size: 0.85rem; color: var(--slate); }
+.public-review__header-count strong { color: var(--ink); font-weight: 600; }
+.public-review__header-actions { display: flex; align-items: center; gap: 8px; }
+
 .public-review__notice {
-  margin: 12px 24px 0;
-  padding: 10px 14px;
+  margin: 12px 28px 0;
+  padding: 12px 16px;
   background: rgba(245,158,11,0.08);
   border: 1px solid rgba(245,158,11,0.25);
   border-radius: 8px;
   color: var(--ink);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   line-height: 1.5;
 }
-.public-review .markup-workspace { padding: 16px 24px 24px; flex: 1; min-height: 0; }
-.public-review .markup-workspace__body { min-height: calc(100vh - 200px); }
+.public-review__hint-banner { margin: 12px 28px 0; }
+
+.public-review .markup-workspace { padding: 16px 28px 28px; flex: 1; min-height: 0; }
+.public-review .markup-workspace__body { min-height: calc(100vh - 240px); }
+
+@media (max-width: 768px) {
+  .public-review__header { padding: 14px 16px; }
+  .public-review__header-row--top { padding-bottom: 10px; }
+  .public-review__header-identity { padding: 4px 4px 4px 12px; }
+  .public-review__notice,
+  .public-review__hint-banner { margin-left: 16px; margin-right: 16px; }
+  .public-review .markup-workspace { padding: 12px 16px 20px; }
+}
 
 /* Role picker used in InvitePortalUserModal */
 .role-picker { display: flex; gap: 8px; margin-top: 6px; }
@@ -4203,6 +4237,23 @@ mark.code-highlight {
 }
 .markup-workspace__share-hint { font-size: 0.75rem; color: var(--slate-light); flex-basis: 100%; }
 
+/* "How it works" banner — visible to every audience (admin, portal,
+   public reviewer) so non-tech-savvy users immediately see the workflow
+   without hunting for it. Plain language, friendly tone. */
+.markup-workspace__hint-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px;
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.markup-workspace__hint-icon { font-size: 1rem; flex-shrink: 0; }
+.markup-workspace__hint-banner strong { color: var(--ink); font-weight: 600; }
+.markup-workspace__hint-banner em { color: var(--slate); font-style: normal; background: var(--stone); padding: 1px 6px; border-radius: 4px; font-size: 0.8rem; }
+
 .markup-workspace__body { display: grid; grid-template-columns: 320px 1fr; gap: 16px; min-height: 600px; }
 
 /* When the workspace lives inside the markups modal it can claim much
@@ -4280,6 +4331,7 @@ mark.code-highlight {
 .annotation-pin__byline { font-size: 0.74rem; color: var(--slate-light); margin: -2px 0 2px 0; }
 .annotation-pin__byline strong { color: var(--slate); font-weight: 600; }
 .annotation-pin__meta { display: flex; gap: 8px; align-items: center; }
+.annotation-pin__draft-label { font-size: 0.78rem; font-weight: 600; color: var(--slate); display: block; margin: 0 0 6px; }
 .annotation-pin__actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
 
 /* Thumbnail uploader inside the admin app modal */

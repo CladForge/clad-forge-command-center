@@ -1163,6 +1163,57 @@ BEGIN
 END;
 $$;
 
+-- Upload a screenshot via the public review link. Customers often want
+-- to attach a "here's what I want changed" image, not just drop pins on
+-- existing screens. The set must be active (not completed/archived) and
+-- the image data URI is sanity-capped at ~7MB raw text (5MB binary + b64
+-- overhead).
+CREATE OR REPLACE FUNCTION public.add_screenshot_by_token(
+  p_token text, p_image_url text, p_caption text, p_author_name text
+) RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_set_id text;
+  v_set_status text;
+  v_app_id text;
+  v_new_id text;
+BEGIN
+  SELECT ms.id, ms.status, ms.application_id
+    INTO v_set_id, v_set_status, v_app_id
+  FROM markup_sets ms
+  WHERE ms.share_token = p_token
+  LIMIT 1;
+
+  IF v_set_id IS NULL THEN RETURN NULL; END IF;
+  IF v_set_status <> 'active' THEN RETURN NULL; END IF;
+  -- Reject anything that isn't an image data URI; cap raw text at ~7MB.
+  IF p_image_url IS NULL OR p_image_url NOT LIKE 'data:image/%' THEN RETURN NULL; END IF;
+  IF char_length(p_image_url) > 7340032 THEN RETURN NULL; END IF;
+
+  v_new_id := gen_random_uuid()::text;
+  INSERT INTO app_screenshots (
+    id, application_id, set_id, image_url, caption
+  ) VALUES (
+    v_new_id, v_app_id, v_set_id, p_image_url,
+    coalesce(nullif(trim(p_caption), ''),
+             coalesce(nullif(trim(p_author_name), ''), 'Reviewer') ||
+               ' — ' || to_char(now() AT TIME ZONE 'UTC', 'Mon DD HH24:MI'))
+  );
+
+  -- Notification for admins so the upload doesn't go unnoticed.
+  INSERT INTO notifications (id, text, type, entity_type, entity_id, user_id)
+  VALUES (
+    gen_random_uuid()::text,
+    coalesce(nullif(trim(p_author_name), ''), 'A reviewer') || ' uploaded a screenshot',
+    'info', 'app_screenshot', v_new_id, NULL
+  );
+
+  RETURN v_new_id;
+END;
+$$;
+
 -- Mark a pin resolved via the public link. The author name records who
 -- closed it out from the customer side.
 CREATE OR REPLACE FUNCTION public.resolve_pin_by_token(
@@ -1197,6 +1248,7 @@ GRANT EXECUTE ON FUNCTION public.get_markup_set_by_token(text)   TO anon, authen
 GRANT EXECUTE ON FUNCTION public.get_screenshots_by_token(text)  TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_pins_by_token(text)         TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.add_pin_by_token(text,text,numeric,numeric,text,text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.add_screenshot_by_token(text,text,text,text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.resolve_pin_by_token(text,text,text) TO anon, authenticated;
 
 -- ── Share-token MANAGEMENT (called by admin or middleman from inside the

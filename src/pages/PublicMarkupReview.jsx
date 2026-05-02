@@ -8,13 +8,9 @@ import AnnotatedScreenshot from '../components/AnnotatedScreenshot';
 // the middleman who has the portal account). They follow a /review/:token
 // link, enter their name once (saved to localStorage), and can:
 //   - View all screenshots in the markup set
-//   - Drop new pins with comments
+//   - Upload their own screenshots (paste / drop / file picker)
+//   - Drop new pins with comments on any screenshot
 //   - Mark existing pins as resolved
-//
-// What they CANNOT do:
-//   - See any other markup sets, applications, or client data
-//   - Upload screenshots
-//   - Edit or delete pins (other than resolving them)
 //
 // All data access goes through SECURITY DEFINER RPCs that validate the
 // token server-side. There is no anon SELECT path on the underlying
@@ -46,13 +42,12 @@ export default function PublicMarkupReview() {
   const [pendingName, setPendingName] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [expandedPinId, setExpandedPinId] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
 
   // ── Load via RPCs ────────────────────────────────────────────────────
-  // Initial load runs once for the token. `reload()` is the manual refresh
-  // path called after pin mutations. Splitting these avoids the React
-  // Compiler "synchronous setState in effect" lint while still keeping a
-  // single source of truth for the fetch logic.
   async function reload() {
     if (!token) return;
     const [setRes, ssRes, pinsRes] = await Promise.all([
@@ -117,12 +112,88 @@ export default function PublicMarkupReview() {
     return () => window.removeEventListener('keydown', onKey);
   }, [screenshots.length]);
 
-  // Derive a safe-bounded active index inline so we don't need an effect
-  // to clamp state when screenshots change. `screenshots[idx] || null`
-  // handles the empty-array case naturally.
+  // Derive a safe-bounded active index inline to avoid a clamping effect
   const safeActiveIndex = screenshots.length === 0
     ? 0
     : Math.min(activeIndex, screenshots.length - 1);
+
+  // ── Screenshot upload (paste / drop / file picker) ──────────────────
+  async function uploadFile(file) {
+    if (!file || !file.type?.startsWith('image/')) {
+      setUploadError('That file does not look like an image. Please try a PNG or JPG.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image must be under 5MB. Try a smaller screenshot.');
+      return;
+    }
+    setUploading(true);
+    setUploadError('');
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const dataUri = ev.target.result;
+      const fallbackCaption = file.name && file.name !== 'image.png'
+        ? file.name.replace(/\.[^.]+$/, '')
+        : '';
+      const { data, error } = await supabase.rpc('add_screenshot_by_token', {
+        p_token: token,
+        p_image_url: dataUri,
+        p_caption: fallbackCaption,
+        p_author_name: authorName,
+      });
+      if (error || !data) {
+        setUploadError('Could not upload the image. The link may have expired.');
+        setUploading(false);
+        return;
+      }
+      await reload();
+      // Jump to the new screenshot (it's added at the end since we order by created_at)
+      setActiveIndex(screenshots.length); // off-by-one: works because reload updated screenshots
+      setUploading(false);
+    };
+    reader.onerror = () => {
+      setUploadError('Could not read that image file.');
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleFileInput(e) {
+    const f = e.target.files?.[0];
+    if (f) uploadFile(f);
+    e.target.value = '';
+  }
+
+  function handleDragOver(e) { e.preventDefault(); setIsDragging(true); }
+  function handleDragLeave(e) { if (e.currentTarget === e.target) setIsDragging(false); }
+  function handleDrop(e) {
+    e.preventDefault();
+    setIsDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) uploadFile(f);
+  }
+
+  // Paste anywhere on page (ignoring text inputs)
+  useEffect(() => {
+    function handlePaste(e) {
+      if (!authorName) return; // wait until they've set their name
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type?.startsWith('image/')) {
+          e.preventDefault();
+          const blob = items[i].getAsFile();
+          if (blob) uploadFile(blob);
+          break;
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorName, token]);
 
   // ── Pin actions (RPC-backed) ────────────────────────────────────────
   async function handleAddPin(xPct, yPct, body) {
@@ -138,7 +209,7 @@ export default function PublicMarkupReview() {
       p_author_name: authorName,
     });
     if (error || !data) {
-      alert('Could not add pin. The link may have expired or the set is no longer accepting feedback.');
+      alert('Could not save your comment. The link may have expired or the set is no longer accepting feedback.');
       return false;
     }
     await reload();
@@ -152,7 +223,7 @@ export default function PublicMarkupReview() {
       p_author_name: authorName,
     });
     if (error || !data) {
-      alert('Could not mark resolved. The link may have expired.');
+      alert('Could not mark that comment done. The link may have expired.');
       return;
     }
     await reload();
@@ -205,9 +276,13 @@ export default function PublicMarkupReview() {
         <div className="public-review__center">
           <img src={CLAD_FORGE_LOGO_DATA_URI} alt="Clad Forge" className="public-review__logo" />
           <h1>{application?.name ? `Review: ${application.name}` : 'Markup Review'}</h1>
-          <p style={{ color: 'var(--slate)', maxWidth: 480, lineHeight: 1.6 }}>
-            Enter your name to start adding feedback. We&apos;ll show this name next to
-            any pins you drop so the team knows who left them.
+          <p style={{ color: 'var(--slate)', maxWidth: 520, lineHeight: 1.6, marginBottom: 8 }}>
+            You&apos;ve been invited to review the latest version of
+            {application?.name ? <> <strong>{application.name}</strong></> : ' this app'}.
+          </p>
+          <p style={{ color: 'var(--slate)', maxWidth: 520, lineHeight: 1.6 }}>
+            Type your name below to get started. We&apos;ll use it to tag any
+            feedback you leave so the team knows it came from you.
           </p>
           <form
             onSubmit={e => {
@@ -217,7 +292,7 @@ export default function PublicMarkupReview() {
               try { localStorage.setItem(NAME_STORAGE_KEY, trimmed); } catch { /* ignore */ }
               setAuthorName(trimmed);
             }}
-            style={{ marginTop: 24, width: '100%', maxWidth: 360 }}
+            style={{ marginTop: 24, width: '100%', maxWidth: 380 }}
           >
             <input
               type="text"
@@ -226,18 +301,18 @@ export default function PublicMarkupReview() {
               placeholder="Your name"
               autoFocus
               style={{
-                width: '100%', padding: '12px 14px', fontSize: '0.95rem',
-                border: '1px solid var(--border)', borderRadius: 8,
+                width: '100%', padding: '14px 16px', fontSize: '1rem',
+                border: '1px solid var(--border)', borderRadius: 10,
                 background: 'var(--surface)', color: 'var(--ink)',
               }}
             />
             <button
               type="submit"
               className="btn btn--primary"
-              style={{ width: '100%', marginTop: 12 }}
+              style={{ width: '100%', marginTop: 14, padding: '12px 16px', fontSize: '0.95rem' }}
               disabled={!pendingName.trim()}
             >
-              Start Reviewing
+              Start Reviewing →
             </button>
           </form>
         </div>
@@ -259,49 +334,96 @@ export default function PublicMarkupReview() {
   }
 
   return (
-    <div className="public-review">
-      {/* Header bar — branding + identity */}
+    <div
+      className="public-review"
+      onDragOver={isReadOnly ? undefined : handleDragOver}
+      onDragLeave={isReadOnly ? undefined : handleDragLeave}
+      onDrop={isReadOnly ? undefined : handleDrop}
+    >
+      {isDragging && !isReadOnly && (
+        <div className="app-screenshots__drop-overlay">
+          <div className="app-screenshots__drop-overlay-text">Drop image to upload</div>
+        </div>
+      )}
+
+      {/* Two-row header: brand on top, status + identity + actions below.
+          Spreads everything out so it doesn't feel cramped. */}
       <header className="public-review__header">
-        <div className="public-review__header-brand">
-          <img src={CLAD_FORGE_LOGO_DATA_URI} alt="Clad Forge" />
-          <div>
-            <span className="public-review__app-name">{application?.name || 'Markup Review'}</span>
-            <span className="public-review__set-name">{set.name}</span>
+        <div className="public-review__header-row public-review__header-row--top">
+          <div className="public-review__header-brand">
+            <img src={CLAD_FORGE_LOGO_DATA_URI} alt="Clad Forge" />
+            <div className="public-review__header-brand-text">
+              <span className="public-review__app-name">
+                {application?.name || 'Markup Review'}
+              </span>
+              <span className="public-review__set-name">{set.name}</span>
+            </div>
+          </div>
+          <div className="public-review__header-identity">
+            <span className="public-review__identity-label">Reviewing as</span>
+            <span className="public-review__identity-name">{authorName}</span>
+            <button className="btn btn--ghost btn--sm" onClick={clearName}>
+              Change name
+            </button>
           </div>
         </div>
-        <div className="public-review__header-meta">
-          <span className={`status-pill status-pill--mset-${setStatus}`}>
-            {setStatus === 'completed' ? '✓ Completed' : setStatus === 'archived' ? 'Archived' : 'Active'}
-          </span>
-          <span style={{ fontSize: '0.82rem', color: 'var(--slate)' }}>
-            {totalPins} pin{totalPins !== 1 ? 's' : ''}
-            {totalPins > 0 && ` · ${openPins} open`}
-          </span>
-          <span style={{ fontSize: '0.82rem', color: 'var(--slate)' }}>
-            Reviewing as <strong style={{ color: 'var(--ink)' }}>{authorName}</strong>
-          </span>
-          <button className="btn btn--ghost btn--sm" onClick={clearName}>Change name</button>
+        <div className="public-review__header-row public-review__header-row--bottom">
+          <div className="public-review__header-stats">
+            <span className={`status-pill status-pill--mset-${setStatus}`}>
+              {setStatus === 'completed' ? '✓ Completed' : setStatus === 'archived' ? 'Archived' : 'Active'}
+            </span>
+            <span className="public-review__header-count">
+              <strong>{totalPins}</strong> comment{totalPins !== 1 ? 's' : ''}
+              {totalPins > 0 && <> · <strong>{openPins}</strong> open</>}
+            </span>
+            <span className="public-review__header-count">
+              <strong>{screenshots.length}</strong> screenshot{screenshots.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          {!isReadOnly && (
+            <div className="public-review__header-actions">
+              <label className="btn btn--ghost btn--sm" style={{ cursor: 'pointer' }} title="Upload, paste, or drag in an image">
+                {uploading ? 'Uploading…' : '📷 Add Screenshot'}
+                <input type="file" accept="image/*" onChange={handleFileInput} style={{ display: 'none' }} disabled={uploading} />
+              </label>
+            </div>
+          )}
         </div>
       </header>
 
       {isReadOnly && (
         <div className="public-review__notice">
           This review set is {setStatus}. You can view existing feedback but
-          new pins are no longer being accepted. Contact the team if you need
-          to reopen it.
+          new comments are no longer being accepted. Contact the team if you
+          need to reopen it.
         </div>
       )}
+
+      {/* Friendly how-it-works banner */}
+      {!isReadOnly && (
+        <div className="markup-workspace__hint-banner public-review__hint-banner">
+          <span className="markup-workspace__hint-icon">💡</span>
+          <span>
+            <strong>How it works:</strong> Click anywhere on a screenshot to
+            leave a comment. You can also paste an image
+            (<strong>Ctrl+V</strong>), drag one in, or use{' '}
+            <strong>📷 Add Screenshot</strong> above to add your own.
+          </span>
+        </div>
+      )}
+
+      {uploadError && <div className="modal__error" style={{ margin: '0 24px' }}>{uploadError}</div>}
 
       {/* Reuse the workspace-style layout: sidebar + viewer */}
       <div className="markup-workspace markup-workspace--public" ref={containerRef}>
         <div className="markup-workspace__body">
           <aside className="markup-workspace__sidebar">
             <div className="markup-workspace__sidebar-header">
-              <span>Pins ({totalPins})</span>
+              <span>Comments ({totalPins})</span>
             </div>
             {totalPins === 0 ? (
               <p className="markup-workspace__empty-sidebar">
-                No pins yet. Click anywhere on a screenshot to drop the first one.
+                No comments yet. Click anywhere on a screenshot to leave the first one.
               </p>
             ) : (
               <ul className="markup-pin-list">
@@ -346,8 +468,12 @@ export default function PublicMarkupReview() {
             {!active ? (
               <div className="empty-state" style={{ padding: 60 }}>
                 <span className="empty-state__icon">📸</span>
-                <h3>No screenshots in this set yet</h3>
-                <p>The team hasn&apos;t added any screenshots to review yet. Check back later.</p>
+                <h3>No screenshots in this review yet</h3>
+                <p>
+                  {isReadOnly
+                    ? 'The team hasn’t added any screenshots to review yet.'
+                    : <>Paste an image (<strong>Ctrl+V</strong>), drag one in, or click <strong>📷 Add Screenshot</strong> at the top to add the first one.</>}
+                </p>
               </div>
             ) : (
               <>

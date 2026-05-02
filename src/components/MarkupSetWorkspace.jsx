@@ -300,8 +300,8 @@ export default function MarkupSetWorkspace({
         </div>
         <div className="markup-workspace__actions">
           {!isCompletedSet && set && (
-            <label className="btn btn--ghost btn--sm" style={{ cursor: 'pointer' }}>
-              {uploading ? 'Uploading…' : '+ Screenshot'}
+            <label className="btn btn--ghost btn--sm" style={{ cursor: 'pointer' }} title="Upload, paste, or drag in an image">
+              {uploading ? 'Uploading…' : '📷 Add Screenshot'}
               <input type="file" accept="image/*" onChange={handleFileInput} style={{ display: 'none' }} disabled={uploading} />
             </label>
           )}
@@ -368,6 +368,20 @@ export default function MarkupSetWorkspace({
 
       {uploadError && <div className="modal__error">{uploadError}</div>}
 
+      {/* Friendly how-it-works banner — visible to every audience the first
+          time they land on a workspace. Keeps the language plain so non-
+          technical reviewers know exactly what to do. */}
+      {!isCompletedSet && (
+        <div className="markup-workspace__hint-banner">
+          <span className="markup-workspace__hint-icon">💡</span>
+          <span>
+            <strong>How it works:</strong> Click anywhere on a screenshot to
+            drop a pin and leave a comment. You can also paste an image
+            (Ctrl+V), drag one in, or use <em>Add Screenshot</em> above.
+          </span>
+        </div>
+      )}
+
       {/* Body: sidebar + viewer */}
       <div className="markup-workspace__body">
         {/* Sidebar */}
@@ -377,7 +391,7 @@ export default function MarkupSetWorkspace({
           </div>
           {totalPins === 0 ? (
             <p className="markup-workspace__empty-sidebar">
-              No pins yet. Drop a pin on a screenshot to get started.
+              No comments yet. Click anywhere on a screenshot to add one.
             </p>
           ) : (
             <ul className="markup-pin-list">
@@ -419,8 +433,11 @@ export default function MarkupSetWorkspace({
           {!active ? (
             <div className="empty-state" style={{ padding: 60 }}>
               <span className="empty-state__icon">📸</span>
-              <h3>No screenshots in this set yet</h3>
-              <p>Paste an image (Ctrl+V), drop a file, or click "+ Screenshot" to add one.</p>
+              <h3>Add a screenshot to start</h3>
+              <p>
+                Paste an image with <strong>Ctrl+V</strong>, drag one in,
+                or click <strong>📷 Add Screenshot</strong> at the top.
+              </p>
             </div>
           ) : (
             <>

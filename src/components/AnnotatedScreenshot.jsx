@@ -116,8 +116,12 @@ export default function AnnotatedScreenshot({
                   </div>
                   <div className="annotation-pin__actions">
                     {pin.status === 'open' && onResolvePin && (
-                      <button className="btn btn--primary btn--sm" onClick={() => onResolvePin(pin.id)}>
-                        Mark Resolved
+                      <button
+                        className="btn btn--primary btn--sm"
+                        onClick={() => onResolvePin(pin.id)}
+                        title="Mark this comment as taken care of"
+                      >
+                        ✓ Mark Done
                       </button>
                     )}
                     {canDelete && onDeletePin && (
@@ -149,10 +153,13 @@ export default function AnnotatedScreenshot({
           >
             <span className="annotation-pin__marker annotation-pin__marker--draft">+</span>
             <form className="annotation-pin__popup" onSubmit={submitDraft} onClick={e => e.stopPropagation()}>
+              <label className="annotation-pin__draft-label">
+                Leave a comment about this spot
+              </label>
               <textarea
                 value={draftBody}
                 onChange={e => setDraftBody(e.target.value)}
-                placeholder="What needs attention here?"
+                placeholder="What would you like changed here?"
                 rows={3}
                 autoFocus
                 disabled={submitting}
@@ -171,7 +178,7 @@ export default function AnnotatedScreenshot({
                   className="btn btn--primary btn--sm"
                   disabled={submitting || !draftBody.trim()}
                 >
-                  {submitting ? 'Adding...' : 'Add Pin'}
+                  {submitting ? 'Saving…' : '✓ Submit Comment'}
                 </button>
               </div>
             </form>
@@ -182,8 +189,8 @@ export default function AnnotatedScreenshot({
       {/* Hint text below image — adapts to whether pin-add is wired in */}
       <p className="annotated-screenshot__hint">
         {onAddPin
-          ? 'Click anywhere on the image to drop a pin. Existing pins are numbered; click a pin to see its comment.'
-          : 'Existing pins are numbered; click a pin to see its comment.'}
+          ? 'Click anywhere on the image to leave a comment. Existing comments are numbered — click any one to see the details.'
+          : 'Comments are numbered. Click any one to read the details.'}
       </p>
     </div>
   );
