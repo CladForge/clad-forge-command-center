@@ -14,7 +14,7 @@ import type { Profile, Client, Settings } from '../../lib/types';
 //   - Exhaustive icon-name union for compile-time safety on the icon switch
 //   - Existing CSS keeps working untouched
 
-type IconName = 'dashboard' | 'folder' | 'box' | 'file' | 'send' | 'repeat' | 'paperclip' | 'user' | 'message';
+type IconName = 'dashboard' | 'folder' | 'box' | 'file' | 'send' | 'repeat' | 'user' | 'message';
 
 interface NavItem {
   to: string;
@@ -30,7 +30,6 @@ const NAV: NavItem[] = [
   { to: '/portal/invoices', label: 'Invoices', icon: 'file' },
   { to: '/portal/proposals', label: 'Proposals', icon: 'send' },
   { to: '/portal/expenses', label: 'Recurring', icon: 'repeat' },
-  { to: '/portal/documents', label: 'Documents', icon: 'paperclip' },
   { to: '/portal/account', label: 'Account', icon: 'user' },
 ];
 
@@ -156,12 +155,6 @@ function PortalNavIcon({ name }: { name: IconName }) {
           <path d="M3 11V9a4 4 0 0 1 4-4h14" />
           <polyline points="7 23 3 19 7 15" />
           <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-        </svg>
-      );
-    case 'paperclip':
-      return (
-        <svg {...props}>
-          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
         </svg>
       );
     case 'user':

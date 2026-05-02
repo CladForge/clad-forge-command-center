@@ -9,7 +9,6 @@ import PortalProjectDetail from './pages/portal/PortalProjectDetail';
 import PortalInvoices from './pages/portal/PortalInvoices';
 import PortalProposals from './pages/portal/PortalProposals';
 import PortalRecurring from './pages/portal/PortalRecurring';
-import PortalDocuments from './pages/portal/PortalDocuments';
 import PortalAccount from './pages/portal/PortalAccount';
 import PortalApplications from './pages/portal/PortalApplications';
 import PortalApplicationDetail from './pages/portal/PortalApplicationDetail';
@@ -128,7 +127,6 @@ export default function ClientPortal({ profile, onSignOut }) {
                 <PortalProjectDetail
                   projects={data.projects}
                   invoices={data.invoices}
-                  documents={data.documents}
                   milestones={data.milestones}
                   reloadMilestones={data.reloadMilestones}
                 />
@@ -167,9 +165,6 @@ export default function ClientPortal({ profile, onSignOut }) {
               } />
               <Route path="/portal/expenses" element={
                 <PortalRecurring recurringExpenses={data.recurringExpenses} />
-              } />
-              <Route path="/portal/documents" element={
-                <PortalDocuments documents={data.documents} projects={data.projects} />
               } />
               <Route path="/portal/account" element={
                 <PortalAccount

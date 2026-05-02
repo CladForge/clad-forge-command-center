@@ -23,7 +23,7 @@ function daysUntil(dateStr) {
   return diff;
 }
 
-export default function ProjectDetail({ projects, setProjects, clients, sows, invoices, documents, milestones = [], setMilestones }) {
+export default function ProjectDetail({ projects, setProjects, clients, sows, invoices, milestones = [], setMilestones }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const project = projects.find(p => p.id === id);
@@ -57,10 +57,6 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
   const availableProposals = useMemo(
     () => (sows || []).filter(s => !project?.clientId || s.clientId === project.clientId),
     [sows, project]
-  );
-  const projectDocs = useMemo(
-    () => (documents || []).filter(d => d.projectId === id),
-    [documents, id]
   );
 
   if (!project) {
@@ -650,27 +646,8 @@ export default function ProjectDetail({ projects, setProjects, clients, sows, in
             </div>
           </div>
 
-          {/* Documents */}
-          <div className="panel">
-            <div className="panel__header"><h3>Documents ({projectDocs.length})</h3></div>
-            <div style={{ padding: '12px 16px' }}>
-              {projectDocs.length === 0 ? (
-                <p style={{ color: 'var(--slate)', fontSize: '0.85rem', fontStyle: 'italic', margin: 0 }}>
-                  No documents attached.
-                </p>
-              ) : (
-                projectDocs.map(d => (
-                  <div key={d.id} style={{ padding: 10, marginBottom: 8, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6 }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{d.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--slate)', marginTop: 2 }}>{d.type}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Recent Time section removed when the Time Tracker
-              feature was scrubbed. */}
+          {/* Documents and Recent Time sections removed when their
+              respective features were scrubbed. */}
         </div>
       </div>
 

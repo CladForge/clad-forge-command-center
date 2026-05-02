@@ -19,7 +19,6 @@ const navSections = [
       { path: '/invoices', label: 'Invoices', icon: 'invoices' },
       { path: '/recurring', label: 'Recurring', icon: 'recurring' },
       { path: '/finances', label: 'Finances', icon: 'finances' },
-      { path: '/documents', label: 'Documents', icon: 'documents' },
     ],
   },
   {
@@ -52,7 +51,6 @@ const icons = {
   ai: <><path d="M12 2a4 4 0 0 1 4 4c0 1.1-.45 2.1-1.17 2.83L12 12l-2.83-3.17A4 4 0 0 1 12 2z" /><path d="M12 12l4.24 4.24" /><path d="M12 12l-4.24 4.24" /><path d="M12 12v6" /><circle cx="12" cy="21" r="1" /><circle cx="7.76" cy="19.24" r="1" /><circle cx="16.24" cy="19.24" r="1" /></>,
   automations: <><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></>,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
-  documents: <><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><polyline points="13 2 13 9 20 9" /></>,
 };
 
 export default function Sidebar({ collapsed, onToggle, profile, onSignOut }) {

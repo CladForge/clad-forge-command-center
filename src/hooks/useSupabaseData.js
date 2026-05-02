@@ -11,7 +11,6 @@ import {
   initialDeals,
   initialCrmActivities,
   initialChannelPartners,
-  initialDocuments,
   initialNotifications,
   initialAutomations,
   initialRecurringExpenses,
@@ -55,7 +54,6 @@ const TABLE_COLUMNS = {
   deals: ['id','title','company','contact_name','contact_title','contact_email','contact_phone','stage','source','value','probability','expected_close_date','client_id','priority','next_step','tags','won_at','lost_at','created_at','updated_at','created_by'],
   crm_activities: ['id','deal_id','title','type','description','activity_date','completed','created_at','created_by'],
   channel_partners: ['id','name','title','company','industry','email','phone','location','notes','created_at','created_by'],
-  documents: ['id','name','type','client_id','project_id','file_url','file_size','notes','status','created_at','created_by'],
   notifications: ['id','text','type','entity_type','entity_id','read','user_id','created_at'],
   automations: ['id','name','description','trigger_type','trigger_config','actions','status','run_count','last_run_at','created_at','created_by'],
   recurring_expenses: ['id','client_id','project_id','application_id','title','description','amount','frequency','start_date','next_due','status','category','auto_invoice','notes','created_at','created_by'],
@@ -148,7 +146,6 @@ export function useSupabaseData() {
   const [deals, setDealsState] = useState(initialDeals);
   const [crmActivities, setCrmActivitiesState] = useState(initialCrmActivities);
   const [channelPartners, setChannelPartnersState] = useState(initialChannelPartners);
-  const [documents, setDocumentsState] = useState(initialDocuments);
   const [notifications, setNotificationsState] = useState(initialNotifications);
   const [automations, setAutomationsState] = useState(initialAutomations);
   const [recurringExpenses, setRecurringExpensesState] = useState(initialRecurringExpenses);
@@ -172,7 +169,7 @@ export function useSupabaseData() {
         const [
           clientsRes, projectsRes, sowsRes, activitiesRes, settingsRes,
           invoicesRes, eventsRes,
-          dealsRes, crmActivitiesRes, channelPartnersRes, documentsRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, profilesRes, milestonesRes, applicationsRes, screenshotsRes, pinsRes, markupSetsRes,
+          dealsRes, crmActivitiesRes, channelPartnersRes, notificationsRes, automationsRes, recurringExpensesRes, financeEntriesRes, taxPaymentsRes, clientUsersRes, profilesRes, milestonesRes, applicationsRes, screenshotsRes, pinsRes, markupSetsRes,
         ] = await Promise.all([
           supabase.from('clients').select('*').order('created_at', { ascending: false }),
           supabase.from('projects').select('*').order('created_at', { ascending: false }),
@@ -184,7 +181,6 @@ export function useSupabaseData() {
           supabase.from('deals').select('*').order('created_at', { ascending: false }),
           supabase.from('crm_activities').select('*').order('created_at', { ascending: false }),
           supabase.from('channel_partners').select('*').order('created_at', { ascending: false }),
-          supabase.from('documents').select('*').order('created_at', { ascending: false }),
           supabase.from('notifications').select('*').order('created_at', { ascending: false }),
           supabase.from('automations').select('*').order('created_at', { ascending: false }),
           supabase.from('recurring_expenses').select('*').order('created_at', { ascending: false }),
@@ -224,7 +220,6 @@ export function useSupabaseData() {
         if (dealsRes.data) setDealsState(dealsRes.data.map(snakeToCamel));
         if (crmActivitiesRes.data) setCrmActivitiesState(crmActivitiesRes.data.map(snakeToCamel));
         if (channelPartnersRes.data) setChannelPartnersState(channelPartnersRes.data.map(snakeToCamel));
-        if (documentsRes.data) setDocumentsState(documentsRes.data.map(snakeToCamel));
         if (notificationsRes.data) setNotificationsState(notificationsRes.data.map(snakeToCamel));
         if (automationsRes.data) setAutomationsState(automationsRes.data.map(snakeToCamel));
         if (recurringExpensesRes.data) setRecurringExpensesState(recurringExpensesRes.data.map(snakeToCamel));
@@ -472,12 +467,6 @@ export function useSupabaseData() {
     [addActivity]
   );
 
-  // DOCUMENT CRUD
-  const setDocuments = useCallback(
-    makeSetter(setDocumentsState, 'documents', { labelField: 'name', entityLabel: 'document', icon: 'file' }),
-    [addActivity]
-  );
-
   // NOTIFICATION CRUD
   const setNotifications = useCallback(
     makeSetter(setNotificationsState, 'notifications', { labelField: 'text', entityLabel: 'notification', logActivity: false }),
@@ -595,7 +584,6 @@ export function useSupabaseData() {
     deals, setDeals,
     crmActivities, setCrmActivities,
     channelPartners, setChannelPartners,
-    documents, setDocuments,
     notifications, setNotifications,
     addNotification,
     automations, setAutomations,

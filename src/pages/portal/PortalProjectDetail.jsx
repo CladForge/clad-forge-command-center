@@ -15,7 +15,7 @@ const STAGE_LABELS = {
   'on-hold': 'On Hold',
 };
 
-export default function PortalProjectDetail({ projects, invoices, documents, milestones = [], reloadMilestones }) {
+export default function PortalProjectDetail({ projects, invoices, milestones = [], reloadMilestones }) {
   const navigate = useNavigate();
   const { id } = useParams();
   const project = projects.find(p => p.id === id);
@@ -77,7 +77,6 @@ export default function PortalProjectDetail({ projects, invoices, documents, mil
   }
 
   const projectInvoices = invoices.filter(i => i.projectId === id);
-  const projectDocs = documents.filter(d => d.projectId === id);
   const invoiced = projectInvoices
     .filter(i => i.status !== 'cancelled')
     .reduce((s, inv) =>
@@ -295,28 +294,6 @@ export default function PortalProjectDetail({ projects, invoices, documents, mil
         </div>
       )}
 
-      {projectDocs.length > 0 && (
-        <div className="panel" style={{ marginTop: 20 }}>
-          <div className="panel__header"><h3>Documents</h3></div>
-          <table className="data-table">
-            <thead>
-              <tr><th>Name</th><th>Type</th></tr>
-            </thead>
-            <tbody>
-              {projectDocs.map(d => (
-                <tr key={d.id}>
-                  <td>
-                    {d.fileUrl ? (
-                      <a href={d.fileUrl} target="_blank" rel="noopener noreferrer">{d.name}</a>
-                    ) : d.name}
-                  </td>
-                  <td className="data-table__muted">{d.type}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }

@@ -16,7 +16,6 @@ const pageTitles = {
   '/calendar': 'Calendar',
   '/ai': 'AI Assistant',
   '/automations': 'Automations',
-  '/documents': 'Documents',
   '/onboard': 'Client Onboarding',
 };
 

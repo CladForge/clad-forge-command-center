@@ -31,7 +31,6 @@ export function useClientPortalData(authUserId) {
   const [projects, setProjects] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [sows, setSOWs] = useState([]);
-  const [documents, setDocuments] = useState([]);
   const [recurringExpenses, setRecurringExpenses] = useState([]);
   const [milestones, setMilestones] = useState([]);
   const [applications, setApplications] = useState([]);
@@ -101,12 +100,11 @@ export function useClientPortalData(authUserId) {
     async function loadAll() {
       setLoading(true);
       try {
-        const [clientRes, projectsRes, invoicesRes, sowsRes, documentsRes, recurringRes, settingsRes, applicationsRes] = await Promise.all([
+        const [clientRes, projectsRes, invoicesRes, sowsRes, recurringRes, settingsRes, applicationsRes] = await Promise.all([
           supabase.from('clients').select('*').eq('id', activeClientId).single(),
           supabase.from('projects').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('invoices').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('sows').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
-          supabase.from('documents').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('recurring_expenses').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
           supabase.from('settings').select('*').eq('id', 'default').single(),
           supabase.from('applications').select('*').eq('client_id', activeClientId).order('created_at', { ascending: false }),
@@ -131,7 +129,6 @@ export function useClientPortalData(authUserId) {
             .map(snakeToCamel)
             .filter(s => s.status !== 'draft')
         );
-        setDocuments((documentsRes.data || []).map(snakeToCamel));
         setRecurringExpenses((recurringRes.data || []).map(snakeToCamel));
         if (settingsRes.data) setSettings(snakeToCamel(settingsRes.data));
         // Hide archived applications from clients (admin can see them all
@@ -259,7 +256,6 @@ export function useClientPortalData(authUserId) {
     projects,
     invoices,
     sows,
-    documents,
     recurringExpenses,
     milestones,
     reloadMilestones,

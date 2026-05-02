@@ -296,7 +296,6 @@ export const initialEvents = [];
 export const initialDeals = [];
 export const initialCrmActivities = [];
 export const initialChannelPartners = [];
-export const initialDocuments = [];
 export const initialNotifications = [];
 export const initialAutomations = [];
 export const initialRecurringExpenses = [];

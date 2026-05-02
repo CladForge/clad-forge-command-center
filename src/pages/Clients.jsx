@@ -335,7 +335,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
   const TABS = [
     { id: 'projects', label: `Projects (${clientProjects.length})` },
     { id: 'applications', label: `Applications (${clientApplications.length})` },
-    { id: 'documents', label: `Financials (${invoices.length + clientProposals.length})` },
+    { id: 'financials', label: `Financials (${invoices.length + clientProposals.length})` },
     { id: 'people', label: `People (${contacts.length})` },
     { id: 'portal', label: `Portal Access (${portalUsersForClient.length})` },
     { id: 'notes', label: 'Notes' },
@@ -526,7 +526,7 @@ function ClientProfile({ client, setClients, projects, sows, invoices: allInvoic
       )}
 
       {/* ═══ FINANCIALS TAB ═══ */}
-      {tab === 'documents' && (
+      {tab === 'financials' && (
         <div className="cp__content">
           {/* Proposals */}
           <div className="panel" style={{ marginBottom: 20 }}>
