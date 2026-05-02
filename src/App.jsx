@@ -23,6 +23,7 @@ import Onboarding from './pages/Onboarding';
 import OnboardingReview from './components/OnboardingReview';
 import ProposalSign from './pages/ProposalSign';
 import InvoiceView from './pages/InvoiceView';
+import PublicMarkupReview from './pages/PublicMarkupReview';
 import AcceptInvite from './pages/AcceptInvite';
 import PortalPlaceholder from './components/PortalPlaceholder';
 import ClientPortal from './ClientPortal';
@@ -120,6 +121,7 @@ export default function App() {
         <Route path="/onboard" element={<Onboarding />} />
         <Route path="/sign/:token" element={<ProposalSign />} />
         <Route path="/invoice/:token" element={<InvoiceView />} />
+        <Route path="/review/:token" element={<PublicMarkupReview />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -137,12 +139,20 @@ export default function App() {
     );
   }
 
-  // Public pages — render without sidebar/topbar even when logged in
-  if (window.location.pathname.startsWith('/sign/') || window.location.pathname.startsWith('/invoice/')) {
+  // Public pages — render without sidebar/topbar even when logged in.
+  // Lets an admin or portal user click a /review/:token link from
+  // (e.g.) a test browser session and still see the public surface
+  // exactly as the end customer would.
+  if (
+    window.location.pathname.startsWith('/sign/') ||
+    window.location.pathname.startsWith('/invoice/') ||
+    window.location.pathname.startsWith('/review/')
+  ) {
     return (
       <Routes>
         <Route path="/sign/:token" element={<ProposalSign />} />
         <Route path="/invoice/:token" element={<InvoiceView />} />
+        <Route path="/review/:token" element={<PublicMarkupReview />} />
       </Routes>
     );
   }

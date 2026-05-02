@@ -3897,6 +3897,39 @@ mark.code-highlight {
 .portal-placeholder__actions { margin-bottom: 24px; }
 .portal-placeholder__footer { padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--slate-light); }
 
+/* Public markup review (mounted at /review/:token) — shown to end customers
+   without a portal account. Layout fills the viewport like the admin
+   workspace but without the sidebar/topbar shell. */
+.public-review { flex: 1; width: 100%; min-height: 100vh; display: flex; flex-direction: column; background: var(--stone); }
+.public-review__center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; }
+.public-review__center h1 { font-family: var(--font-display); font-size: 1.6rem; font-weight: 400; color: var(--ink); margin: 0 0 12px 0; letter-spacing: -0.01em; }
+.public-review__logo { width: 56px; height: 56px; margin-bottom: 18px; filter: drop-shadow(0 2px 8px rgba(255,140,0,0.25)); }
+.public-review__header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding: 14px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.public-review__header-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.public-review__header-brand img { width: 32px; height: 32px; flex-shrink: 0; }
+.public-review__header-brand > div { display: flex; flex-direction: column; min-width: 0; }
+.public-review__app-name { font-size: 0.95rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.public-review__set-name { font-size: 0.78rem; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.public-review__header-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.public-review__notice {
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.public-review .markup-workspace { padding: 16px 24px 24px; flex: 1; min-height: 0; }
+.public-review .markup-workspace__body { min-height: calc(100vh - 200px); }
+
 /* Role picker used in InvitePortalUserModal */
 .role-picker { display: flex; gap: 8px; margin-top: 6px; }
 .role-picker__option { flex: 1; padding: 10px 14px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; cursor: pointer; transition: all 0.15s ease; color: var(--slate); font-size: 0.85rem; font-weight: 500; }
@@ -4139,7 +4172,36 @@ mark.code-highlight {
 .markup-workspace__title { flex: 1; min-width: 200px; }
 .markup-workspace__title h3 { font-size: 1.1rem; font-weight: 600; color: var(--ink); margin: 0 0 4px 0; }
 .markup-workspace__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.78rem; color: var(--slate); }
-.markup-workspace__actions { display: flex; gap: 6px; align-items: center; }
+.markup-workspace__actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* Share-link confirmation bar — shows the active /review/:token URL with
+   a hint about who can use it. Visible only when a token has been
+   generated and the set is still active. */
+.markup-workspace__share-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--brand-wash);
+  border: 1px dashed var(--brand-mid);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  color: var(--slate);
+}
+.markup-workspace__share-label { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.markup-workspace__share-url {
+  flex: 1; min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: all;
+}
+.markup-workspace__share-hint { font-size: 0.75rem; color: var(--slate-light); flex-basis: 100%; }
 
 .markup-workspace__body { display: grid; grid-template-columns: 320px 1fr; gap: 16px; min-height: 600px; }
 
@@ -4215,6 +4277,8 @@ mark.code-highlight {
 .annotation-pin__popup { position: absolute; top: 36px; left: 50%; transform: translateX(-50%); width: 280px; background: var(--surface-elevated); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; box-shadow: var(--shadow-lg); z-index: 10; display: flex; flex-direction: column; gap: 8px; }
 .annotation-pin__popup textarea { width: 100%; background: var(--surface); border: 1px solid var(--border-light); color: var(--ink); padding: 8px; border-radius: 6px; font-family: inherit; font-size: 0.85rem; resize: vertical; }
 .annotation-pin__body { font-size: 0.88rem; line-height: 1.5; color: var(--ink); margin: 0; white-space: pre-line; }
+.annotation-pin__byline { font-size: 0.74rem; color: var(--slate-light); margin: -2px 0 2px 0; }
+.annotation-pin__byline strong { color: var(--slate); font-weight: 600; }
 .annotation-pin__meta { display: flex; gap: 8px; align-items: center; }
 .annotation-pin__actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
 

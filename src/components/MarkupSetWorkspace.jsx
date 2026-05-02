@@ -171,6 +171,64 @@ export default function MarkupSetWorkspace({
     if (onChange) await onChange();
   }
 
+  // ── Share-link management (admin + portal users can both manage) ────
+  // Lets the middleman (or admin) generate a /review/:token URL for the
+  // end customer. Token persists on markup_sets.share_token. All
+  // mutations route through the manage_markup_share_token RPC so portal
+  // users (whose RLS forbids direct UPDATE on markup_sets) can also
+  // create/regenerate/revoke for their own client's sets.
+  const [shareCopied, setShareCopied] = useState(false);
+  const shareUrl = set?.shareToken
+    ? `${window.location.origin}/review/${set.shareToken}`
+    : null;
+
+  async function callShareRpc(action) {
+    if (!set) return null;
+    const { data, error } = await supabase.rpc('manage_markup_share_token', {
+      p_set_id: set.id, p_action: action,
+    });
+    if (error) {
+      alert('Could not update share link: ' + error.message);
+      return null;
+    }
+    if (data === null) {
+      alert('You are not authorized to manage this share link.');
+      return null;
+    }
+    if (onChange) await onChange();
+    // RPC returns the new token (or '' for revoke)
+    return data || null;
+  }
+
+  async function copyShareLink() {
+    let token = set?.shareToken;
+    if (!token) {
+      token = await callShareRpc('create');
+      if (!token) return;
+    }
+    const url = `${window.location.origin}/review/${token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // Clipboard API can fail in non-secure contexts — fall back to prompt.
+      window.prompt('Copy this link to share:', url);
+    }
+  }
+
+  async function regenerateShareLink() {
+    if (!set) return;
+    if (!window.confirm('Regenerate the share link? The old link will stop working immediately and anyone using it will need a new URL.')) return;
+    await callShareRpc('regenerate');
+  }
+
+  async function revokeShareLink() {
+    if (!set) return;
+    if (!window.confirm('Revoke the share link? Anyone using it will lose access immediately.')) return;
+    await callShareRpc('revoke');
+  }
+
   // ── Mark set complete (admin only) ──────────────────────────────────
   async function markSetComplete() {
     if (!set) return;
@@ -247,6 +305,37 @@ export default function MarkupSetWorkspace({
               <input type="file" accept="image/*" onChange={handleFileInput} style={{ display: 'none' }} disabled={uploading} />
             </label>
           )}
+          {/* Share link: visible to admins AND portal users so the
+              middleman can generate one for their end customer. */}
+          {set && !isCompletedSet && (
+            <button
+              className="btn btn--ghost btn--sm"
+              onClick={copyShareLink}
+              title={shareUrl
+                ? 'Copy review link — share with the end customer'
+                : 'Generate a public review link for the end customer'}
+            >
+              {shareCopied ? '✓ Copied' : (shareUrl ? '🔗 Copy Review Link' : '🔗 Share with Customer')}
+            </button>
+          )}
+          {set && shareUrl && !isCompletedSet && (
+            <>
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={regenerateShareLink}
+                title="Generate a fresh link (the old one stops working)"
+              >
+                Regenerate
+              </button>
+              <button
+                className="btn btn--ghost btn--sm btn--danger-hover"
+                onClick={revokeShareLink}
+                title="Revoke the link (immediately blocks all access)"
+              >
+                Revoke
+              </button>
+            </>
+          )}
           {isAdmin && set && !isCompletedSet && (
             <button
               className="btn btn--primary btn--sm"
@@ -264,6 +353,18 @@ export default function MarkupSetWorkspace({
           )}
         </div>
       </div>
+
+      {/* Visible share-URL bar when a link exists — confirms what got copied
+          and gives the middleman something to paste into a chat manually. */}
+      {set && shareUrl && !isCompletedSet && (
+        <div className="markup-workspace__share-bar">
+          <span className="markup-workspace__share-label">Public review link:</span>
+          <code className="markup-workspace__share-url">{shareUrl}</code>
+          <span className="markup-workspace__share-hint">
+            Anyone with this link can drop pins and resolve them on this set only.
+          </span>
+        </div>
+      )}
 
       {uploadError && <div className="modal__error">{uploadError}</div>}
 

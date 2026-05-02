@@ -63,8 +63,8 @@ const TABLE_COLUMNS = {
   project_milestones: ['id','project_id','title','description','target_date','status','client_comment','decided_by','decided_at','position','created_at','created_by'],
   applications: ['id','client_id','name','description','url','type','status','launched_at','monthly_cost','notes','thumbnail_url','metadata','created_at','created_by'],
   app_screenshots: ['id','application_id','set_id','image_url','caption','captured_at','captured_by','created_at'],
-  annotation_pins: ['id','screenshot_id','x_pct','y_pct','body','status','author_id','resolved_by','resolved_at','created_at'],
-  markup_sets: ['id','application_id','name','description','target_date','status','completed_at','completed_by','created_at','created_by'],
+  annotation_pins: ['id','screenshot_id','x_pct','y_pct','body','status','author_id','author_name','resolved_by','resolved_at','created_at'],
+  markup_sets: ['id','application_id','name','description','target_date','status','share_token','completed_at','completed_by','created_at','created_by'],
 };
 
 // Strip fields not in the DB table before sending to Supabase

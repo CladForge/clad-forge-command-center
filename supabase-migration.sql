@@ -1037,3 +1037,208 @@ ALTER TABLE recurring_expenses ADD COLUMN IF NOT EXISTS category TEXT;
 UPDATE recurring_expenses SET category = 'other'
 WHERE category IS NULL AND application_id IS NOT NULL;
 
+-- ============= PHASE 9: Public share links for markup sets =============
+-- Lets a portal client (the "middleman") forward a markup set to their
+-- own end customer without requiring the customer to have a portal
+-- account. The customer follows a /review/:token URL, enters their
+-- name once, and can drop pins, leave comments, and resolve pins on
+-- that one set only. No access to anything else in the app.
+--
+-- Schema:
+--   markup_sets.share_token TEXT UNIQUE   -- generated on demand
+--   annotation_pins.author_name TEXT      -- captured for public-link pins
+--                                            (null when an authenticated
+--                                            user dropped the pin)
+
+ALTER TABLE markup_sets ADD COLUMN IF NOT EXISTS share_token TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_markup_sets_share_token
+  ON markup_sets(share_token)
+  WHERE share_token IS NOT NULL;
+
+ALTER TABLE annotation_pins ADD COLUMN IF NOT EXISTS author_name TEXT;
+
+-- ── Public RPCs (SECURITY DEFINER bypasses RLS, validates token inside) ──
+-- Mirrors the pattern already used for invoices and SOWs.
+
+-- Returns the markup set + parent application (id, name) so the public
+-- page can show context. Only the row matching the token, nothing else.
+CREATE OR REPLACE FUNCTION public.get_markup_set_by_token(p_token text)
+RETURNS json
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT json_build_object(
+    'set', row_to_json(ms.*),
+    'application', json_build_object(
+      'id', a.id, 'name', a.name, 'url', a.url,
+      'thumbnail_url', a.thumbnail_url
+    )
+  )
+  FROM markup_sets ms
+  JOIN applications a ON a.id = ms.application_id
+  WHERE ms.share_token = p_token
+    AND ms.status <> 'archived'
+  LIMIT 1;
+$$;
+
+-- All screenshots in the set (no auth_user joins — the share link audience
+-- doesn't need to know who captured each screenshot).
+CREATE OR REPLACE FUNCTION public.get_screenshots_by_token(p_token text)
+RETURNS SETOF json
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT row_to_json(s.*)
+  FROM app_screenshots s
+  JOIN markup_sets ms ON ms.id = s.set_id
+  WHERE ms.share_token = p_token
+  ORDER BY s.created_at ASC;
+$$;
+
+-- All pins on those screenshots, ordered for stable numbering.
+CREATE OR REPLACE FUNCTION public.get_pins_by_token(p_token text)
+RETURNS SETOF json
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT row_to_json(p.*)
+  FROM annotation_pins p
+  JOIN app_screenshots s ON s.id = p.screenshot_id
+  JOIN markup_sets ms ON ms.id = s.set_id
+  WHERE ms.share_token = p_token
+  ORDER BY p.created_at ASC;
+$$;
+
+-- Drop a new pin on a screenshot in the set. Returns the pin id on success
+-- (NULL on failure — invalid token, archived set, screenshot mismatch, etc.).
+CREATE OR REPLACE FUNCTION public.add_pin_by_token(
+  p_token text, p_screenshot_id text,
+  p_x_pct numeric, p_y_pct numeric,
+  p_body text, p_author_name text
+) RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_set_id text;
+  v_app_id text;
+  v_new_id text;
+  v_set_status text;
+BEGIN
+  -- Validate token AND that the screenshot is part of that set
+  SELECT ms.id, ms.status, ms.application_id
+    INTO v_set_id, v_set_status, v_app_id
+  FROM markup_sets ms
+  JOIN app_screenshots s ON s.set_id = ms.id
+  WHERE ms.share_token = p_token AND s.id = p_screenshot_id
+  LIMIT 1;
+
+  IF v_set_id IS NULL THEN RETURN NULL; END IF;
+  -- Don't allow pins on completed/archived sets — read-only at that point
+  IF v_set_status <> 'active' THEN RETURN NULL; END IF;
+  -- Sanity-cap on coordinates and body length
+  IF p_x_pct < 0 OR p_x_pct > 100 OR p_y_pct < 0 OR p_y_pct > 100 THEN RETURN NULL; END IF;
+  IF char_length(coalesce(p_body, '')) > 2000 THEN RETURN NULL; END IF;
+
+  v_new_id := gen_random_uuid()::text;
+  INSERT INTO annotation_pins (
+    id, screenshot_id, x_pct, y_pct, body, status, author_name
+  ) VALUES (
+    v_new_id, p_screenshot_id, p_x_pct, p_y_pct,
+    coalesce(p_body, ''), 'open', nullif(trim(p_author_name), '')
+  );
+
+  -- Drop a notification so admins see new public feedback in the bell.
+  -- user_id stays NULL — the notifications_select policy treats those as
+  -- admin-visible (auth_is_admin() branch). SECURITY DEFINER lets us insert
+  -- past the admin-only INSERT policy.
+  INSERT INTO notifications (id, text, type, entity_type, entity_id, user_id)
+  VALUES (
+    gen_random_uuid()::text,
+    coalesce(nullif(trim(p_author_name), ''), 'A reviewer') || ' left a markup pin',
+    'info', 'markup_pin', v_new_id, NULL
+  );
+
+  RETURN v_new_id;
+END;
+$$;
+
+-- Mark a pin resolved via the public link. The author name records who
+-- closed it out from the customer side.
+CREATE OR REPLACE FUNCTION public.resolve_pin_by_token(
+  p_token text, p_pin_id text, p_author_name text
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  rows_updated int;
+BEGIN
+  UPDATE annotation_pins ap
+  SET status = 'resolved',
+      resolved_at = now(),
+      -- Stash the closer's name in author_name when an internal user didn't.
+      -- We don't have a separate "resolved_by_name" column today; if that
+      -- becomes important we can split it out later.
+      author_name = coalesce(ap.author_name, nullif(trim(p_author_name), ''))
+  FROM app_screenshots s
+  JOIN markup_sets ms ON ms.id = s.set_id
+  WHERE ap.screenshot_id = s.id
+    AND ap.id = p_pin_id
+    AND ms.share_token = p_token
+    AND ms.status = 'active'
+    AND ap.status = 'open';
+  GET DIAGNOSTICS rows_updated = ROW_COUNT;
+  RETURN rows_updated > 0;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_markup_set_by_token(text)   TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_screenshots_by_token(text)  TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_pins_by_token(text)         TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.add_pin_by_token(text,text,numeric,numeric,text,text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.resolve_pin_by_token(text,text,text) TO anon, authenticated;
+
+-- ── Share-token MANAGEMENT (called by admin or middleman from inside the
+-- app, NOT by anon visitors). Bypasses the admin-only markup_sets UPDATE
+-- policy so portal users can also generate/regenerate/revoke a link for
+-- their own client's sets. ────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.manage_markup_share_token(
+  p_set_id text, p_action text
+) RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_client_id text;
+  v_new_token text;
+BEGIN
+  -- Resolve the set's client (via its application) to authorize the caller
+  SELECT a.client_id INTO v_client_id
+  FROM markup_sets ms
+  JOIN applications a ON a.id = ms.application_id
+  WHERE ms.id = p_set_id
+  LIMIT 1;
+
+  IF v_client_id IS NULL THEN RETURN NULL; END IF;
+  IF NOT (auth_is_admin() OR v_client_id = ANY(auth_client_ids())) THEN
+    RETURN NULL;
+  END IF;
+
+  IF p_action = 'revoke' THEN
+    UPDATE markup_sets SET share_token = NULL WHERE id = p_set_id;
+    RETURN '';
+  ELSIF p_action IN ('create','regenerate') THEN
+    -- 32 hex chars by stripping dashes from two uuids — short enough for URLs
+    v_new_token := replace(gen_random_uuid()::text, '-', '')
+                || replace(gen_random_uuid()::text, '-', '');
+    UPDATE markup_sets SET share_token = v_new_token WHERE id = p_set_id;
+    RETURN v_new_token;
+  ELSE
+    RETURN NULL;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.manage_markup_share_token(text,text) TO authenticated;
+

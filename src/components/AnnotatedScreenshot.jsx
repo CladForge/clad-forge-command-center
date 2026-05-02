@@ -45,6 +45,7 @@ export default function AnnotatedScreenshot({
   function handleImageClick(e) {
     if (submitting) return;
     if (draftPin) return; // already adding one
+    if (!onAddPin) return; // read-only mode (no add handler wired)
     const rect = imageRef.current.getBoundingClientRect();
     const xPct = ((e.clientX - rect.left) / rect.width) * 100;
     const yPct = ((e.clientY - rect.top) / rect.height) * 100;
@@ -101,13 +102,20 @@ export default function AnnotatedScreenshot({
               {isExpanded && (
                 <div className="annotation-pin__popup" onClick={e => e.stopPropagation()}>
                   <p className="annotation-pin__body">{pin.body || '(no comment)'}</p>
+                  {(pin.authorName || pin.createdAt) && (
+                    <div className="annotation-pin__byline">
+                      {pin.authorName && <strong>{pin.authorName}</strong>}
+                      {pin.authorName && pin.createdAt && ' · '}
+                      {pin.createdAt && new Date(pin.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                  )}
                   <div className="annotation-pin__meta">
                     <span className={`status-pill priority-pill--${pin.status === 'resolved' ? 'low' : 'normal'}`}>
                       {pin.status === 'resolved' ? 'Resolved' : 'Open'}
                     </span>
                   </div>
                   <div className="annotation-pin__actions">
-                    {isAdmin && pin.status === 'open' && onResolvePin && (
+                    {pin.status === 'open' && onResolvePin && (
                       <button className="btn btn--primary btn--sm" onClick={() => onResolvePin(pin.id)}>
                         Mark Resolved
                       </button>
@@ -171,10 +179,11 @@ export default function AnnotatedScreenshot({
         )}
       </div>
 
-      {/* Hint text below image */}
+      {/* Hint text below image — adapts to whether pin-add is wired in */}
       <p className="annotated-screenshot__hint">
-        Click anywhere on the image to drop a pin. Existing pins are numbered;
-        click a pin to see its comment.
+        {onAddPin
+          ? 'Click anywhere on the image to drop a pin. Existing pins are numbered; click a pin to see its comment.'
+          : 'Existing pins are numbered; click a pin to see its comment.'}
       </p>
     </div>
   );
