@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useClientPortalData } from './hooks/useClientPortalData';
 import PortalSidebar from './components/portal/PortalSidebar';
@@ -21,6 +21,7 @@ export default function ClientPortal({ profile, onSignOut }) {
   const location = useLocation();
   const navigate = useNavigate();
   const data = useClientPortalData(profile?.id);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Apply theme from settings (matches admin app behavior)
   useEffect(() => {
@@ -87,14 +88,16 @@ export default function ClientPortal({ profile, onSignOut }) {
   }
 
   return (
-    <div className="portal">
+    <div className="app">
       <PortalSidebar
         profile={profile}
         activeClient={data.activeClient}
         settings={data.settings}
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(c => !c)}
         onSignOut={onSignOut}
       />
-      <div className="portal-main">
+      <div className={`app__main ${sidebarCollapsed ? 'app__main--expanded' : ''}`}>
         <PortalTopBar
           activeClient={data.activeClient}
           linkedClients={data.linkedClients}
@@ -102,7 +105,7 @@ export default function ClientPortal({ profile, onSignOut }) {
           setActiveClientId={data.setActiveClientId}
           portalRole={data.portalRole}
         />
-        <main className="portal-content">
+        <main className="app__content">
           {data.loading && data.activeClient ? (
             // Subsequent loads (e.g. switching company) — show light spinner
             // but keep layout so it doesn't feel jarring.
@@ -118,6 +121,7 @@ export default function ClientPortal({ profile, onSignOut }) {
                   invoices={data.invoices}
                   sows={data.sows}
                   applications={data.applications}
+                  recurringExpenses={data.recurringExpenses}
                 />
               } />
               <Route path="/portal/projects" element={
