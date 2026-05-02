@@ -479,7 +479,7 @@ export default function PublicMarkupReview() {
               <>
                 <div className="markup-workspace__navbar">
                   <button
-                    className="btn btn--ghost btn--sm"
+                    className="markup-workspace__nav-btn"
                     onClick={() => { setActiveIndex(i => (i - 1 + screenshots.length) % screenshots.length); setExpandedPinId(null); }}
                     disabled={screenshots.length < 2}
                   >
@@ -494,7 +494,7 @@ export default function PublicMarkupReview() {
                     </span>
                   </div>
                   <button
-                    className="btn btn--ghost btn--sm"
+                    className="markup-workspace__nav-btn"
                     onClick={() => { setActiveIndex(i => (i + 1) % screenshots.length); setExpandedPinId(null); }}
                     disabled={screenshots.length < 2}
                   >

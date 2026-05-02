@@ -97,8 +97,12 @@ export default function MarkupSetWorkspace({
         setUploadError(error.message);
       } else if (onChange) {
         await onChange();
-        // Jump to the newly uploaded screenshot
-        setActiveIndex(0);
+        // Jump to the newly added screenshot. Screenshots in the
+        // workspace are now ordered oldest-first (see AppScreenshotsSection),
+        // so the new one is at the end of the array. The closure value of
+        // screenshots.length is N (pre-upload) which equals the new item's
+        // index after the parent reloads.
+        setActiveIndex(screenshots.length);
       }
       setUploading(false);
     };
@@ -441,10 +445,12 @@ export default function MarkupSetWorkspace({
             </div>
           ) : (
             <>
-              {/* Nav bar */}
+              {/* Nav bar — centered prev/next so reviewers can flip pages
+                  easily. Delete sits in the right rail so it doesn't clutter
+                  the primary nav. */}
               <div className="markup-workspace__navbar">
                 <button
-                  className="btn btn--ghost btn--sm"
+                  className="markup-workspace__nav-btn"
                   onClick={() => { setActiveIndex(i => (i - 1 + screenshots.length) % screenshots.length); setExpandedPinId(null); }}
                   disabled={screenshots.length < 2}
                 >
@@ -457,21 +463,22 @@ export default function MarkupSetWorkspace({
                   </span>
                 </div>
                 <button
-                  className="btn btn--ghost btn--sm"
+                  className="markup-workspace__nav-btn"
                   onClick={() => { setActiveIndex(i => (i + 1) % screenshots.length); setExpandedPinId(null); }}
                   disabled={screenshots.length < 2}
                 >
                   Next →
                 </button>
-                <div style={{ flex: 1 }} />
                 {(isAdmin || active.capturedBy === currentUserId) && (
-                  <button
-                    className="btn btn--ghost btn--sm btn--danger-hover"
-                    onClick={handleDeleteScreenshot}
-                    title="Delete this screenshot"
-                  >
-                    Delete
-                  </button>
+                  <div className="markup-workspace__nav-extras">
+                    <button
+                      className="btn btn--ghost btn--sm btn--danger-hover"
+                      onClick={handleDeleteScreenshot}
+                      title="Delete this screenshot"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 )}
               </div>
 

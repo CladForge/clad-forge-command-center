@@ -4288,10 +4288,70 @@ mark.code-highlight {
 
 /* Viewer */
 .markup-workspace__viewer { background: var(--stone); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; max-height: 80vh; overflow-y: auto; }
-.markup-workspace__navbar { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-.markup-workspace__nav-indicator { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.markup-workspace__nav-name { font-size: 0.85rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
-.markup-workspace__nav-counter { font-size: 0.72rem; color: var(--slate-light); }
+/* Page-nav layout: centered indicator with prev/next on either side.
+   The nav buttons are intentionally large + primary-styled so they're
+   hard to miss for non-tech-savvy reviewers. A subtle glow on hover
+   reinforces "this is the action you want." Delete and other extras
+   are pushed to the corners with auto margins so they don't clutter
+   the centered nav. */
+.markup-workspace__navbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 12px 8px 14px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  flex-wrap: wrap;
+}
+.markup-workspace__nav-indicator {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 0;
+  text-align: center;
+  padding: 0 8px;
+}
+.markup-workspace__nav-name { font-size: 0.95rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px; }
+.markup-workspace__nav-counter { font-size: 0.78rem; color: var(--slate); margin-top: 2px; }
+
+/* The big, glowing prev/next buttons. Override .btn--sm so they feel
+   like primary navigation rather than inline ghost actions. */
+.markup-workspace__nav-btn {
+  min-width: 110px;
+  padding: 10px 18px !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  border-radius: 10px;
+  background: var(--brand) !important;
+  color: #fff !important;
+  border: 1px solid var(--brand) !important;
+  box-shadow: 0 2px 12px rgba(255, 140, 0, 0.25);
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+.markup-workspace__nav-btn:hover:not(:disabled) {
+  background: var(--brand-mid) !important;
+  border-color: var(--brand-mid) !important;
+  box-shadow: 0 4px 20px rgba(255, 140, 0, 0.45), 0 0 0 4px rgba(255, 140, 0, 0.12);
+  transform: translateY(-1px);
+}
+.markup-workspace__nav-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(255, 140, 0, 0.3);
+}
+.markup-workspace__nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Push delete (and any other admin extras) to the right edge so the
+   centered nav stays visually balanced. */
+.markup-workspace__nav-extras {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
 
 @media (max-width: 900px) {
   .markup-workspace__body { grid-template-columns: 1fr; }

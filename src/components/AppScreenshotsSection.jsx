@@ -47,7 +47,20 @@ export default function AppScreenshotsSection({
 
   // ── Workspace mode ──────────────────────────────────────────────────
   const activeSet = markupSets.find(s => s.id === activeSetId);
-  const setScreenshots = screenshots.filter(s => s.setId === activeSetId);
+  // Order chronologically (oldest first) so the most recently added
+  // screenshot is the LAST page rather than the first. Matches the
+  // public-review RPC which orders by created_at ASC, and matches
+  // typical reviewer expectation that "I just added a screenshot →
+  // it's at the end". Falls back to id sort if timestamps are missing.
+  const setScreenshots = screenshots
+    .filter(s => s.setId === activeSetId)
+    .slice()
+    .sort((a, b) => {
+      const ta = a.createdAt || '';
+      const tb = b.createdAt || '';
+      if (ta && tb) return ta.localeCompare(tb);
+      return (a.id || '').localeCompare(b.id || '');
+    });
   const ssIds = setScreenshots.map(s => s.id);
   const setPins = pins.filter(p => ssIds.includes(p.screenshotId));
 
