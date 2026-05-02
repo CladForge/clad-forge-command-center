@@ -45,6 +45,10 @@ export default function PublicMarkupReview() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  // After uploading, store the new screenshot's id; an effect below
+  // navigates to it once it appears in the screenshots state. ID-based
+  // so it's immune to the reload timing race.
+  const [pendingActiveScreenshotId, setPendingActiveScreenshotId] = useState(null);
   const containerRef = useRef(null);
 
   // ── Load via RPCs ────────────────────────────────────────────────────
@@ -117,6 +121,18 @@ export default function PublicMarkupReview() {
     ? 0
     : Math.min(activeIndex, screenshots.length - 1);
 
+  // Navigate to a freshly-uploaded screenshot once it appears in the
+  // screenshots list. Robust against any reload timing.
+  useEffect(() => {
+    if (!pendingActiveScreenshotId) return;
+    const idx = screenshots.findIndex(s => s.id === pendingActiveScreenshotId);
+    if (idx !== -1) {
+      setActiveIndex(idx);
+      setExpandedPinId(null);
+      setPendingActiveScreenshotId(null);
+    }
+  }, [pendingActiveScreenshotId, screenshots]);
+
   // ── Screenshot upload (paste / drop / file picker) ──────────────────
   async function uploadFile(file) {
     if (!file || !file.type?.startsWith('image/')) {
@@ -146,9 +162,11 @@ export default function PublicMarkupReview() {
         setUploading(false);
         return;
       }
+      // The RPC returns the new screenshot's id. Mark it as the
+      // navigation target — the effect above navigates to it once
+      // it lands in the screenshots state.
+      setPendingActiveScreenshotId(data);
       await reload();
-      // Jump to the new screenshot (it's added at the end since we order by created_at)
-      setActiveIndex(screenshots.length); // off-by-one: works because reload updated screenshots
       setUploading(false);
     };
     reader.onerror = () => {

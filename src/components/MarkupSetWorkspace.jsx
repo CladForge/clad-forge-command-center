@@ -25,6 +25,12 @@ export default function MarkupSetWorkspace({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  // After an upload we mark the new screenshot's id here. A separate
+  // effect navigates to it when it shows up in the screenshots prop —
+  // this is robust against the timing race where we'd otherwise call
+  // setActiveIndex with a stale length and the clamp effect below
+  // would bump us back to the previous last index.
+  const [pendingActiveScreenshotId, setPendingActiveScreenshotId] = useState(null);
   const containerRef = useRef(null);
 
   // Clamp activeIndex when screenshots change
@@ -35,6 +41,19 @@ export default function MarkupSetWorkspace({
       setActiveIndex(0);
     }
   }, [screenshots.length, activeIndex]);
+
+  // Navigate to a freshly-uploaded screenshot once it appears in the
+  // screenshots prop. Looks up by id so it doesn't matter whether the
+  // parent's reload finishes before or after we set the pending id.
+  useEffect(() => {
+    if (!pendingActiveScreenshotId) return;
+    const idx = screenshots.findIndex(s => s.id === pendingActiveScreenshotId);
+    if (idx !== -1) {
+      setActiveIndex(idx);
+      setExpandedPinId(null);
+      setPendingActiveScreenshotId(null);
+    }
+  }, [pendingActiveScreenshotId, screenshots]);
 
   const active = screenshots[activeIndex] || null;
   const activePins = active ? pins.filter(p => p.screenshotId === active.id) : [];
@@ -95,14 +114,12 @@ export default function MarkupSetWorkspace({
       });
       if (error) {
         setUploadError(error.message);
-      } else if (onChange) {
-        await onChange();
-        // Jump to the newly added screenshot. Screenshots in the
-        // workspace are now ordered oldest-first (see AppScreenshotsSection),
-        // so the new one is at the end of the array. The closure value of
-        // screenshots.length is N (pre-upload) which equals the new item's
-        // index after the parent reloads.
-        setActiveIndex(screenshots.length);
+      } else {
+        // Mark this id as the navigation target BEFORE awaiting reload —
+        // the effect above will navigate to it the moment it lands in
+        // the screenshots prop, regardless of timing.
+        setPendingActiveScreenshotId(newId);
+        if (onChange) await onChange();
       }
       setUploading(false);
     };
