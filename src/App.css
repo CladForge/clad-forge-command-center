@@ -4371,8 +4371,15 @@ mark.code-highlight {
 .app-screenshots__actions { display: flex; gap: 6px; flex-shrink: 0; }
 .app-screenshots__viewer { width: 100%; }
 
-.annotated-screenshot { display: flex; flex-direction: column; gap: 8px; }
-.annotated-screenshot__image-wrap { position: relative; display: inline-block; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--stone); }
+.annotated-screenshot { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+/* align-self prevents the flex column from stretching this wrap to the
+   full available width. Without it, narrower (portrait / small) images
+   leave the wrap wider than the actual <img>, and pins (positioned by
+   percentage of the WRAP) end up shifted right of where the user
+   clicked — the click % was computed against the IMAGE's rect.
+   With align-self: flex-start the wrap shrinks to image-width, keeping
+   click coordinates and pin positions in lockstep. */
+.annotated-screenshot__image-wrap { position: relative; display: inline-block; align-self: flex-start; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--stone); }
 .annotated-screenshot__image { display: block; max-width: 100%; height: auto; cursor: crosshair; user-select: none; }
 .annotated-screenshot__hint { font-size: 0.78rem; color: var(--slate-light); margin: 0; }
 
