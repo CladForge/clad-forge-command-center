@@ -1214,6 +1214,54 @@ BEGIN
 END;
 $$;
 
+-- Delete a pin via the public link. Gated to PUBLIC-created pins only
+-- (author_id IS NULL) so a customer can clean up their own feedback but
+-- can't wipe out pins the team left for them. Set must still be active
+-- — completed/archived sets are read-only by design.
+CREATE OR REPLACE FUNCTION public.delete_pin_by_token(
+  p_token text, p_pin_id text
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE rows_deleted int;
+BEGIN
+  DELETE FROM annotation_pins ap
+  USING app_screenshots s, markup_sets ms
+  WHERE ap.id = p_pin_id
+    AND ap.screenshot_id = s.id
+    AND s.set_id = ms.id
+    AND ms.share_token = p_token
+    AND ms.status = 'active'
+    AND ap.author_id IS NULL;
+  GET DIAGNOSTICS rows_deleted = ROW_COUNT;
+  RETURN rows_deleted > 0;
+END;
+$$;
+
+-- Delete a screenshot via the public link. Gated to PUBLIC-uploaded
+-- screenshots (captured_by IS NULL) so admin uploads stay safe. Pins
+-- on the screenshot cascade-delete via the FK so no orphan rows.
+CREATE OR REPLACE FUNCTION public.delete_screenshot_by_token(
+  p_token text, p_screenshot_id text
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE rows_deleted int;
+BEGIN
+  DELETE FROM app_screenshots s
+  USING markup_sets ms
+  WHERE s.id = p_screenshot_id
+    AND s.set_id = ms.id
+    AND ms.share_token = p_token
+    AND ms.status = 'active'
+    AND s.captured_by IS NULL;
+  GET DIAGNOSTICS rows_deleted = ROW_COUNT;
+  RETURN rows_deleted > 0;
+END;
+$$;
+
 -- Mark a pin resolved via the public link. The author name records who
 -- closed it out from the customer side.
 CREATE OR REPLACE FUNCTION public.resolve_pin_by_token(
@@ -1250,6 +1298,8 @@ GRANT EXECUTE ON FUNCTION public.get_pins_by_token(text)         TO anon, authen
 GRANT EXECUTE ON FUNCTION public.add_pin_by_token(text,text,numeric,numeric,text,text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.add_screenshot_by_token(text,text,text,text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.resolve_pin_by_token(text,text,text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_pin_by_token(text,text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_screenshot_by_token(text,text) TO anon, authenticated;
 
 -- ── Share-token MANAGEMENT (called by admin or middleman from inside the
 -- app, NOT by anon visitors). Bypasses the admin-only markup_sets UPDATE

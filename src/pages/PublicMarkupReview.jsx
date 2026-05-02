@@ -247,6 +247,44 @@ export default function PublicMarkupReview() {
     await reload();
   }
 
+  // Delete a pin (own pins only — RPC checks author_id IS NULL).
+  async function handleDeletePin(pinId) {
+    const { data, error } = await supabase.rpc('delete_pin_by_token', {
+      p_token: token,
+      p_pin_id: pinId,
+    });
+    if (error || !data) {
+      alert('Could not delete this comment. It may have been left by the team rather than you, or the link may have expired.');
+      return;
+    }
+    await reload();
+  }
+
+  // Delete the currently-active screenshot (own uploads only — RPC checks
+  // captured_by IS NULL). Pins cascade-delete via the FK.
+  async function handleDeleteActiveScreenshot() {
+    const target = screenshots[safeActiveIndex];
+    if (!target) return;
+    const pinCount = pins.filter(p => p.screenshotId === target.id).length;
+    const msg = pinCount > 0
+      ? `Delete this screenshot and the ${pinCount} comment${pinCount !== 1 ? 's' : ''} on it? This cannot be undone.`
+      : 'Delete this screenshot? This cannot be undone.';
+    if (!window.confirm(msg)) return;
+    const { data, error } = await supabase.rpc('delete_screenshot_by_token', {
+      p_token: token,
+      p_screenshot_id: target.id,
+    });
+    if (error || !data) {
+      alert('Could not delete this screenshot. The team may have uploaded it, or the link may have expired.');
+      return;
+    }
+    // Step back if we just removed the last screenshot in the list
+    if (safeActiveIndex >= screenshots.length - 1 && safeActiveIndex > 0) {
+      setActiveIndex(safeActiveIndex - 1);
+    }
+    await reload();
+  }
+
   // Click a sidebar pin → jump to its screenshot + expand
   function jumpToPin(pin) {
     const idx = screenshots.findIndex(s => s.id === pin.screenshotId);
@@ -518,6 +556,19 @@ export default function PublicMarkupReview() {
                   >
                     Next →
                   </button>
+                  {/* Show Delete only on screenshots the customer uploaded
+                      themselves (capturedBy is null for public uploads). */}
+                  {!isReadOnly && active.capturedBy == null && (
+                    <div className="markup-workspace__nav-extras">
+                      <button
+                        className="btn btn--ghost btn--sm btn--danger-hover"
+                        onClick={handleDeleteActiveScreenshot}
+                        title="Delete this screenshot (you uploaded it)"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <AnnotatedScreenshot
@@ -527,7 +578,7 @@ export default function PublicMarkupReview() {
                   isAdmin={false}
                   onAddPin={isReadOnly ? null : handleAddPin}
                   onResolvePin={isReadOnly ? null : handleResolvePin}
-                  onDeletePin={null}
+                  onDeletePin={isReadOnly ? null : handleDeletePin}
                   forceExpandPinId={expandedPinId}
                   onPinExpandChange={setExpandedPinId}
                 />
