@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateId, initialSettings } from '../data/initialData';
 import { isBillingActive, monthlyEquivalent, effectiveNextDue } from '../lib/billing';
+import CSVImportModal from '../components/CSVImportModal';
 
 // ─────────────────────────────────────────────────────────────────────
 // Finances — QuickBooks-style P&L + tax tracker.
@@ -48,6 +49,8 @@ export default function Finances({
   const [tab, setTab] = useState('overview');
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [showTaxModal, setShowTaxModal] = useState(false);
+  const [showCSVModal, setShowCSVModal] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
   const [editId, setEditId] = useState(null);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [filterMonth, setFilterMonth] = useState('all');
@@ -238,6 +241,14 @@ export default function Finances({
   function deleteExpense(id) {
     if (!window.confirm('Delete this expense?')) return;
     setEntries(prev => prev.filter(e => e.id !== id));
+  }
+
+  // Bulk-insert CSV-imported rows. The setEntries setter (via
+  // makeSetter) was generalized to handle multi-row additions, so a
+  // single call with the spread payload persists every row + writes
+  // a single "Imported N expenses" activity entry.
+  function importExpenses(records) {
+    setEntries(prev => [...prev, ...records]);
   }
 
   // ── Tax payment CRUD ─────────────────────────────────────────────
@@ -518,19 +529,27 @@ export default function Finances({
       {/* ═══ EXPENSES TAB — manual + bank-link stub ═══ */}
       {tab === 'expenses' && (
         <>
-          {/* Phase 2 stub explaining the planned bank-link flow. */}
+          {/* CSV import — upload a bank export, auto-categorize, review,
+              bulk-save. Live. Plaid bank-link is still Phase 2 (see
+              memory file reference_finances_phase2.md). */}
           <div className="panel" style={{ marginBottom: 16, padding: '14px 18px', background: 'var(--brand-wash)', border: '1px dashed var(--brand-mid)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ fontSize: '0.88rem', color: 'var(--slate)', lineHeight: 1.5, flex: 1, minWidth: 280 }}>
-                <strong style={{ color: 'var(--brand)' }}>Bank-linked expenses — coming soon.</strong>
-                {' '}Connect your business bank or upload a transaction CSV and we&apos;ll
-                auto-categorize and import everything. For now, log expenses manually below.
+                <strong style={{ color: 'var(--brand)' }}>Got a bank statement?</strong>
+                {' '}Export the month&apos;s transactions as CSV from your bank&apos;s online portal,
+                upload here, and we&apos;ll auto-categorize each row and let you review before
+                saving.
+                {importMessage && (
+                  <span style={{ display: 'block', marginTop: 6, color: 'var(--success)', fontWeight: 500 }}>
+                    {importMessage}
+                  </span>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn--ghost btn--sm" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }}>
-                  Connect bank
+                <button className="btn btn--ghost btn--sm" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }} title="Plaid integration is on the roadmap — see Phase 2 memory file">
+                  Connect bank (coming soon)
                 </button>
-                <button className="btn btn--ghost btn--sm" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+                <button className="btn btn--primary btn--sm" onClick={() => { setImportMessage(''); setShowCSVModal(true); }}>
                   Import CSV
                 </button>
               </div>
@@ -752,6 +771,15 @@ export default function Finances({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══ CSV IMPORT MODAL ═══ */}
+      {showCSVModal && (
+        <CSVImportModal
+          onClose={() => setShowCSVModal(false)}
+          onImport={importExpenses}
+          onComplete={count => setImportMessage(`Imported ${count} expense${count === 1 ? '' : 's'} from your bank CSV.`)}
+        />
       )}
 
       {/* ═══ TAX PAYMENT MODAL ═══ */}

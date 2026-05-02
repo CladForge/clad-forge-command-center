@@ -395,11 +395,26 @@ export function useSupabaseData() {
         const next = typeof updater === 'function' ? updater(prev) : updater;
 
         if (next.length > prev.length) {
-          const added = next.find(n => !prev.some(p => p.id === n.id));
-          if (added && connectedRef.current) {
-            safeWrite(tableName, stripForDB(tableName, camelToSnake(added)), { label: `${entityLabel} insert` });
+          // Generalized: handle MULTIPLE additions in one update so
+          // bulk paths (e.g. CSV import) persist every new row, not
+          // just the first. find() used to pick exactly one — that
+          // silently dropped the other 49 rows of a 50-row import.
+          const additions = next.filter(n => !prev.some(p => p.id === n.id));
+          if (connectedRef.current) {
+            for (const added of additions) {
+              safeWrite(tableName, stripForDB(tableName, camelToSnake(added)), { label: `${entityLabel} insert` });
+            }
+            // Activity log: one entry per row when there's just one
+            // (preserves the existing "New X added: name" format),
+            // or a single "Imported N" line for bulk inserts so the
+            // feed doesn't get flooded.
             if (opts.logActivity !== false) {
-              addActivity(activityType, `New ${entityLabel} added: ${added[labelField] || added.name || ''}`, opts.icon || 'plus');
+              if (additions.length === 1) {
+                const added = additions[0];
+                addActivity(activityType, `New ${entityLabel} added: ${added[labelField] || added.name || ''}`, opts.icon || 'plus');
+              } else if (additions.length > 1) {
+                addActivity(activityType, `Imported ${additions.length} ${entityLabel} entries`, opts.icon || 'plus');
+              }
             }
           }
         } else if (next.length < prev.length) {
