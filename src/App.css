@@ -1002,7 +1002,7 @@
 /* Cards are flex columns so their inner content section can `flex: 1`
    into any whitespace left when a sibling card is taller. Without this
    the Pipeline h-bars sat at the top of an over-tall card. */
-.dash__card { background: var(--surface); border-radius: var(--radius-lg); padding: 22px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); animation: fadeInUp 0.35s var(--ease) both; display: flex; flex-direction: column; }
+.dash__card { background: var(--surface); border-radius: var(--radius-lg); padding: 22px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); animation: fadeInUp 0.35s var(--ease) both; display: flex; flex-direction: column; min-width: 0; }
 .dash__card--2 { grid-column: span 1; }
 
 .dash__card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-shrink: 0; }
@@ -1114,16 +1114,17 @@
 
 /* Application health table (Row 3, replaces By Industry). Mini-table of
    apps with status pill, open ticket count, and MRR contribution. */
-.dash__app-health { display: flex; flex-direction: column; flex: 1; min-height: 380px; max-height: 520px; overflow-y: auto; }
+.dash__app-health { display: flex; flex-direction: column; flex: 1; min-height: 380px; max-height: 520px; overflow-y: auto; overflow-x: hidden; }
 .dash__app-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 0;
   border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s;
+  min-width: 0;
 }
 .dash__app-row:last-child { border-bottom: none; }
 .dash__app-row:hover { background: var(--border-light); margin: 0 -8px; padding: 10px 8px; border-radius: 4px; }
 .dash__app-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .dash__app-name { font-size: 0.85rem; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dash__app-client { font-size: 0.72rem; color: var(--slate-light); }
+.dash__app-client { font-size: 0.72rem; color: var(--slate-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dash__app-tickets { font-size: 0.72rem; color: var(--slate-light); flex-shrink: 0; min-width: 56px; text-align: right; }
 .dash__app-tickets--has { color: var(--danger); font-weight: 600; }
 .dash__app-mrr { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink); font-weight: 600; flex-shrink: 0; min-width: 80px; text-align: right; }
